@@ -218,7 +218,7 @@ public class PEmbroiderGraphics {
 	* The filename should include the file type extension. 
 	* Supported embroidery formats are: .DST, .EXP, .JEF, .PEC, .PES, .VP3, and .XXX. 
 	* Additionally supported formats are: .PDF, .SVG, .TSV, and .GCODE. 
-	* 
+	*e
 	* @param  _path output file path. The format will be automatically inferred from the extension.
 	*/
 	public void setPath(String _path) {
