@@ -1,5 +1,8 @@
 package fr.iamacat;
 
+import java.io.File;
+import java.util.ArrayList;
+
 import processing.controlP5.ControlP5;
 import processing.controlP5.Slider;
 import processing.core.PApplet;
@@ -8,9 +11,6 @@ import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderHatchSatin;
 import processing.embroider.PEmbroiderWriter;
-
-import java.io.File;
-import java.util.ArrayList;
 
 public class PEmbroiderApplication extends PApplet {
 
@@ -23,9 +23,11 @@ public class PEmbroiderApplication extends PApplet {
     private boolean showPreview = false;
     private float exportWidth = 95;  // Largeur par défaut en mm
     private float exportHeight = 95; // Hauteur par défaut en mm
-    private float currentSpacing = 5;
+    private float currentSpacing = 1;
     private int currentWidth = 1280;
     private int currentHeight = 720;
+    private boolean isColorMode = true;
+
     private boolean isDialogOpen = false;
 
     public static void main(String[] args) {
@@ -49,6 +51,24 @@ public class PEmbroiderApplication extends PApplet {
         cp5.addButton("loadImage").setPosition(20, 20).setSize(120, 30).setLabel("Charger image").onClick(event -> loadImage());
 
         cp5.addButton("saveFile").setPosition(280, 20).setSize(120, 30).setLabel("Sauvegarder").onClick(event -> saveFile());
+
+        cp5.addToggle("isColorMode")
+                .setPosition(20, 240)
+                .setSize(50, 20)
+                .setValue(isColorMode)
+                .setLabel("Mode Couleur")
+                .onChange(event -> {
+                    isColorMode = event.getController().getValue() == 1;
+                    println("Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
+                    if (img != null) refreshPreview();
+                });
+
+
+        cp5.addButton("invertAlphas")
+                .setPosition(420, 20)
+                .setSize(120, 30)
+                .setLabel("Inverser Alphas")
+                .onClick(event -> invertAlphas());
 
         cp5.addDropdownList("formatSelector")
                 .setPosition(160, 20)
@@ -134,6 +154,19 @@ public class PEmbroiderApplication extends PApplet {
                 .setLabel("Progression");
         progressBar.setVisible(false);
     }
+    private void invertAlphas() {
+        if (embroidery != null) {
+            for (int i = 0; i < embroidery.colors.size(); i++) {
+                int color = embroidery.colors.get(i);
+                int alpha = (color >> 24) & 0xFF; // Extract alpha
+                int invertedAlpha = 255 - alpha; // Invert alpha
+                // Reconstruct the color with the inverted alpha
+                int newColor = (invertedAlpha << 24) | (color & 0x00FFFFFF);
+                embroidery.colors.set(i, newColor); // Update the color
+            }
+            refreshPreview(); // Refresh the preview to show changes
+        }
+    }
 
     private void resetProgressBar() {
         progressBar.setValue(0); // Réinitialiser la barre de progression à 0
@@ -208,22 +241,45 @@ public class PEmbroiderApplication extends PApplet {
             } else {
                 embroidery.clear();
             }
+
+            PImage processedImage = img.copy(); // Make a copy of the image
+
+            if (!isColorMode) {
+                // Convert the image to black and white (grayscale)
+                processedImage.filter(GRAY); // Apply grayscale filter
+            }
+
             embroidery.setStitch(currentSpacing, 5, 0);
-            ArrayList<ArrayList<PVector>> stitches = PEmbroiderHatchSatin.hatchSatinRaster(img, currentSpacing, 5);
+            ArrayList<ArrayList<PVector>> stitches = PEmbroiderHatchSatin.hatchSatinRaster(processedImage, currentSpacing, 5);
             for (int i = 0; i < stitches.size(); i++) {
                 ArrayList<PVector> stitch = stitches.get(i);
-                if (!stitch.isEmpty()) {
+                ArrayList<PVector> validStitch = new ArrayList<>();
+
+                for (PVector point : stitch) {
+                    int x = (int) point.x;
+                    int y = (int) point.y;
+
+                    // Vérifier si le pixel est valide (alpha != 0)
+                    if (processedImage.pixels[y * processedImage.width + x] != 0) {
+                        validStitch.add(point);
+                    }
+                }
+
+                if (!validStitch.isEmpty()) {
                     embroidery.beginShape();
-                    for (PVector point : stitch) embroidery.vertex(point.x, point.y);
+                    for (PVector point : validStitch) {
+                        embroidery.vertex(point.x, point.y);
+                    }
                     embroidery.endShape();
                 }
+
                 progressBar.setValue(PApplet.map(i, 0, stitches.size(), 0, 100)); // Mise à jour de la progression
             }
-            //embroidery.optimize();
             progressBar.setValue(100);
             progressBar.setVisible(false);
         }).start();
     }
+
 
     @Override
     public void draw() {
@@ -240,18 +296,47 @@ public class PEmbroiderApplication extends PApplet {
         pushMatrix();
         translate(x, y);
         noFill();
+
+        // Précalcul des couleurs des polylignes
+        ArrayList<Integer> polylineColors = new ArrayList<>();
+        for (ArrayList<PVector> polyline : embroidery.polylines) {
+            int r = 0, g = 0, b = 0;
+            int count = 0;
+            for (PVector p : polyline) {
+                int pixelColor = img.get((int) p.x, (int) p.y);
+                int alpha = (pixelColor >> 24) & 0xFF;
+                if (alpha > 0) { // Ignore les pixels transparents
+                    r += (pixelColor >> 16) & 0xFF;
+                    g += (pixelColor >> 8) & 0xFF;
+                    b += pixelColor & 0xFF;
+                    count++;
+                }
+            }
+            if (count > 0) {
+                r /= count;
+                g /= count;
+                b /= count;
+                polylineColors.add(color(r, g, b));
+            } else {
+                polylineColors.add(color(0, 0, 0, 0)); // Transparent
+            }
+        }
+
+        // Dessin des polylignes avec les couleurs précalculées
         for (int i = 0; i < embroidery.polylines.size(); i++) {
             ArrayList<PVector> polyline = embroidery.polylines.get(i);
-            int color = embroidery.colors.get(i);
-            stroke(color);
+            int colorToUse = isColorMode ? polylineColors.get(i) : color(0); // Noir en mode noir et blanc
+            stroke(colorToUse);
             beginShape();
             for (PVector p : polyline) {
                 vertex(p.x, p.y);
             }
             endShape();
         }
+
         popMatrix();
     }
+
 
     @Override
     public void keyPressed() {
