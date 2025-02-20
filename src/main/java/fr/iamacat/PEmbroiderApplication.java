@@ -26,6 +26,8 @@ public class PEmbroiderApplication extends PApplet {
     private float currentSpacing = 5;
     private int currentWidth = 1280;
     private int currentHeight = 720;
+    private boolean isDialogOpen = false;
+
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderApplication");
     }
@@ -144,16 +146,23 @@ public class PEmbroiderApplication extends PApplet {
     }
 
     public void loadImage() {
-        selectInput("Sélectionner une image", "imageSelected");
+        if (!isDialogOpen) {
+            isDialogOpen = true;
+            selectInput("Sélectionner une image", "imageSelected");
+        }
     }
 
     public void saveFile() {
-        if (embroidery != null) {
-            selectOutput("Sauvegarder sous", "fileSaved");
+        if (!isDialogOpen) {
+            if (embroidery != null) {
+                isDialogOpen = true;
+                selectOutput("Sauvegarder sous", "fileSaved");
+            }
         }
     }
 
     public void imageSelected(File selection) {
+        isDialogOpen = false;
         if (selection != null) {
             img = loadImage(selection.getAbsolutePath());
             if (img != null) {
@@ -171,6 +180,7 @@ public class PEmbroiderApplication extends PApplet {
     }
 
     public void fileSaved(File selection) {
+        isDialogOpen = false;
         if (selection != null) {
             new Thread(() -> {
                 String path = selection.getAbsolutePath();
