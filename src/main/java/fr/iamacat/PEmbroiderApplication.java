@@ -84,11 +84,10 @@ public class PEmbroiderApplication extends PApplet {
                 .onChange(event -> {
                     try {
                         currentSpacing = Float.parseFloat(event.getController().getStringValue());
-                        println("Espacement mis à jour : " + currentSpacing);
-                        resetProgressBar();  // Réinitialiser la barre de progression
+                        resetProgressBar();
                         if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
-                        println("Valeur invalide pour l'espacement");
+                        println("Invalid Value for Spacing");
                     }
                 });
 
@@ -142,8 +141,6 @@ public class PEmbroiderApplication extends PApplet {
     private void refreshPreview() {
         processImageWithProgress();
         showPreview = true;
-        redraw(); // Force le redessin immédiat
-        println("currentSpacing : " + currentSpacing);
     }
 
     public void loadImage() {
@@ -160,7 +157,6 @@ public class PEmbroiderApplication extends PApplet {
         if (selection != null) {
             img = loadImage(selection.getAbsolutePath());
             if (img != null) {
-                // Redimensionner l'image en fonction des dimensions spécifiées
                 resizeImageToDimensions();
                 processImageWithProgress();
                 showPreview = true;
@@ -170,13 +166,7 @@ public class PEmbroiderApplication extends PApplet {
 
     private void resizeImageToDimensions() {
         if (img != null) {
-            // Convertir les dimensions en millimètres en pixels (1 mm = 3.78 pixels)
-            int newWidth = (int) (exportWidth * 2.71430);
-            int newHeight = (int) (exportHeight * 2.71430);
-
-            // Redimensionner l'image
-            img.resize(newWidth, newHeight);
-            println("Image redimensionnée à " + newWidth + "x" + newHeight + " pixels");
+            img.resize((int) (exportWidth * 2.71430), (int) (exportHeight * 2.71430));
         }
     }
 
@@ -187,21 +177,14 @@ public class PEmbroiderApplication extends PApplet {
                 try {
                     resetProgressBar();
                     boolean isSVG = selectedFormat.equals("SVG");
-
-                    int pesWidth = (int) (exportWidth * 10);  // Convertir en unités PES (1 unité = 0.1 mm)
-                    int pesHeight = (int) (exportHeight * 10);
-
-                    progressBar.setValue(50); // Mise à jour de la progression
-
-                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, pesWidth, pesHeight, isSVG);
-
-                    progressBar.setValue(100); // Progression à 100% une fois terminé
+                    progressBar.setValue(50);
+                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, img.width, img.height, isSVG);
+                    progressBar.setValue(100);
                     progressBar.setVisible(false);
-                    println("Fichier PES sauvegardé avec taille : " + exportWidth + "mm x " + exportHeight + "mm");
                 } catch (Exception e) {
-                    println("Erreur de sauvegarde : " + e.getMessage());
+                    println("Error during saving file : " + e.getMessage());
                 } finally {
-                    progressBar.setValue(0); // Réinitialisation de la progression
+                    progressBar.setValue(0);
                     progressBar.setVisible(false);
                 }
             }).start();
@@ -215,10 +198,8 @@ public class PEmbroiderApplication extends PApplet {
             } else {
                 embroidery.clear();
             }
-
             embroidery.setStitch(currentSpacing, 5, 0);
             ArrayList<ArrayList<PVector>> stitches = PEmbroiderHatchSatin.hatchSatinRaster(img, currentSpacing, 5);
-
             for (int i = 0; i < stitches.size(); i++) {
                 ArrayList<PVector> stitch = stitches.get(i);
                 if (!stitch.isEmpty()) {
@@ -229,8 +210,7 @@ public class PEmbroiderApplication extends PApplet {
                 progressBar.setValue(PApplet.map(i, 0, stitches.size(), 0, 100)); // Mise à jour de la progression
             }
             //embroidery.optimize();
-
-            progressBar.setValue(100); // Progression à 100% une fois terminé
+            progressBar.setValue(100);
             progressBar.setVisible(false);
         }).start();
     }
@@ -238,11 +218,9 @@ public class PEmbroiderApplication extends PApplet {
     @Override
     public void draw() {
         background(240);
-
         if (img != null) {
             image(img, 20, 70, width / 2 - 40, height - 90);
         }
-
         if (showPreview) {
             drawEmbroideryPreview(width / 2 + 20, 70, width / 2 - 40, height - 90);
         }
@@ -251,9 +229,7 @@ public class PEmbroiderApplication extends PApplet {
     private void drawEmbroideryPreview(float x, float y, float w, float h) {
         pushMatrix();
         translate(x, y);
-
         noFill();
-        // Dessiner la prévisualisation de la broderie
         for (int i = 0; i < embroidery.polylines.size(); i++) {
             ArrayList<PVector> polyline = embroidery.polylines.get(i);
             int color = embroidery.colors.get(i);
@@ -266,8 +242,6 @@ public class PEmbroiderApplication extends PApplet {
         }
         popMatrix();
     }
-
-
 
     @Override
     public void keyPressed() {
