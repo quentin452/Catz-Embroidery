@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'  // Add this line for shadow plugin
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url "https://maven.org/processing" }
+}
+
+dependencies {
+    implementation 'org.processing:core:3.3.7' // Add the Processing core library
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+application {
+    mainClassName = 'fr.iamacat.PEmbroiderApplication'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Create a fat JAR with all dependencies
+shadowJar {
+    archiveFileName = 'untitled-dependencies.jar'  // Set the output JAR file name
+}
