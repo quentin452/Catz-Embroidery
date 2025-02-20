@@ -1,7 +1,8 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'  // Add this line for shadow plugin
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'edu.sc.seis.launch4j' version '3.0.6'
 }
 
 group = 'org.example'
@@ -13,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.processing:core:3.3.7' // Add the Processing core library
+    implementation 'org.processing:core:3.3.7'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
@@ -31,7 +32,24 @@ test {
     useJUnitPlatform()
 }
 
-// Create a fat JAR with all dependencies
 shadowJar {
-    archiveFileName = 'untitled-dependencies.jar'  // Set the output JAR file name
+    archiveFileName = 'untitled-dependencies.jar'
+}
+
+launch4j {
+    mainClassName = 'fr.iamacat.PEmbroiderApplication'
+    jreMinVersion = '17'
+    initialHeapSize = 512
+    maxHeapSize = 4096
+    jvmOptions = [
+            '-XX:+UseZGC'
+    ]
+    jarTask = tasks.shadowJar  // Utiliser la tâche shadowJar pour le JAR
+    outputDirectory = file("$buildDir/libs")
+    outfile = 'Catz-Embroidery.exe'
+    copyConfigurable = files(tasks.named("shadowJar").get().archiveFile)
+}
+
+tasks.named("build") {
+    finalizedBy tasks.named("createExe")
 }
