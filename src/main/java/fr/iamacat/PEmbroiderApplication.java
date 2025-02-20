@@ -4,7 +4,9 @@ import processing.controlP5.ControlP5;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
-import processing.embroider.*;
+import processing.embroider.PEmbroiderGraphics;
+import processing.embroider.PEmbroiderHatchSatin;
+import processing.embroider.PEmbroiderWriter;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,21 +36,18 @@ public class PEmbroiderApplication extends PApplet {
     }
 
     private void setupGUI() {
-        // Ajouter un bouton pour charger l'image
         cp5.addButton("loadImage")
                 .setPosition(20, 20)
                 .setSize(120, 30)
                 .setLabel("Charger image")
                 .onClick(event -> loadImage());
 
-        // Ajouter un bouton pour sauvegarder l'image
         cp5.addButton("saveFile")
                 .setPosition(280, 20)
                 .setSize(120, 30)
                 .setLabel("Sauvegarder")
                 .onClick(event -> saveFile());
 
-        // Ajouter un menu déroulant pour sélectionner le format de sortie
         cp5.addDropdownList("formatSelector")
                 .setPosition(160, 20)
                 .setSize(100, 120)
@@ -66,7 +65,6 @@ public class PEmbroiderApplication extends PApplet {
                     }
                 });
 
-        // Activer l'onglet "Principal"
         cp5.getTab("default").activateEvent(true).setLabel("Principal").setId(0);
     }
 
@@ -76,7 +74,6 @@ public class PEmbroiderApplication extends PApplet {
 
     public void saveFile() {
         if (embroidery != null) {
-            // Ouvrir la boîte de dialogue pour choisir l'emplacement de sauvegarde
             selectOutput("Sauvegarder sous", "fileSaved");
         }
     }
@@ -95,7 +92,6 @@ public class PEmbroiderApplication extends PApplet {
         if (selection != null) {
             String path = selection.getAbsolutePath();
             try {
-                // Vérifier le format sélectionné avant d'appeler PEmbroiderWriter
                 boolean isSVG = selectedFormat.equals("SVG");
                 PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, embroidery.width, embroidery.height, isSVG);
                 println("Fichier sauvegardé : " + path);
@@ -143,9 +139,11 @@ public class PEmbroiderApplication extends PApplet {
         translate(x, y);
         scale(w / embroidery.width, h / embroidery.height);
 
-        stroke(255, 0, 0);
         noFill();
-        for (ArrayList<PVector> polyline : embroidery.polylines) {
+        for (int i = 0; i < embroidery.polylines.size(); i++) {
+            ArrayList<PVector> polyline = embroidery.polylines.get(i);
+            int color = embroidery.colors.get(i);
+            stroke(color);
             beginShape();
             for (PVector p : polyline) {
                 vertex(p.x, p.y);
