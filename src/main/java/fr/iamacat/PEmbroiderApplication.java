@@ -5,6 +5,8 @@ import java.util.ArrayList;
 
 import processing.controlP5.ControlP5;
 import processing.controlP5.Slider;
+import processing.controlP5.Textfield;
+import processing.controlP5.Toggle;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -52,16 +54,21 @@ public class PEmbroiderApplication extends PApplet {
 
         cp5.addButton("saveFile").setPosition(280, 20).setSize(120, 30).setLabel("Sauvegarder").onClick(event -> saveFile());
 
-        cp5.addToggle("isColorMode")
+        Toggle isColorModeField = cp5.addToggle("isColorMode")
                 .setPosition(20, 240)
                 .setSize(50, 20)
                 .setValue(isColorMode)
-                .setLabel("Mode Couleur")
                 .onChange(event -> {
                     isColorMode = event.getController().getValue() == 1;
                     println("Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
                     if (img != null) refreshPreview();
                 });
+        isColorModeField.getCaptionLabel()
+                .setPaddingX(0)
+                .setPaddingY(-40)
+                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
+                .setText("Mode Couleur ?")
+                .setColor(color(0));
 
 
         cp5.addButton("invertAlphas")
@@ -97,7 +104,7 @@ public class PEmbroiderApplication extends PApplet {
                     }
                 });
 
-        cp5.addTextfield("stitchSpacing")
+        Textfield stitchSpacingField = cp5.addTextfield("stitchSpacing")
                 .setPosition(20, 120)
                 .setSize(100, 30)
                 .setLabel("Espacement des points")
@@ -112,11 +119,16 @@ public class PEmbroiderApplication extends PApplet {
                         println("Invalid Value for Spacing");
                     }
                 });
+        stitchSpacingField.getCaptionLabel()
+                .setPaddingX(0)
+                .setPaddingY(-40)
+                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
+                .setText("Espacement des points")
+                .setColor(color(0));
 
-        cp5.addTextfield("exportWidth")
+        Textfield exportWidthField = cp5.addTextfield("exportWidth")
                 .setPosition(20, 160)
                 .setSize(100, 30)
-                .setLabel("Largeur (mm)")
                 .setText(str(exportWidth))
                 .setAutoClear(false)
                 .onChange(event -> {
@@ -128,11 +140,16 @@ public class PEmbroiderApplication extends PApplet {
                         println("Valeur invalide pour la largeur");
                     }
                 });
+        exportWidthField.getCaptionLabel()
+                .setPaddingX(0)
+                .setPaddingY(-40)
+                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
+                .setText("Largeur (mm)")
+                .setColor(color(0));
 
-        cp5.addTextfield("exportHeight")
-                .setPosition(20, 200)
+        Textfield exportHeightField = cp5.addTextfield("exportHeight")
+                .setPosition(20, 220)
                 .setSize(100, 30)
-                .setLabel("Hauteur (mm)")
                 .setText(str(exportHeight))
                 .setAutoClear(false)
                 .onChange(event -> {
@@ -144,6 +161,13 @@ public class PEmbroiderApplication extends PApplet {
                         println("Valeur invalide pour la hauteur");
                     }
                 });
+
+        exportHeightField.getCaptionLabel()
+                .setPaddingX(0)
+                .setPaddingY(-40)
+                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
+                .setText("Hauteur (mm)")
+                .setColor(color(0));
 
         // Utilisation d'un Slider comme barre de progression
         progressBar = cp5.addSlider("progressBar")
