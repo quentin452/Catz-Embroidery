@@ -10,13 +10,13 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class PEmbroiderApplication extends PApplet {
-    PImage img;
-    PEmbroiderGraphics embroidery;
-    ControlP5 cp5;
-    String[] formats = {"PES", "DST", "EXP", "SVG"};
-    String selectedFormat = "PES";
-    boolean showPreview = false;
-    int previewType = 0;
+
+    private PImage img;
+    private PEmbroiderGraphics embroidery;
+    private ControlP5 cp5;
+    private String[] formats = {"PES", "DST", "EXP", "SVG"};
+    private String selectedFormat = "PES";
+    private boolean showPreview = false;
 
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderApplication");
@@ -30,37 +30,44 @@ public class PEmbroiderApplication extends PApplet {
     @Override
     public void setup() {
         cp5 = new ControlP5(this);
-        createGUI();
+        setupGUI();
     }
 
-    void createGUI() {
+    private void setupGUI() {
+        // Ajouter un bouton pour charger l'image
         cp5.addButton("loadImage")
                 .setPosition(20, 20)
                 .setSize(120, 30)
-                .setLabel("Charger image");
+                .setLabel("Charger image")
+                .onClick(event -> loadImage());
 
+        // Ajouter un bouton pour sauvegarder l'image
+        cp5.addButton("saveFile")
+                .setPosition(280, 20)
+                .setSize(120, 30)
+                .setLabel("Sauvegarder")
+                .onClick(event -> saveFile());
+
+        // Ajouter un menu déroulant pour sélectionner le format de sortie
         cp5.addDropdownList("formatSelector")
                 .setPosition(160, 20)
                 .setSize(100, 120)
                 .addItems(formats)
-                .setLabel("Format de sortie");
+                .setLabel("Format de sortie")
+                .onChange(event -> {
+                    // Mise à jour du format sélectionné
+                    selectedFormat = formats[(int) event.getController().getValue()];
+                    println("Format sélectionné: " + selectedFormat);
 
-        cp5.addButton("saveFile")
-                .setPosition(280, 20)
-                .setSize(120, 30)
-                .setLabel("Sauvegarder");
+                    // Recharger la prévisualisation avec le nouveau format
+                    if (embroidery != null) {
+                        showPreview = false; // Masquer la prévisualisation pour la redessiner
+                        showPreview = true;  // Forcer l'affichage de la nouvelle prévisualisation
+                    }
+                });
 
-        cp5.addTab("preview")
-                .setLabel("Aperçu")
-                .setWidth(120)
-                .setHeight(30)
-                .activateEvent(true)
-                .setId(1);
-
-        cp5.getTab("default")
-                .activateEvent(true)
-                .setLabel("Principal")
-                .setId(0);
+        // Activer l'onglet "Principal"
+        cp5.getTab("default").activateEvent(true).setLabel("Principal").setId(0);
     }
 
     public void loadImage() {
@@ -69,12 +76,9 @@ public class PEmbroiderApplication extends PApplet {
 
     public void saveFile() {
         if (embroidery != null) {
-            selectOutput("Sauvegarder sous", "fileSaved", null, "embroidery." + selectedFormat.toLowerCase());
+            // Ouvrir la boîte de dialogue pour choisir l'emplacement de sauvegarde
+            selectOutput("Sauvegarder sous", "fileSaved");
         }
-    }
-
-    public void formatSelector(int n) {
-        selectedFormat = formats[n];
     }
 
     public void imageSelected(File selection) {
@@ -87,7 +91,21 @@ public class PEmbroiderApplication extends PApplet {
         }
     }
 
-    void processImage() {
+    public void fileSaved(File selection) {
+        if (selection != null) {
+            String path = selection.getAbsolutePath();
+            try {
+                // Vérifier le format sélectionné avant d'appeler PEmbroiderWriter
+                boolean isSVG = selectedFormat.equals("SVG");
+                PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, embroidery.width, embroidery.height, isSVG);
+                println("Fichier sauvegardé : " + path);
+            } catch (Exception e) {
+                println("Erreur de sauvegarde : " + e.getMessage());
+            }
+        }
+    }
+
+    private void processImage() {
         embroidery = new PEmbroiderGraphics(this, img.width, img.height);
         embroidery.setStitch(10, 5, 0);
 
@@ -107,56 +125,23 @@ public class PEmbroiderApplication extends PApplet {
         embroidery.endDraw();
     }
 
-    public void fileSaved(File selection) {
-        if (selection != null) {
-            String path = selection.getAbsolutePath();
-            try {
-                PEmbroiderWriter.write(path,
-                        embroidery.polylines,
-                        embroidery.colors,
-                        embroidery.width,
-                        embroidery.height,
-                        selectedFormat.equals("SVG"));
-
-                println("Fichier sauvegardé : " + path);
-            } catch (Exception e) {
-                println("Erreur de sauvegarde : " + e.getMessage());
-            }
-        }
-    }
-
     @Override
     public void draw() {
         background(240);
 
-        if (cp5.getTab("default").isActive()) {
-            drawMainInterface();
-        } else if (cp5.getTab("preview").isActive()) {
-            drawPreview();
-        }
-    }
-
-    void drawMainInterface() {
         if (img != null) {
-            image(img, 20, 70, width/2 - 40, height - 90);
+            image(img, 20, 70, width / 2 - 40, height - 90);
         }
 
         if (showPreview) {
-            drawEmbroideryPreview(width/2 + 20, 70, width/2 - 40, height - 90);
+            drawEmbroideryPreview(width / 2 + 20, 70, width / 2 - 40, height - 90);
         }
     }
 
-    void drawPreview() {
-        // Implémenter différents types de prévisualisation ici
-        textSize(20);
-        textAlign(CENTER, CENTER);
-        text("Prévisualisation " + selectedFormat, width/2, height/2);
-    }
-
-    void drawEmbroideryPreview(float x, float y, float w, float h) {
+    private void drawEmbroideryPreview(float x, float y, float w, float h) {
         pushMatrix();
         translate(x, y);
-        scale(w/embroidery.width, h/embroidery.height);
+        scale(w / embroidery.width, h / embroidery.height);
 
         stroke(255, 0, 0);
         noFill();
