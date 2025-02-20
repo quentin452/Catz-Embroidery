@@ -18,27 +18,30 @@ public class PEmbroiderApplication extends PApplet {
     private PEmbroiderGraphics embroidery;
     private ControlP5 cp5;
     private Slider progressBar;  // Utilisation d'un Slider comme barre de progression
-    private String[] formats = {"PES"};
+    private String[] formats = {"PES"/*, "DST", "EXP", "SVG"*/};
     private String selectedFormat = "PES";
     private boolean showPreview = false;
-    private float exportWidth = 100;  // Largeur par défaut en mm
-    private float exportHeight = 100; // Hauteur par défaut en mm
+    private float exportWidth = 95;  // Largeur par défaut en mm
+    private float exportHeight = 95; // Hauteur par défaut en mm
     private float currentSpacing = 5;
-
+    private int currentWidth = 1280;
+    private int currentHeight = 720;
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderApplication");
     }
 
     @Override
     public void settings() {
-        size(1200, 800);
+        size(currentWidth, currentHeight);
     }
 
     @Override
     public void setup() {
+        surface.setResizable(true);
         cp5 = new ControlP5(this);
         setupGUI();
     }
+
 
     private void setupGUI() {
         cp5.addButton("loadImage").setPosition(20, 20).setSize(120, 30).setLabel("Charger image").onClick(event -> loadImage());
@@ -99,6 +102,7 @@ public class PEmbroiderApplication extends PApplet {
                     try {
                         exportWidth = Float.parseFloat(event.getController().getStringValue());
                         println("Largeur mise à jour : " + exportWidth);
+                        if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
                         println("Valeur invalide pour la largeur");
                     }
@@ -114,6 +118,7 @@ public class PEmbroiderApplication extends PApplet {
                     try {
                         exportHeight = Float.parseFloat(event.getController().getStringValue());
                         println("Hauteur mise à jour : " + exportHeight);
+                        if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
                         println("Valeur invalide pour la hauteur");
                     }
@@ -126,6 +131,7 @@ public class PEmbroiderApplication extends PApplet {
                 .setRange(0, 100)
                 .setValue(0)
                 .setLabel("Progression");
+        progressBar.setVisible(false);
     }
 
     private void resetProgressBar() {
@@ -154,9 +160,23 @@ public class PEmbroiderApplication extends PApplet {
         if (selection != null) {
             img = loadImage(selection.getAbsolutePath());
             if (img != null) {
+                // Redimensionner l'image en fonction des dimensions spécifiées
+                resizeImageToDimensions();
                 processImageWithProgress();
                 showPreview = true;
             }
+        }
+    }
+
+    private void resizeImageToDimensions() {
+        if (img != null) {
+            // Convertir les dimensions en millimètres en pixels (1 mm = 3.78 pixels)
+            int newWidth = (int) (exportWidth * 2.71430);
+            int newHeight = (int) (exportHeight * 2.71430);
+
+            // Redimensionner l'image
+            img.resize(newWidth, newHeight);
+            println("Image redimensionnée à " + newWidth + "x" + newHeight + " pixels");
         }
     }
 
@@ -190,11 +210,8 @@ public class PEmbroiderApplication extends PApplet {
 
     private void processImageWithProgress() {
         new Thread(() -> {
-            float scaleX = exportWidth / 100.0f;  // Conversion mm en facteur d'échelle
-            float scaleY = exportHeight / 100.0f;
-
             if (embroidery == null) {
-                embroidery = new PEmbroiderGraphics(this, (int)(img.width * scaleX), (int)(img.height * scaleY));
+                embroidery = new PEmbroiderGraphics(this, img.width, img.height);
             } else {
                 embroidery.clear();
             }
@@ -202,17 +219,16 @@ public class PEmbroiderApplication extends PApplet {
             embroidery.setStitch(currentSpacing, 5, 0);
             ArrayList<ArrayList<PVector>> stitches = PEmbroiderHatchSatin.hatchSatinRaster(img, currentSpacing, 5);
 
-            embroidery.beginDraw();
             for (int i = 0; i < stitches.size(); i++) {
                 ArrayList<PVector> stitch = stitches.get(i);
                 if (!stitch.isEmpty()) {
                     embroidery.beginShape();
-                    for (PVector point : stitch) embroidery.vertex(point.x * scaleX, point.y * scaleY);
+                    for (PVector point : stitch) embroidery.vertex(point.x, point.y);
                     embroidery.endShape();
                 }
                 progressBar.setValue(PApplet.map(i, 0, stitches.size(), 0, 100)); // Mise à jour de la progression
             }
-            embroidery.optimize();
+            //embroidery.optimize();
 
             progressBar.setValue(100); // Progression à 100% une fois terminé
             progressBar.setVisible(false);
@@ -235,9 +251,9 @@ public class PEmbroiderApplication extends PApplet {
     private void drawEmbroideryPreview(float x, float y, float w, float h) {
         pushMatrix();
         translate(x, y);
-        scale(w / embroidery.width, h / embroidery.height);
 
         noFill();
+        // Dessiner la prévisualisation de la broderie
         for (int i = 0; i < embroidery.polylines.size(); i++) {
             ArrayList<PVector> polyline = embroidery.polylines.get(i);
             int color = embroidery.colors.get(i);
@@ -250,6 +266,8 @@ public class PEmbroiderApplication extends PApplet {
         }
         popMatrix();
     }
+
+
 
     @Override
     public void keyPressed() {
