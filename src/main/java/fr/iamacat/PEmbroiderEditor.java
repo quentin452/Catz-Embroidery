@@ -44,8 +44,9 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     static final int TOOL_VERTEX = 2;
     static final int TOOL_PAINT = 3;
     static final int TOOL_FATPAINT = 4;
-    static final int TOOL_TEXT = 5;
-    static final int TOOL_EDIT = 6;
+    static final int TOOL_FINELINE = 5;
+    static final int TOOL_TEXT = 6;
+    static final int TOOL_EDIT = 7;
 
     String[] tooltip = {
             "",
@@ -53,6 +54,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             Translator.getInstance().translate("tooltip_editor_VERTEX"),
             Translator.getInstance().translate("tooltip_editor_PAINT"),
             Translator.getInstance().translate("tooltip_editor_FATPAINT"),
+            Translator.getInstance().translate("tooltip_editor_FINELINE"),
             Translator.getInstance().translate("tooltip_editor_TEXT"),
             Translator.getInstance().translate("tooltip_editor_EDIT"),
     };
@@ -205,15 +207,19 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         render.endDraw();
     }
 
-    void newElementFromPolyBuff(){
+    void newElementFromPolyBuff() {
         Layer lay = layers.get(currentLayer);
-        Element elt = new Element(((tool==TOOL_PAINT) || (tool==TOOL_FATPAINT))?LIN:PLY);
+        Element elt = new Element(((tool == TOOL_PAINT) || (tool == TOOL_FATPAINT) || (tool == TOOL_FINELINE)) ? LIN : PLY);
+
         elt.data = new ArrayList<PVector>(polyBuff);
-        elt.paramF0 = tool == TOOL_FATPAINT ? 60 : 20;
+        elt.paramF0 = (tool == TOOL_FATPAINT) ? 60 : (tool == TOOL_FINELINE ? 1 : 20);
+
         lay.elements.add(elt);
         polyBuff.clear();
         needsUpdate = true;
     }
+
+
 
     void switchTool(int what){
         tool = what;
@@ -282,25 +288,36 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             switchTool(TOOL_FATPAINT);
         }
 
-        fill(tool==TOOL_TEXT?180:255);
+        fill(tool==TOOL_FINELINE?180:255);
         stroke(0);
         strokeWeight(1);
         rect(0,PX*4,PX,PX);
         fill(0);
         textSize(30);
-        text("T",PX/2,PX*4+PX/2-5);
+        text("FL",PX/2,PX*4+PX/2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*4 <= mouseY && mouseY <= PX*5){
+            switchTool(TOOL_FINELINE);
+        }
+
+        fill(tool==TOOL_TEXT?180:255);
+        stroke(0);
+        strokeWeight(1);
+        rect(0,PX*5,PX,PX);
+        fill(0);
+        textSize(30);
+        text("T",PX/2,PX*5+PX/2-5);
+        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*5 <= mouseY && mouseY <= PX*6){
             switchTool(TOOL_TEXT);
         }
 
         fill(tool==TOOL_EDIT?180:255);
         stroke(0);
         strokeWeight(1);
-        rect(0,PX*5,PX,PX);
+        rect(0,PX*6,PX,PX);
         fill(0);
         textSize(30);
-        text("E",PX/2,PX*5+PX/2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*5 <= mouseY && mouseY <= PX*6){
+        text("E",PX/2,PX*6+PX/2-5);
+        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*6 <= mouseY && mouseY <= PX*7){
             switchTool(TOOL_EDIT);
         }
 
@@ -674,7 +691,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         drawGui();
 
         if (mouseOnCanvas()){
-            if (tool == TOOL_FREEHAND || tool == TOOL_PAINT || tool == TOOL_FATPAINT){
+            if (tool == TOOL_FREEHAND || tool == TOOL_PAINT || tool == TOOL_FATPAINT || tool == TOOL_FINELINE){
                 if (mousePressed){
                     PVector p = new PVector(mouseX-PX,mouseY);
                     if (polyBuff.size() == 0 || polyBuff.get(polyBuff.size()-1).dist(p) > 10){
