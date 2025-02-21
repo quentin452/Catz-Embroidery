@@ -19,37 +19,58 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
-application {
-    mainClassName = 'fr.iamacat.PEmbroiderApplication'
-}
-
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-test {
-    useJUnitPlatform()
+// Définir plusieurs classes principales pour différentes applications
+application {
+    mainClassName = 'fr.iamacat.PEmbroiderLauncher'
 }
 
+// Importer le plugin ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+// Configuration du plugin Shadow pour générer le JAR
 shadowJar {
     archiveFileName = 'untitled-dependencies.jar'
 }
 
+
+// Configuration du Launch4j
 launch4j {
-    mainClassName = 'fr.iamacat.PEmbroiderApplication'
+    mainClassName = 'fr.iamacat.PEmbroiderLauncher' // Utiliser le lanceur comme classe principale
     jreMinVersion = '17'
     initialHeapSize = 512
     maxHeapSize = 4096
     jvmOptions = [
             '-XX:+UseZGC'
     ]
-    jarTask = tasks.shadowJar  // Utiliser la tâche shadowJar pour le JAR
+    jarTask = tasks.named("shadowJar")  // Utiliser la tâche shadowJar pour le JAR
     outputDirectory = file("$buildDir/libs")
-    outfile = 'Catz-Embroidery.exe'
+    outfile = 'Catz-EmbroideryLauncher.exe'  // Nom de l'exécutable
     copyConfigurable = files(tasks.named("shadowJar").get().archiveFile)
 }
 
+// Tâches pour chaque application (Editor, Converter)
+
+task buildEditor(type: ShadowJar) {
+    archiveFileName = 'PEmbroiderEditor.jar'
+    manifest {
+        attributes 'Main-Class': 'fr.iamacat.PEmbroiderEditor'
+    }
+}
+
+task buildConverter(type: ShadowJar) {
+    archiveFileName = 'PEmbroiderConverter.jar'
+    manifest {
+        attributes 'Main-Class': 'fr.iamacat.PEmbroiderConverter'
+    }
+}
+
+// Configurer la tâche de build globale
 tasks.named("build") {
+    dependsOn buildEditor, buildConverter
     finalizedBy tasks.named("createExe")
 }

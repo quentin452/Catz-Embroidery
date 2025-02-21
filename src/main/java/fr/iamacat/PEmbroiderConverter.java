@@ -1,20 +1,18 @@
 package fr.iamacat;
 
 import java.io.File;
-import java.util.ArrayList;
 
+import fr.iamacat.utils.Logger;
 import processing.controlP5.ControlP5;
 import processing.controlP5.Slider;
 import processing.controlP5.Textfield;
 import processing.controlP5.Toggle;
 import processing.core.PApplet;
 import processing.core.PImage;
-import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
-import processing.embroider.PEmbroiderHatchSatin;
 import processing.embroider.PEmbroiderWriter;
 
-public class PEmbroiderApplication extends PApplet {
+public class PEmbroiderConverter extends PApplet {
 
     private PImage img;
     private PEmbroiderGraphics embroidery;
@@ -33,7 +31,7 @@ public class PEmbroiderApplication extends PApplet {
     private boolean isDialogOpen = false;
 
     public static void main(String[] args) {
-        PApplet.main("fr.iamacat.PEmbroiderApplication");
+        PApplet.main("fr.iamacat.PEmbroiderConverter");
     }
 
     @Override
@@ -46,6 +44,7 @@ public class PEmbroiderApplication extends PApplet {
         surface.setResizable(true);
         cp5 = new ControlP5(this);
         setupGUI();
+        embroidery = new PEmbroiderGraphics(this, width, height);
     }
 
     private void setupGUI() {
@@ -80,12 +79,12 @@ public class PEmbroiderApplication extends PApplet {
                         int index = (int) values[0];
                         if (index >= 0 && index < formats.length) {
                             selectedFormat = formats[index];
-                            println("Format sélectionné: " + selectedFormat);
+                            Logger.getInstance().log(Logger.Project.Converter,"Format sélectionné: " + selectedFormat);
                         } else {
-                            println("Erreur : index hors limites (" + index + ")");
+                            Logger.getInstance().log(Logger.Project.Converter,"Erreur : index hors limites (" + index + ")");
                         }
                     } else {
-                        println("Erreur : Aucune valeur sélectionnée !");
+                        Logger.getInstance().log(Logger.Project.Converter,"Erreur : Aucune valeur sélectionnée !");
                     }
 
                     // Recharger la prévisualisation avec le nouveau format
@@ -103,7 +102,7 @@ public class PEmbroiderApplication extends PApplet {
                 .setValue(isColorMode)
                 .onChange(event -> {
                     isColorMode = event.getController().getValue() == 1;
-                    println("Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
+                    Logger.getInstance().log(Logger.Project.Converter,"Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
                     if (img != null) refreshPreview();
                 });
         isColorModeField.getCaptionLabel()
@@ -126,7 +125,7 @@ public class PEmbroiderApplication extends PApplet {
                         resetProgressBar();
                         if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
-                        println("Invalid Value for Spacing");
+                        Logger.getInstance().log(Logger.Project.Converter,"Invalid Value for Spacing");
                     }
                 });
         stitchSpacingField.getCaptionLabel()
@@ -144,10 +143,10 @@ public class PEmbroiderApplication extends PApplet {
                 .onChange(event -> {
                     try {
                         exportWidth = Float.parseFloat(event.getController().getStringValue());
-                        println("Largeur mise à jour : " + exportWidth);
+                        Logger.getInstance().log(Logger.Project.Converter,"Largeur mise à jour : " + exportWidth);
                         if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
-                        println("Valeur invalide pour la largeur");
+                        Logger.getInstance().log(Logger.Project.Converter,"Valeur invalide pour la largeur");
                     }
                 });
         exportWidthField.getCaptionLabel()
@@ -165,10 +164,10 @@ public class PEmbroiderApplication extends PApplet {
                 .onChange(event -> {
                     try {
                         exportHeight = Float.parseFloat(event.getController().getStringValue());
-                        println("Hauteur mise à jour : " + exportHeight);
+                        Logger.getInstance().log(Logger.Project.Converter,"Hauteur mise à jour : " + exportHeight);
                         if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
-                        println("Valeur invalide pour la hauteur");
+                        Logger.getInstance().log(Logger.Project.Converter,"Valeur invalide pour la hauteur");
                     }
                 });
         exportHeightField.getCaptionLabel()
@@ -230,22 +229,23 @@ public class PEmbroiderApplication extends PApplet {
     public void imageSelected(File selection) {
         isDialogOpen = false;
         if (selection != null) {
-            img = loadImage(selection.getAbsolutePath());
-            if (img != null) {
-                resizeImageToDimensions();
-                processImageWithProgress();
-                showPreview = true;
+            String fileName = selection.getName().toLowerCase();
+            if (fileName.endsWith(".jpg") || fileName.endsWith(".png") || fileName.endsWith(".jpeg") || fileName.endsWith(".bmp") || fileName.endsWith(".gif")) {
+                img = loadImage(selection.getAbsolutePath());
+                if (img != null) {
+                    refreshPreview();
+                    showPreview = true;
+                } else {
+                    Logger.getInstance().log(Logger.Project.Converter,"Le fichier sélectionné n'est pas une image valide.");
+                }
+            } else {
+                Logger.getInstance().log(Logger.Project.Converter,"Le fichier sélectionné n'est pas un fichier image valide.");
             }
         }
     }
 
-    private void resizeImageToDimensions() {
-        if (img != null) {
-            img.resize((int) (exportWidth * 2.71430), (int) (exportHeight * 2.71430));
-        }
-    }
 
-    public void fileSaved(File selection) {
+   public void fileSaved(File selection) {
         isDialogOpen = false;
         if (selection != null) {
             new Thread(() -> {
@@ -253,25 +253,13 @@ public class PEmbroiderApplication extends PApplet {
                 try {
                     resetProgressBar();
                     boolean isSVG = selectedFormat.equals("SVG");
-
-                    // Créer une nouvelle liste de couleurs en fonction du mode
-                    ArrayList<Integer> colorsToSave = new ArrayList<>();
-                    for (int i = 0; i < embroidery.polylines.size(); i++) {
-                        if (!isColorMode) {
-                            // Mode noir et blanc : utiliser du noir pour toutes les polylignes
-                            colorsToSave.add(color(0)); // Noir
-                        } else {
-                            // Mode couleur : utiliser la couleur d'origine
-                            colorsToSave.add(embroidery.colors.get(i));
-                        }
-                    }
-
                     progressBar.setValue(50);
-                    PEmbroiderWriter.write(path, embroidery.polylines, colorsToSave, img.width, img.height, isSVG);
+                    embroidery.optimize();
+                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, width, height, isSVG); // TODO FIX THIS WRITE WRONG .pes
                     progressBar.setValue(100);
                     progressBar.setVisible(false);
                 } catch (Exception e) {
-                    println("Error during saving file : " + e.getMessage());
+                    Logger.getInstance().log(Logger.Project.Converter,"Error during saving file : " + e.getMessage());
                 } finally {
                     progressBar.setValue(0);
                     progressBar.setVisible(false);
@@ -281,75 +269,45 @@ public class PEmbroiderApplication extends PApplet {
     }
 
     private void processImageWithProgress() {
-        new Thread(() -> {
-            if (embroidery == null) {
-                embroidery = new PEmbroiderGraphics(this, img.width, img.height);
-            } else {
-                embroidery.clear();
-            }
+        if (embroidery == null) {
+            embroidery = new PEmbroiderGraphics(this, img.width, img.height);
+            embroidery.beginDraw();
+        } else {
+            embroidery.beginDraw();
+            embroidery.clear();
+        }
+        img.resize((int) (exportWidth * 2.71430), (int) (exportHeight * 2.71430));
+        // Use the Cull feature to make lines and strokes not overlap
+        embroidery.beginCull();
 
-            PImage processedImage = img.copy();
-            if (!isColorMode) {
-                processedImage.filter(GRAY); // Convertir en noir et blanc
-            }
+        // Draw it once, filled.
+        if (isColorMode) {
+            embroidery.noStroke();
+            embroidery.fill(0, 0, 255); // Blue fill
+            embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+            embroidery.hatchSpacing(4.0F);
+            embroidery.image(img, 860, 70);
+        } else {
+            // Draw it again, but just the stroke this time.
+            embroidery.noFill();
+            embroidery.strokeWeight(30);
+            embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
+            embroidery.strokeSpacing(3.0f);
+            embroidery.stroke(0, 0, 255); // Blue stroke
+            embroidery.image(img, 860, 70);
+        }
 
-            embroidery.setStitch(currentSpacing, 5, 0);
-            ArrayList<ArrayList<PVector>> stitches = PEmbroiderHatchSatin.hatchSatinRaster(processedImage, currentSpacing, 5);
-
-            for (int i = 0; i < stitches.size(); i++) {
-                ArrayList<PVector> stitch = stitches.get(i);
-                ArrayList<PVector> validStitch = new ArrayList<>();
-
-                for (PVector point : stitch) {
-                    int x = (int) point.x;
-                    int y = (int) point.y;
-
-                    if (processedImage.pixels[y * processedImage.width + x] != 0) {
-                        validStitch.add(point);
-                    }
-                }
-
-                if (!validStitch.isEmpty()) {
-                    embroidery.beginShape();
-                    for (PVector point : validStitch) {
-                        embroidery.vertex(point.x, point.y);
-                    }
-                    embroidery.endShape();
-
-                    // Définir la couleur en fonction du mode
-                    if (!isColorMode) {
-                        embroidery.colors.add(color(0)); // Noir en mode noir et blanc
-                    } else {
-                        // Calculer la couleur moyenne pour la polyligne
-                        int r = 0, g = 0, b = 0;
-                        int count = 0;
-                        for (PVector p : validStitch) {
-                            int pixelColor = img.get((int) p.x, (int) p.y);
-                            r += (pixelColor >> 16) & 0xFF;
-                            g += (pixelColor >> 8) & 0xFF;
-                            b += pixelColor & 0xFF;
-                            count++;
-                        }
-                        if (count > 0) {
-                            r /= count;
-                            g /= count;
-                            b /= count;
-                            embroidery.colors.add(color(r, g, b));
-                        } else {
-                            embroidery.colors.add(color(0, 0, 0, 0)); // Transparent
-                        }
-                    }
-                }
-
-                progressBar.setValue(PApplet.map(i, 0, stitches.size(), 0, 100)); // Mise à jour de la progression
-            }
-
-            progressBar.setValue(100); // Progression à 100%
-            progressBar.setVisible(false);
-        }).start();
+        embroidery.endCull();
+        // PEmbroiderGraphics.DRUNK; seem to be bugged ?
+       /* embroidery.HATCH_MODE = PEmbroiderGraphics.CROSS; // TODO ADD A DROPDOWN TO CHOOSE SOME HATCH_MODE
+        img.resize((int) (exportWidth * 2.71430), (int) (exportHeight * 2.71430));
+        if (isColorMode) {
+            embroidery.fill(0, 0, 0);
+        } else {
+            embroidery.noFill();
+        }
+        embroidery.image(img, 860, 70);*/
     }
-
-
 
     @Override
     public void draw() {
@@ -358,59 +316,21 @@ public class PEmbroiderApplication extends PApplet {
             image(img, 190, 70, width / 2 - 40, height - 90);
         }
         if (showPreview) {
-            drawEmbroideryPreview(width / 2 + 180, 70);
+            embroidery.visualize(true, false,false, Integer.MAX_VALUE);
         }
     }
 
-
-    private void drawEmbroideryPreview(float x, float y) {
-        pushMatrix();
-        translate(x, y);
-        noFill();
-
-        ArrayList<ArrayList<PVector>> polylineCopies = new ArrayList<>(embroidery.polylines);
-        ArrayList<Integer> polylineColors = new ArrayList<>();
-
-        for (ArrayList<PVector> polyline : polylineCopies) {
-            int r = 0, g = 0, b = 0;
-            int count = 0;
-            for (PVector p : polyline) {
-                int pixelColor = img.get((int) p.x, (int) p.y);
-                int alpha = (pixelColor >> 24) & 0xFF;
-                if (alpha > 0) { // Ignore les pixels transparents
-                    r += (pixelColor >> 16) & 0xFF;
-                    g += (pixelColor >> 8) & 0xFF;
-                    b += pixelColor & 0xFF;
-                    count++;
-                }
-            }
-            if (count > 0) {
-                r /= count;
-                g /= count;
-                b /= count;
-                polylineColors.add(color(r, g, b));
-            } else {
-                polylineColors.add(color(0, 0, 0, 0)); // Transparent
-            }
-        }
-
-        for (int i = 0; i < polylineCopies.size(); i++) {
-            ArrayList<PVector> polyline = polylineCopies.get(i);
-            int colorToUse = isColorMode ? polylineColors.get(i) : color(0); // Noir en mode noir et blanc
-            stroke(colorToUse); // Appliquer la couleur
-            beginShape();
-            for (PVector p : polyline) {
-                vertex(p.x, p.y);
-            }
-            endShape();
-        }
-
-        popMatrix();
-    }
     @Override
     public void keyPressed() {
         if (key == 'p') {
             showPreview = !showPreview;
         }
+    }
+
+    public void exit() {
+        // Sauvegarder les logs et archiver le fichier log au départ
+        Logger.getInstance().log(Logger.Project.Converter,"Fermeture de l'application");
+        Logger.getInstance().archiveLogs();
+        super.exit();
     }
 }
