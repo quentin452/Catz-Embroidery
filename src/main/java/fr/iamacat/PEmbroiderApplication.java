@@ -276,29 +276,29 @@ public class PEmbroiderApplication extends PApplet {
                 embroidery.clear();
             }
 
-            PImage processedImage = img.copy(); // Make a copy of the image
+            PImage processedImage = img.copy(); // Copie de l'image traitée
 
             if (!isColorMode) {
-                // Convert the image to black and white (grayscale)
-                processedImage.filter(GRAY); // Apply grayscale filter
+                processedImage.filter(GRAY); // Appliquer un filtre noir et blanc
             }
 
             embroidery.setStitch(currentSpacing, 5, 0);
             ArrayList<ArrayList<PVector>> stitches = PEmbroiderHatchSatin.hatchSatinRaster(processedImage, currentSpacing, 5);
+
             for (int i = 0; i < stitches.size(); i++) {
                 ArrayList<PVector> stitch = stitches.get(i);
                 ArrayList<PVector> validStitch = new ArrayList<>();
 
+                // Sécuriser l'itération et éviter la modification concurrente
                 for (PVector point : stitch) {
                     int x = (int) point.x;
                     int y = (int) point.y;
-
-                    // Vérifier si le pixel est valide (alpha != 0)
                     if (processedImage.pixels[y * processedImage.width + x] != 0) {
                         validStitch.add(point);
                     }
                 }
 
+                // Si le "stitch" contient des points valides, on l'ajoute
                 if (!validStitch.isEmpty()) {
                     embroidery.beginShape();
                     for (PVector point : validStitch) {
@@ -309,11 +309,11 @@ public class PEmbroiderApplication extends PApplet {
 
                 progressBar.setValue(PApplet.map(i, 0, stitches.size(), 0, 100)); // Mise à jour de la progression
             }
-            progressBar.setValue(100);
+
+            progressBar.setValue(100); // Progression à 100%
             progressBar.setVisible(false);
         }).start();
     }
-
 
     @Override
     public void draw() {
@@ -331,9 +331,12 @@ public class PEmbroiderApplication extends PApplet {
         translate(x, y);
         noFill();
 
+        // Créer une copie des polylignes pour éviter les modifications concurrentes
+        ArrayList<ArrayList<PVector>> polylineCopies = new ArrayList<>(embroidery.polylines);
+
         // Précalcul des couleurs des polylignes
         ArrayList<Integer> polylineColors = new ArrayList<>();
-        for (ArrayList<PVector> polyline : embroidery.polylines) {
+        for (ArrayList<PVector> polyline : polylineCopies) {
             int r = 0, g = 0, b = 0;
             int count = 0;
             for (PVector p : polyline) {
@@ -357,8 +360,8 @@ public class PEmbroiderApplication extends PApplet {
         }
 
         // Dessin des polylignes avec les couleurs précalculées
-        for (int i = 0; i < embroidery.polylines.size(); i++) {
-            ArrayList<PVector> polyline = embroidery.polylines.get(i);
+        for (int i = 0; i < polylineCopies.size(); i++) {
+            ArrayList<PVector> polyline = polylineCopies.get(i);
             int colorToUse = isColorMode ? polylineColors.get(i) : color(0); // Noir en mode noir et blanc
             stroke(colorToUse);
             beginShape();
@@ -370,7 +373,6 @@ public class PEmbroiderApplication extends PApplet {
 
         popMatrix();
     }
-
 
     @Override
     public void keyPressed() {
