@@ -250,12 +250,14 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
         }
     }
 
-
-   public void fileSaved(File selection) {
+    public void fileSaved(File selection) {
         isDialogOpen = false;
         if (selection != null) {
             new Thread(() -> {
                 String path = selection.getAbsolutePath();
+                if (!path.contains(".")) {
+                    path += ".pes";
+                }
                 try {
                     resetProgressBar();
                     boolean isSVG = selectedFormat.equals("SVG");

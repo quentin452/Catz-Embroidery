@@ -321,28 +321,39 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
     private void saveFile() {
         javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-        fileChooser.setDialogTitle("Save embroidery file");
+        fileChooser.setDialogTitle("Enregistrer le fichier de broderie");
+        javax.swing.filechooser.FileNameExtensionFilter pesFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers PES (*.pes)", "pes");
+        javax.swing.filechooser.FileNameExtensionFilter svgFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers SVG (*.svg)", "svg");
+        javax.swing.filechooser.FileNameExtensionFilter dstFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers DST (*.dst)", "dst");
+        fileChooser.addChoosableFileFilter(pesFilter);
+        fileChooser.addChoosableFileFilter(svgFilter);
+        fileChooser.addChoosableFileFilter(dstFilter);
+        fileChooser.setFileFilter(pesFilter);
         int userSelection = fileChooser.showSaveDialog(null);
         if (userSelection == javax.swing.JFileChooser.APPROVE_OPTION) {
             File fileToSave = fileChooser.getSelectedFile();
-            Logger.getInstance().log(Logger.Project.Editor, "Save as file: " + fileToSave.getAbsolutePath());
+            String filePath = fileToSave.getAbsolutePath();
+            if (!filePath.contains(".")) {
+                if (fileChooser.getFileFilter() == pesFilter) {
+                    filePath += ".pes";
+                } else if (fileChooser.getFileFilter() == svgFilter) {
+                    filePath += ".svg";
+                } else if (fileChooser.getFileFilter() == dstFilter) {
+                    filePath += ".dst";
+                }
+                fileToSave = new File(filePath);
+            }
+            Logger.getInstance().log(Logger.Project.Editor, "Enregistrer le fichier sous : " + fileToSave.getAbsolutePath());
+            javax.swing.JOptionPane.showMessageDialog(null, "Optimisation de l'ordre des points et enregistrement du fichier, cela peut prendre un certain temps...");
             writeOut(fileToSave.getAbsolutePath());
-        }
-
-        String path = (String) javax.swing.JOptionPane.showInputDialog(null,
-                "Path is relative to the sketch folder, use / for starting absolute paths",
-                "Save Embroidery File",
-                javax.swing.JOptionPane.QUESTION_MESSAGE,
-                null,
-                null,
-                "untitled.vp3");
-
-        if (path != null && path.length() > 0) {
-            javax.swing.JOptionPane.showMessageDialog(null, "Optimizing stroke order and saving file, this might take a while...");
-            writeOut(sketchPath(path));
-            javax.swing.JOptionPane.showMessageDialog(null, "Embroidery file saved!");
+            javax.swing.JOptionPane.showMessageDialog(null, "Fichier de broderie enregistré avec succès !");
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(null, "Enregistrement annulé par l'utilisateur.");
         }
     }
+
+
+
 
     void drawLayersGui(){
         int ww = width-PX-W;
