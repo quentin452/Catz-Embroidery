@@ -3,7 +3,6 @@ package fr.iamacat;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
-import fr.iamacat.utils.Updater;
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PVector;
@@ -19,6 +18,9 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     private final int currentWidth = 1280;
     private final int currentHeight = 720;
     private boolean enableEscapeMenu = false , isDialogOpen = false;
+    ArrayList<ArrayList<Layer>> undoStack = new ArrayList<>();
+    ArrayList<ArrayList<Layer>> redoStack = new ArrayList<>();
+
     public void settings() {
         size(currentWidth, currentHeight);
     }
@@ -30,11 +32,6 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     int H = currentHeight;
 
     int PX = 40;
-
-    void defaultSettings(PEmbroiderGraphics E){
-        // put additional settings for each layer here
-        // e.g. E.hatchAngleDeg(30);
-    }
 
     static final int LIN = 1;
     static final int PLY = 2;
@@ -80,25 +77,23 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
     }
 
-    class Element{
+    static class Element{
         int type;
         ArrayList<PVector> data;
         float paramF0;
-        float paramF1;
         String paramS0;
         Element(int _type){
             type = _type;
-            data = new ArrayList<PVector>();
+            data = new ArrayList<>();
         }
     }
-    class Layer{
+    class Layer implements Cloneable{
         int hatchMode = PEmbroiderGraphics.CONCENTRIC;
         int strokeMode = PEmbroiderGraphics.TANGENT;
         int hatchColor = color(0,0,255);
         int strokeColor = color(255,0,0);
         float hatchSpacing = 4;
         float strokeWeight = 10;
-        float paintWeight = 20;
         boolean visible = true;
         boolean cull = true;
         ArrayList<Element> elements;
@@ -109,15 +104,19 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
         Layer(){
             E = new PEmbroiderGraphics(app,W,H);
-            defaultSettings(E);
 
             render = createGraphics(W,H);
             render.beginDraw();
             render.background(0);
             render.endDraw();
 
-            elements = new ArrayList<Element>();
+            elements = new ArrayList<>();
         }
+        @Override
+        protected Layer clone() throws CloneNotSupportedException {
+            return (Layer) super.clone(); // Cast explicite
+        }
+
     }
 
     void rasterizeLayer(Layer lay){
@@ -155,7 +154,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
     void stitchLayer(int idx){
         Layer lay = layers.get(idx);
-        if (0==lay.elements.size()){
+        if (lay.elements.isEmpty()){
             if (E!=null){
                 E.clear();
             }
@@ -172,6 +171,11 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             lay.render.blendMode(BLEND);
             lay.render.endDraw();
         }
+        PEmbroiderGraphics E = getPEmbroiderGraphics(lay);
+        E.image(lay.render,0,0);
+    }
+
+    private static PEmbroiderGraphics getPEmbroiderGraphics(Layer lay) {
         PEmbroiderGraphics E = lay.E;
         E.clear();
         E.strokeWeight(lay.strokeWeight);
@@ -188,7 +192,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         }
         E.hatchMode(lay.hatchMode);
         E.strokeMode(lay.strokeMode);
-        E.image(lay.render,0,0);
+        return E;
     }
 
     void visualize(PEmbroiderGraphics E){
@@ -210,16 +214,27 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     void newElementFromPolyBuff() {
         Layer lay = layers.get(currentLayer);
         Element elt = new Element(((tool == TOOL_PAINT) || (tool == TOOL_FATPAINT) || (tool == TOOL_FINELINE)) ? LIN : PLY);
-
-        elt.data = new ArrayList<PVector>(polyBuff);
+        elt.data = new ArrayList<>(polyBuff);
         elt.paramF0 = (tool == TOOL_FATPAINT) ? 60 : (tool == TOOL_FINELINE ? 1 : 20);
-
         lay.elements.add(elt);
         polyBuff.clear();
+        try {
+            saveState();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
         needsUpdate = true;
     }
-
-
+    void removeElementFromPolyBuff() throws CloneNotSupportedException {
+        Layer lay = layers.get(currentLayer);
+        if (!lay.elements.isEmpty()) {
+            saveState();
+            lay.elements.remove(lay.elements.size() - 1);
+            needsUpdate = true;
+        } else {
+            Logger.getInstance().log(Logger.Project.Editor,"No elements to remove from polyBuff.");
+        }
+    }
 
     void switchTool(int what){
         tool = what;
@@ -231,10 +246,10 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     void writeOut(String path){
         PEmbroiderGraphics E = new PEmbroiderGraphics(app,W,H);
         E.setPath(path);
-        for (int i = 0; i < layers.size(); i++){
-            E.polylines.addAll(layers.get(i).E.polylines);
-            E.colors.addAll(layers.get(i).E.colors);
-            E.cullGroups.addAll(layers.get(i).E.cullGroups);
+        for (Layer layer : layers) {
+            E.polylines.addAll(layer.E.polylines);
+            E.colors.addAll(layer.E.colors);
+            E.cullGroups.addAll(layer.E.cullGroups);
         }
         E.optimize();
         E.endDraw();
@@ -249,7 +264,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,0,PX,PX);
         fill(0);
         textSize(30);
-        text("S",PX/2,PX/2-5);
+        text("S", (float) PX /2, (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && 0 <= mouseY && mouseY <= PX){
             switchTool(TOOL_FREEHAND);
         }
@@ -260,7 +275,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,PX,PX,PX);
         fill(0);
         textSize(30);
-        text("Z",PX/2,PX+PX/2-5);
+        text("Z", (float) PX /2,PX+ (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX <= mouseY && mouseY <= PX*2){
             switchTool(TOOL_VERTEX);
         }
@@ -272,7 +287,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,PX*2,PX,PX);
         fill(0);
         textSize(30);
-        text("o",PX/2,PX*2+PX/2-5);
+        text("o", (float) PX /2,PX*2+ (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*2 <= mouseY && mouseY <= PX*3){
             switchTool(TOOL_PAINT);
         }
@@ -283,7 +298,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,PX*3,PX,PX);
         fill(0);
         textSize(30);
-        text("O",PX/2,PX*3+PX/2-5);
+        text("O", (float) PX /2,PX*3+ (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*3 <= mouseY && mouseY <= PX*4){
             switchTool(TOOL_FATPAINT);
         }
@@ -294,7 +309,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,PX*4,PX,PX);
         fill(0);
         textSize(30);
-        text("FL",PX/2,PX*4+PX/2-5);
+        text("FL", (float) PX /2,PX*4+ (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*4 <= mouseY && mouseY <= PX*5){
             switchTool(TOOL_FINELINE);
         }
@@ -305,7 +320,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,PX*5,PX,PX);
         fill(0);
         textSize(30);
-        text("T",PX/2,PX*5+PX/2-5);
+        text("T", (float) PX /2,PX*5+ (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*5 <= mouseY && mouseY <= PX*6){
             switchTool(TOOL_TEXT);
         }
@@ -316,7 +331,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,PX*6,PX,PX);
         fill(0);
         textSize(30);
-        text("E",PX/2,PX*6+PX/2-5);
+        text("E", (float) PX /2,PX*6+ (float) PX /2-5);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*6 <= mouseY && mouseY <= PX*7){
             switchTool(TOOL_EDIT);
         }
@@ -327,7 +342,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,H-PX,PX,PX);
         fill(0);
         textSize(14);
-        text("Save",PX/2,H-PX+PX/2-2);
+        text("Save", (float) PX /2,H-PX+ (float) PX /2-2);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && H-PX <= mouseY && mouseY <= H){
             saveFile();
             mousePressed = false;
@@ -404,8 +419,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
                 }
                 String rawInp = javax.swing.JOptionPane.showInputDialog("Enter hatch spacing",lay.hatchSpacing);
                 if (rawInp != null){
-                    float n = Float.parseFloat(rawInp);
-                    lay.hatchSpacing=n;
+                    lay.hatchSpacing= Float.parseFloat(rawInp);
 
                     Object[] options = {"Parallel","Concentric"};
                     int op = javax.swing.JOptionPane.showOptionDialog(null, "Select hatch mode", "Hatch Mode",
@@ -439,10 +453,9 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
                 }
                 String rawInp = javax.swing.JOptionPane.showInputDialog("Enter stroke weight",""+lay.strokeWeight);
-                if (rawInp != null && rawInp.length()>0){
-                    float n = Float.parseFloat(rawInp);
+                if (rawInp != null && !rawInp.isEmpty()){
 
-                    lay.strokeWeight=n;
+                    lay.strokeWeight= Float.parseFloat(rawInp);
 
                     Object[] options = {"Tangent","Perpendicular"};
                     int op = javax.swing.JOptionPane.showOptionDialog(null, "Select stroke mode", "Stroke Mode",
@@ -553,7 +566,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         noStroke();
         textAlign(CENTER,CENTER);
         textSize(18);
-        text("+",ww/2,oy+13);
+        text("+", (float) ww /2,oy+13);
         if (!mouseOnCanvas() && mousePressed && PX+W <= mouseX && mouseX <= width && oy <= mouseY && mouseY <= oy+30){
             Layer lay = new Layer();
             lay.strokeColor = color(random(255),random(255),random(255));
@@ -599,7 +612,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
             render.endShape();
             for (int j = 0; j < elt.data.size(); j++){
-                boolean isSel = false;
+                boolean isSel;
                 if (editState == 0){
                     isSel = new PVector(mouseX-PX,mouseY).dist(elt.data.get(j))<10;
                 }else{
@@ -634,9 +647,9 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         Translator.getInstance().registerTranslatable(this);
         surface.setResizable(true);
         render = createGraphics(W, H);
-        layers = new ArrayList<Layer>();
+        layers = new ArrayList<>();
         layers.add(new Layer());
-        polyBuff = new ArrayList<PVector>();
+        polyBuff = new ArrayList<>();
         E = new PEmbroiderGraphics(this, width, height);
     }
 
@@ -654,7 +667,6 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         return false;
     }
     public void draw(){
-
         background(100);
         enableEscapeMenu = hasEmbroideryRendered();
         if (tool == TOOL_EDIT){
@@ -681,9 +693,9 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         strokeWeight(1);
         rect(PX,0,W,H);
         beginShape();
-        for (int i = 0; i < polyBuff.size(); i++){
-            vertex(polyBuff.get(i).x+PX,polyBuff.get(i).y);
-            rect(polyBuff.get(i).x-2+PX,polyBuff.get(i).y-2,4,4);
+        for (PVector pVector : polyBuff) {
+            vertex(pVector.x + PX, pVector.y);
+            rect(pVector.x - 2 + PX, pVector.y - 2, 4, 4);
         }
         vertex(mouseX,mouseY);
         endShape();
@@ -694,7 +706,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             if (tool == TOOL_FREEHAND || tool == TOOL_PAINT || tool == TOOL_FATPAINT || tool == TOOL_FINELINE){
                 if (mousePressed){
                     PVector p = new PVector(mouseX-PX,mouseY);
-                    if (polyBuff.size() == 0 || polyBuff.get(polyBuff.size()-1).dist(p) > 10){
+                    if (polyBuff.isEmpty() || polyBuff.get(polyBuff.size()-1).dist(p) > 10){
                         polyBuff.add(p);
                     }
                 }else if (polyBuff.size() > 2){
@@ -722,7 +734,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
                     elt.paramS0 = txt;
                     elt.paramF0 = siz;
                     polyBuff.add(new PVector(mouseX-PX,mouseY));
-                    elt.data = new ArrayList<PVector>(polyBuff);
+                    elt.data = new ArrayList<>(polyBuff);
                     lay.elements.add(elt);
                 }
                 polyBuff.clear();
@@ -730,6 +742,53 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             }
         }
     }
+    @Override
+    public void keyPressed() {
+        if (tool == TOOL_EDIT && key == DELETE) {
+            try {
+                deleteSelectedPoint();
+            } catch (CloneNotSupportedException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (keyCode == BACKSPACE && keyEvent.isControlDown()) {
+            try {
+                removeElementFromPolyBuff();
+            } catch (CloneNotSupportedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    void deleteSelectedPoint() throws CloneNotSupportedException {
+        if (editState == 1) {
+            Layer lay = layers.get(currentLayer);
+            Element elt = lay.elements.get(editI);
+            if (elt.data.size() > 1) {  // Avoid To Remove the last point
+                saveState();
+                elt.data.remove(editJ);
+                editState = 0;
+                needsUpdate = true;
+            } else {
+                Logger.getInstance().log(Logger.Project.Editor,"Cannot delete the last point in the element.");
+            }
+        } else {
+            Logger.getInstance().log(Logger.Project.Editor,"Edit state is not 1. No point to delete.");
+        }
+    }
+
+    void saveState() throws CloneNotSupportedException {
+        redoStack.clear();
+        undoStack.add(copyLayers());
+    }
+
+    ArrayList<Layer> copyLayers() throws CloneNotSupportedException {
+        ArrayList<Layer> copy = new ArrayList<>();
+        for (Layer l : layers) {
+            copy.add(l.clone());
+        }
+        return copy;
+    }
+
     private void showExitDialog() {
         if (!enableEscapeMenu) {
             exitApplication();
