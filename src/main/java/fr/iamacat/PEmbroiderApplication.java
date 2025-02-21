@@ -57,20 +57,20 @@ public class PEmbroiderApplication extends PApplet {
                 .onClick(event -> loadImage());
 
         cp5.addButton("saveFile")
-                .setPosition(280, 20)
+                .setPosition(160, 20)
                 .setSize(120, 30)
                 .setLabel("Sauvegarder")
                 .onClick(event -> saveFile());
 
         cp5.addButton("invertAlphas")
-                .setPosition(420, 20)
+                .setPosition(300, 20)
                 .setSize(120, 30)
                 .setLabel("Inverser Alphas")
                 .onClick(event -> invertAlphas());
 
         // --- Sélecteur de format ---
         cp5.addDropdownList("formatSelector")
-                .setPosition(160, 20)
+                .setPosition(440, 20)
                 .setSize(100, 120)
                 .addItems(formats)
                 .setLabel("Format de sortie")
@@ -98,7 +98,7 @@ public class PEmbroiderApplication extends PApplet {
 
         // --- Mode Couleur ---
         Toggle isColorModeField = cp5.addToggle("isColorMode")
-                .setPosition(20, 240)
+                .setPosition(45, 240)
                 .setSize(50, 20)
                 .setValue(isColorMode)
                 .onChange(event -> {
@@ -108,7 +108,7 @@ public class PEmbroiderApplication extends PApplet {
                 });
         isColorModeField.getCaptionLabel()
                 .setPaddingX(0)
-                .setPaddingY(-40)
+                .setPaddingY(-30)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
                 .setText("Mode Couleur ?")
                 .setColor(color(0));
@@ -158,7 +158,7 @@ public class PEmbroiderApplication extends PApplet {
                 .setColor(color(0));
 
         Textfield exportHeightField = cp5.addTextfield("exportHeight")
-                .setPosition(20, 220)
+                .setPosition(20, 200)
                 .setSize(100, 30)
                 .setText(str(exportHeight))
                 .setAutoClear(false)
