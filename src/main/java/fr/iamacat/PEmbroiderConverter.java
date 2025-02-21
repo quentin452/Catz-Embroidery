@@ -340,7 +340,7 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
 
     @Override
     public void updateTranslations() {
-        clear();
-        setup();
+
     }
+
 }

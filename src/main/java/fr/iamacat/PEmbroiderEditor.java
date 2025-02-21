@@ -3,6 +3,7 @@ package fr.iamacat;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
+import fr.iamacat.utils.Updater;
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PVector;
@@ -71,8 +72,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
     @Override
     public void updateTranslations() {
-        clear();
-        setup();
+
     }
 
     class Element{

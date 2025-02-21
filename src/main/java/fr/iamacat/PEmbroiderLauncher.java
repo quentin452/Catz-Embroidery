@@ -135,10 +135,23 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
             }
         }).start();
     }
+
     @Override
     public void updateTranslations() {
-        clear();
-        setup();
+        background(200);
+        fill(0);
+        textSize(12);
+        textAlign(LEFT, TOP);
+        text(Translator.getInstance().translate("version") + Updater.CURRENT_VERSION, 10, 10);
+
+        // Mettre à jour les boutons avec les nouvelles traductions
+        buttonEditor.label = Translator.getInstance().translate("launch_editor");
+        buttonConverter.label = Translator.getInstance().translate("launch_converter");
+
+        fill(0);
+        textSize(16);
+        textAlign(CENTER, CENTER);
+        text(Translator.getInstance().translate("choose_app"), width / 2, height / 2 - 80);
     }
 
     // Classe Button
