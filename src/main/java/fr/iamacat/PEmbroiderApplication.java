@@ -70,7 +70,7 @@ public class PEmbroiderApplication extends PApplet {
 
         // --- Sélecteur de format ---
         cp5.addDropdownList("formatSelector")
-                .setPosition(440, 20)
+                .setPosition(440, 22)
                 .setSize(100, 120)
                 .addItems(formats)
                 .setLabel("Format de sortie")
