@@ -139,6 +139,10 @@ public class PEmbroiderGraphics {
 	public float FONT_SCALE = 1f;
 	public int FONT_ALIGN = PConstants.LEFT;
 	public int FONT_ALIGN_VERTICAL = PConstants.BASELINE;
+
+	public int maxMultiColors = 10;
+
+	public boolean popyLineMulticolor;
 	
 	/**
 	 * Anti-alignment for rings of concentric hatching to reduce visual ridges.
@@ -1066,34 +1070,65 @@ public class PEmbroiderGraphics {
 		}
 		return calcPolygonTilt(polys.get(mi));
 	}
-	
-	
-	
-	/** Add a polyline to the global array of all polylines drawn
+
+
+
+	/**
+	 *  Add a polyline to the global array of all polylines drawn
 	 *  Applying transformation matrices and resampling
 	 *  All shape drawing routines go through this function for finalization
-	 *  
+	 *
 	 *  @param poly                   a polyline
 	 *  @param color                  the color of the polyline (0xRRGGBB)
-	 *  @param resampleRandomOffset   whether to add a random offset during resample step to prevent alignment patterns
+	 *  @param resampleRandomizeOffset whether to add a random offset during resample step to prevent alignment patterns
+	 *  @param multicolor             whether the polyline should be multicolor
 	 */
 	public void pushPolyline(ArrayList<PVector> poly, int color, float resampleRandomizeOffset) {
 		ArrayList<PVector> poly2 = new ArrayList<PVector>();
+		// Copier tous les points de poly dans poly2 avec les transformations appliquées
 		for (int i = 0; i < poly.size(); i++) {
 			poly2.add(poly.get(i).copy());
-			for (int j = matStack.size()-1; j>= 0; j--) {
+			for (int j = matStack.size() - 1; j >= 0; j--) {
 				poly2.set(i, matStack.get(j).mult(poly2.get(i), null));
 			}
 		}
-		colors.add(color);
-		if (NO_RESAMPLE) {
-		    polylines.add(poly2);
-		}else {
-			polylines.add(resample(poly2,MIN_STITCH_LENGTH,STITCH_LENGTH,RESAMPLE_NOISE,resampleRandomizeOffset));
+
+		// Liste des couleurs à attribuer
+		if (popyLineMulticolor) {
+			// Créer une liste des couleurs avant la boucle
+			ArrayList<Integer> generatedColors = new ArrayList<>();
+			for (int i = 0; i < Math.min(poly2.size() - 1, maxMultiColors); i++) {
+				int randomColor = (int) app.color(app.random(255), app.random(255), app.random(255));
+				generatedColors.add(randomColor);
+			}
+
+			// Assigner les couleurs générées aux segments de poly2
+			for (int i = 0; i < Math.min(poly2.size() - 1, maxMultiColors); i++) {
+				colors.add(generatedColors.get(i));  // Utiliser la couleur générée pour chaque segment
+			}
+
+			// Si plus de segments, attribuer la dernière couleur générée à ceux-ci
+			for (int i = generatedColors.size(); i < poly2.size() - 1; i++) {
+				colors.add(generatedColors.get(generatedColors.size() - 1)); // Dernière couleur
+			}
+		} else {
+			// Si pas de multi-couleurs, utiliser la couleur passée en paramètre
+			for (int i = 0; i < poly2.size() - 1; i++) {
+				colors.add(color);
+			}
 		}
-		
+
+		// Ajouter la polyligne, avec ou sans échantillonnage
+		if (NO_RESAMPLE) {
+			polylines.add(poly2);
+		} else {
+			polylines.add(resample(poly2, MIN_STITCH_LENGTH, STITCH_LENGTH, RESAMPLE_NOISE, resampleRandomizeOffset));
+		}
+
 		cullGroups.add(currentCullGroup);
 	}
+
+
 	/** Simplified version for pushPolyline(3) where resampleRandomizeOffset is set to false
 	 *  @param poly                   a polyline
 	 *  @param color                  the color of the polyline (0xRRGGBB)

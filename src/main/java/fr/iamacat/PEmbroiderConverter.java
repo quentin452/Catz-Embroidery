@@ -1,23 +1,19 @@
 package fr.iamacat;
 
 import java.io.File;
+import java.util.ArrayList;
 
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
-import processing.controlP5.ControlP5;
-import processing.controlP5.Slider;
-import processing.controlP5.Textfield;
-import processing.controlP5.Toggle;
+import processing.controlP5.*;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
 
 import javax.swing.*;
-
-import static java.lang.Math.max;
-
+// TODO PRINT STATISTICS
 public class PEmbroiderConverter extends PApplet implements Translatable {
 
     private PImage img;
@@ -30,12 +26,18 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     private float exportWidth = 95;  // Largeur par défaut en mm
     private float exportHeight = 95; // Hauteur par défaut en mm
     private float currentSpacing = 8;
+    private float currentStrokeWeight = 8;
     private int currentWidth = 1280;
     private int currentHeight = 720;
-    private boolean isColorMode = true;
+    private CColor selectedColor = new CColor().setForeground(color(255, 0, 0)); // Use a default initial color
     private boolean enableEscapeMenu = false;
-
     private boolean isDialogOpen = false;
+    private ColorType colorType = ColorType.MultiColor;
+    private enum ColorType {
+        MonoColor,
+        MultiColor,
+        BlackAndWhite
+    }
 
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderConverter");
@@ -52,8 +54,8 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
 
         surface.setResizable(true);
         cp5 = new ControlP5(this);
-        setupGUI();
         embroidery = new PEmbroiderGraphics(this, width, height);
+        setupGUI();
     }
 
     private void setupGUI() {
@@ -75,6 +77,11 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .setSize(120, 30)
                 .setLabel(Translator.getInstance().translate("invert_alpha"))
                 .onClick(event -> invertAlphas());
+        cp5.addButton("refreshPreview")
+                .setPosition(500, 20)
+                .setSize(120, 30)
+                .setLabel(/*Translator.getInstance().translate("invert_alpha")*/"Refresh Preview")
+                .onClick(event -> refreshPreview());
 
         // --- Sélecteur de format ---
         cp5.addDropdownList("formatSelector")
@@ -100,17 +107,77 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                         showPreview = true;  // Forcer l'affichage de la nouvelle prévisualisation
                     }
                 });
+        // Créez d'abord le champ de texte maxMultiColorTextField
+        Textfield maxMultiColorTextField = cp5.addTextfield("maxMultiColorField")
+                .setPosition(20, 320)
+                .setSize(100, 30)
+                .setText(str(embroidery.maxMultiColors))
+                .setAutoClear(false);
 
-        // --- Mode Couleur ---
-        Toggle isColorModeField = cp5.addToggle("isColorMode")
+        // Ajoutez ensuite le gestionnaire d'événements
+        maxMultiColorTextField.onChange(event -> {
+            try {
+                embroidery.maxMultiColors = Integer.parseInt(event.getController().getStringValue());
+                if (embroidery.maxMultiColors < 1) embroidery.maxMultiColors = 1; // Éviter les nombres trop bas
+                if (img != null) refreshPreview();
+
+                // Désactiver le champ maxMultiColorField si MonoColor est sélectionné
+                if (colorType == ColorType.MonoColor) {
+                    maxMultiColorTextField.setVisible(false);  // Masquer le champ
+                } else {
+                    maxMultiColorTextField.setVisible(true);  // Le rendre visible dans les autres modes
+                }
+            } catch (NumberFormatException e) {
+                Logger.getInstance().log(Logger.Project.Converter,"Invalid value for max multi color");
+            }
+        });
+
+        // Créez et gérez le contrôleur pour monoColorPicker
+        Controller<?> monoColorController = cp5.getController("monoColorPicker");
+        if (monoColorController != null) {
+            monoColorController.addListener(event -> {
+                if (event.getController().getName().equals("monoColorPicker")) {
+                    selectedColor = event.getController().getColor();
+                    if (img != null) refreshPreview();
+
+                    // Masquer ou rendre visible le champ monoColorPicker en fonction du mode de couleur
+                    if (colorType == ColorType.MultiColor) {
+                        monoColorController.setVisible(false);  // Masquer le champ
+                    } else {
+                        monoColorController.setVisible(true);  // Le rendre visible dans les autres modes
+                    }
+                }
+            });
+        } else {
+            Logger.getInstance().log(Logger.Project.Converter, "Controller for monoColorPicker is null");
+        }
+
+
+        DropdownList colorModeDropdown = cp5.addDropdownList("colorMode")
                 .setPosition(45, 240)
-                .setSize(50, 20)
-                .setValue(isColorMode)
+                .setSize(100, 150)
+                .setBarHeight(20)
+                .setItemHeight(20)
+                .addItems(new String[] {"Mono Color", "Multi Color", "Black and White"}) // Ajoutez ici les options de votre liste déroulante
+                .setValue(0) // Par défaut, la première option est sélectionnée
                 .onChange(event -> {
-                    isColorMode = event.getController().getValue() == 1;
+                    int selectedIndex = (int) event.getController().getValue();
+                    // Logique pour gérer les différentes options sélectionnées
+                    switch (selectedIndex) {
+                        case 0:
+                            colorType = ColorType.MonoColor;
+                            break;
+                        case 1:
+                            colorType = ColorType.MultiColor;
+                            break;
+                        case 2:
+                            colorType = ColorType.BlackAndWhite;
+                            break;
+                    }
                     if (img != null) refreshPreview();
                 });
-        isColorModeField.getCaptionLabel()
+
+        colorModeDropdown.getCaptionLabel()
                 .setPaddingX(0)
                 .setPaddingY(-30)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
@@ -136,6 +203,25 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .setPaddingY(-40)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
                 .setText(Translator.getInstance().translate("space_between_points"))
+                .setColor(color(0));
+        Textfield strokeWeightField = cp5.addTextfield("strokeWeight")
+                .setPosition(20, 0)
+                .setSize(100, 30)
+                .setText(str(currentStrokeWeight))
+                .setAutoClear(false)
+                .onChange(event -> {
+                    try {
+                        currentStrokeWeight = Float.parseFloat(event.getController().getStringValue());
+                        if (img != null) refreshPreview();
+                    } catch (NumberFormatException e) {
+                        Logger.getInstance().log(Logger.Project.Converter,"Invalid Value for currentStrokeWeight");
+                    }
+                });
+        strokeWeightField.getCaptionLabel()
+                .setPaddingX(0)
+                .setPaddingY(-40)
+                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
+                .setText("Stroke weight")
                 .setColor(color(0));
 
         Textfield exportWidthField = cp5.addTextfield("exportWidth")
@@ -282,37 +368,40 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
             embroidery.beginDraw();
             embroidery.clear();
         }
-        img.resize((1000), (1000)); // FOR PRECISION AND FIX ISSUES ON MINI IMAGES
-        // Use the Cull feature to make lines and strokes not overlap
+
+        img.resize(1000, 1000); // Ajuster pour des images petites
         embroidery.beginCull();
 
-        // Draw it once, filled.
-        if (isColorMode) {
+        // Configuration commune
+        embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+        embroidery.hatchSpacing(currentSpacing);
+
+        // Mode MonoColor : une seule couleur
+        if (colorType == ColorType.MonoColor) {
             embroidery.noStroke();
-            embroidery.fill(0, 0, 255); // Blue fill
-            embroidery.hatchMode(PEmbroiderGraphics.CROSS);
-            embroidery.hatchSpacing(currentSpacing);
+            embroidery.popyLineMulticolor = false;
+            embroidery.fill(selectedColor.getForeground()); // Couleur choisie
             embroidery.image(img, 860, 70);
-        } else {
-            // Draw it again, but just the stroke this time.
+        }
+        // Mode MultiColor : plusieurs couleurs aléatoires
+        else if (colorType == ColorType.MultiColor) {
             embroidery.noFill();
-            embroidery.strokeWeight(30);
+            embroidery.popyLineMulticolor = true;
+            embroidery.strokeWeight(currentStrokeWeight);
             embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
-            embroidery.strokeSpacing(3.0f);
-            embroidery.stroke(0, 0, 255); // Blue stroke
+            embroidery.strokeSpacing(currentSpacing);
+            embroidery.image(img, 860, 70);
+        }
+        // Mode BlackAndWhite : noir et blanc
+        else if (colorType == ColorType.BlackAndWhite) {
+            embroidery.fill(0, 0, 0); // Noir
+            embroidery.noStroke();
+            embroidery.popyLineMulticolor = false;
             embroidery.image(img, 860, 70);
         }
 
         embroidery.endCull();
-        // PEmbroiderGraphics.DRUNK; seem to be bugged ?
-       /* embroidery.HATCH_MODE = PEmbroiderGraphics.CROSS; // TODO ADD A DROPDOWN TO CHOOSE SOME HATCH_MODE
-        img.resize((int) (exportWidth * 2.71430), (int) (exportHeight * 2.71430));
-        if (isColorMode) {
-            embroidery.fill(0, 0, 0);
-        } else {
-            embroidery.noFill();
-        }
-        embroidery.image(img, 860, 70);*/
+       // embroidery.HATCH_MODE = PEmbroiderGraphics.CROSS; // TODO ADD A DROPDOWN TO CHOOSE SOME HATCH_MODE and use stroke or not
     }
 
     @Override
@@ -330,9 +419,16 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
             float offsetX = (exportWidth - width * scale) / 2;
             float offsetY = (exportHeight - height * scale) / 2;
             offsetX += 600;
-            embroidery.visualize(true, false,false,Integer.MAX_VALUE, (float) ((int)exportWidth * 2.71430),(float) ((int)exportHeight * 2.71430),offsetX,offsetY);
+
+            // Assurez-vous que la taille de la liste est suffisante pour éviter les erreurs d'index
+            if (embroidery.polylines.size() > 0 && embroidery.colors.size() > 0) {
+                embroidery.visualize(true, false, false, Integer.MAX_VALUE,
+                        (float)((int)exportWidth * 2.71430),
+                        (float)((int)exportHeight * 2.71430), offsetX, offsetY);
+            }
         }
     }
+
 
     @Override
     public void keyPressed() {

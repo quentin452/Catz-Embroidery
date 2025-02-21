@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,12 +26,17 @@ public class Saving {
     }
 
     public static String loadLanguage() {
-        try {
-            String json = new String(Files.readAllBytes(Paths.get(FILE_PATH)));
-            Map<String, String> data = gson.fromJson(json, Map.class);
-            return data.get("currentLanguage");
-        } catch (IOException e) {
-            e.printStackTrace();
+        Path path = Paths.get(FILE_PATH);
+        if (Files.exists(path)) {
+            try {
+                String json = new String(Files.readAllBytes(path));
+                Map<String, String> data = gson.fromJson(json, Map.class);
+                return data.get("currentLanguage");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("File does not exist: " + FILE_PATH);
         }
         return null;
     }
