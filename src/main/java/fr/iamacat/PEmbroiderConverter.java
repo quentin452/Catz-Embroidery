@@ -16,6 +16,8 @@ import processing.embroider.PEmbroiderWriter;
 
 import javax.swing.*;
 
+import static java.lang.Math.max;
+
 public class PEmbroiderConverter extends PApplet implements Translatable {
 
     private PImage img;
@@ -320,7 +322,15 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
             image(img, 190, 70, width / 2 - 40, height - 90);
         }
         if (showPreview && embroidery != null) {
-            embroidery.visualize(true, false,false,Integer.MAX_VALUE, (float) ((int)exportWidth * 2.71430),(float) ((int)exportHeight * 2.71430));
+            // Centrer le rendu dans l'espace de visualisation
+            float scaleX = exportWidth / width;
+            float scaleY = exportHeight / height;
+            float scale = max(scaleX, scaleY); // Utiliser le même facteur pour X et Y
+
+            float offsetX = (exportWidth - width * scale) / 2;
+            float offsetY = (exportHeight - height * scale) / 2;
+            offsetX += 600;
+            embroidery.visualize(true, false,false,Integer.MAX_VALUE, (float) ((int)exportWidth * 2.71430),(float) ((int)exportHeight * 2.71430),offsetX,offsetY);
         }
     }
 

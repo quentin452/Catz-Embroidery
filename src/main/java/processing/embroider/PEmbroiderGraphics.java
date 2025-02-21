@@ -4425,15 +4425,11 @@ public class PEmbroiderGraphics {
 	 *  @param stitches  whether to visualize stitches, i.e. little dots on end of segments
 	 *  @param route     whether to visualize the path between polylines that will be taken by embroidery machine/plotter. To be able to not see a mess when enabling this option, try optimize()
 	 */
-	public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight) {
+	public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight , float offsetX , float offsetY) {
 		// Calculer le facteur d'échelle en conservant les proportions
 		float scaleX = targetWidth / width;
 		float scaleY = targetHeight / height;
 		float scale = max(scaleX, scaleY); // Utiliser le même facteur pour X et Y
-
-		// Centrer le rendu dans l'espace de visualisation
-		float offsetX = (targetWidth - width * scale) / 2;
-		float offsetY = (targetHeight - height * scale) / 2;
 
 		int n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
@@ -4521,7 +4517,7 @@ public class PEmbroiderGraphics {
 		visualize(false,true,false);
 	}
 	public void visualize(boolean color, boolean stitches, boolean route) {
-		visualize(color,stitches,route,Integer.MAX_VALUE,width,height);
+		visualize(color,stitches,route,Integer.MAX_VALUE,width,height,0,0);
 	}
 
 
