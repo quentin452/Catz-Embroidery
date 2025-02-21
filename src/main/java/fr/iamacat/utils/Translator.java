@@ -20,6 +20,10 @@ public class Translator {
     private final List<Translatable> translatables = new ArrayList<>();
     private Translator() {
         loadTranslations();
+        currentLanguage = Saving.loadLanguage();
+        if (currentLanguage == null) {
+            currentLanguage = "en";
+        }
     }
 
     public static Translator getInstance() {
@@ -41,6 +45,7 @@ public class Translator {
     public void setLanguage(String language) {
         boolean needLanguageUpdate = !Objects.equals(currentLanguage, language);
         currentLanguage = language;
+        Saving.saveLanguage(language);
         if (needLanguageUpdate) {
             List<Translatable> copy = new ArrayList<>(translatables);
             for (Translatable translatable : copy) {
