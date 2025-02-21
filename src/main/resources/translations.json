@@ -1,0 +1,14 @@
+{
+  "en": {
+    "choose_app": "Choose an application to launch:",
+    "version": "Current version: ",
+    "launch_editor": "Launch PEmbroiderEditor",
+    "launch_converter": "Launch PEmbroiderConverter"
+  },
+  "fr": {
+    "choose_app": "Choisissez l'application à lancer :",
+    "version": "Version actuelle : ",
+    "launch_editor": "Lancer PEmbroiderEditor",
+    "launch_converter": "Lancer PEmbroiderConverter"
+  }
+}

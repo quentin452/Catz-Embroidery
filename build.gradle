@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     implementation 'org.processing:core:3.3.7'
+    implementation 'com.google.code.gson:gson:2.8.9'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
@@ -24,52 +25,44 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-// Définir plusieurs classes principales pour différentes applications
 application {
     mainClassName = 'fr.iamacat.PEmbroiderLauncher'
 }
 
-// Importer le plugin ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
-// Configuration du plugin Shadow pour générer le JAR
 shadowJar {
     archiveFileName = 'untitled-dependencies.jar'
 }
 
-
-// Configuration du Launch4j
 launch4j {
-    mainClassName = 'fr.iamacat.PEmbroiderLauncher' // Utiliser le lanceur comme classe principale
+    mainClassName = 'fr.iamacat.PEmbroiderLauncher'
     jreMinVersion = '17'
     initialHeapSize = 512
     maxHeapSize = 4096
     jvmOptions = [
             '-XX:+UseZGC'
     ]
-    jarTask = tasks.named("shadowJar")  // Utiliser la tâche shadowJar pour le JAR
+    jarTask = tasks.named("shadowJar")
     outputDirectory = file("$buildDir/libs")
-    outfile = 'Catz-EmbroideryLauncher.exe'  // Nom de l'exécutable
+    outfile = 'Catz-EmbroideryLauncher.exe'
     copyConfigurable = files(tasks.named("shadowJar").get().archiveFile)
 }
 
-// Tâches pour chaque application (Editor, Converter)
-
-task buildEditor(type: ShadowJar) {
+tasks.register('buildEditor', ShadowJar) {
     archiveFileName = 'PEmbroiderEditor.jar'
     manifest {
         attributes 'Main-Class': 'fr.iamacat.PEmbroiderEditor'
     }
 }
 
-task buildConverter(type: ShadowJar) {
+tasks.register('buildConverter', ShadowJar) {
     archiveFileName = 'PEmbroiderConverter.jar'
     manifest {
         attributes 'Main-Class': 'fr.iamacat.PEmbroiderConverter'
     }
 }
 
-// Configurer la tâche de build globale
 tasks.named("build") {
     dependsOn buildEditor, buildConverter
     finalizedBy tasks.named("createExe")

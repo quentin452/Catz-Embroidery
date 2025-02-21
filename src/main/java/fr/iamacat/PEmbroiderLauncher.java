@@ -1,47 +1,75 @@
 package fr.iamacat;
 
 import fr.iamacat.utils.Logger;
+import fr.iamacat.utils.Translatable;
+import fr.iamacat.utils.Translator;
 import fr.iamacat.utils.Updater;
+import processing.controlP5.CallbackEvent;
+import processing.controlP5.CallbackListener;
+import processing.controlP5.ControlP5;
+import processing.controlP5.DropdownList;
 import processing.core.PApplet;
 
 import java.io.IOException;
 import javax.swing.JOptionPane;
 
-public class PEmbroiderLauncher extends PApplet {
+public class PEmbroiderLauncher extends PApplet implements Translatable {
 
     private Button buttonEditor;
     private Button buttonConverter;
+    private ControlP5 cp5;
+    private DropdownList languageDropdown;
 
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderLauncher");
     }
 
     public void settings() {
-        size(400, 300);
+        size(800, 600);
     }
 
     public void setup() {
+        Translator.getInstance().registerTranslatable(this);
         background(200);
 
         // Initialiser le logger
         Logger.getInstance().log(Logger.Project.Launcher,"Lancement de l'application");
 
+        // Initialiser ControlP5
+        cp5 = new ControlP5(this);
+
+        cp5.addDropdownList("languages")
+                .setPosition(width - 110, 10)
+                .setSize(100, 100)
+                .setItemHeight(20)
+                .setBarHeight(20)
+                .addItem("English", 0)
+                .addItem("Français", 1)
+                .close()
+                .onChange(event -> {
+                    int index = (int) event.getController().getValue();
+                    String language = index == 0 ? "en" : "fr";
+                    Logger.getInstance().log(Logger.Project.Launcher, "Language set to: " + language);
+                    Translator.getInstance().setLanguage(language);
+                });
+
+
         fill(0);
         textSize(12);
         textAlign(LEFT, TOP);
-        text("Version actuelle : " + Updater.CURRENT_VERSION, 10, 10);
+        text(Translator.getInstance().translate("version") + Updater.CURRENT_VERSION, 10, 10);
 
         // Vérifier les mises à jour
         checkForUpdates();
 
         // Créer des boutons
-        buttonEditor = new Button(width / 2 - 100, height / 2 - 40, 200, 40, "PEmbroiderEditor");
-        buttonConverter = new Button(width / 2 - 100, height / 2 + 20, 200, 40, "PEmbroiderConverter");
+        buttonEditor = new Button(width / 2 - 100, height / 2 - 40, 200, 40, Translator.getInstance().translate("launch_editor"));
+        buttonConverter = new Button(width / 2 - 100, height / 2 + 20, 200, 40, Translator.getInstance().translate("launch_converter"));
 
         fill(0);
         textSize(16);
         textAlign(CENTER, CENTER);
-        text("Choisissez l'application à lancer:", width / 2, height / 2 - 80);
+        text(Translator.getInstance().translate("choose_app"), width / 2, height / 2 - 80);
     }
 
     public void draw() {
@@ -104,7 +132,11 @@ public class PEmbroiderLauncher extends PApplet {
             }
         }).start();
     }
-
+    @Override
+    public void updateTranslations() {
+        clear();
+        setup();
+    }
 
     // Classe Button
     class Button {

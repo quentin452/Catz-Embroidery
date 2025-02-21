@@ -1,6 +1,8 @@
 package fr.iamacat;
 
 import fr.iamacat.utils.Logger;
+import fr.iamacat.utils.Translatable;
+import fr.iamacat.utils.Translator;
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PVector;
@@ -10,7 +12,7 @@ import processing.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 
-public class PEmbroiderEditor extends PApplet {
+public class PEmbroiderEditor extends PApplet implements Translatable {
     PEmbroiderGraphics E;
 
     public void settings() {
@@ -66,6 +68,12 @@ public class PEmbroiderEditor extends PApplet {
     ArrayList<PVector> polyBuff;
 
     PGraphics render;
+
+    @Override
+    public void updateTranslations() {
+        clear();
+        setup();
+    }
 
     class Element{
         int type;
@@ -585,6 +593,7 @@ public class PEmbroiderEditor extends PApplet {
     }
 
     public void setup() {
+        Translator.getInstance().registerTranslatable(this);
         surface.setResizable(true);
         render = createGraphics(W, H);
         layers = new ArrayList<Layer>();

@@ -3,6 +3,8 @@ package fr.iamacat;
 import java.io.File;
 
 import fr.iamacat.utils.Logger;
+import fr.iamacat.utils.Translatable;
+import fr.iamacat.utils.Translator;
 import processing.controlP5.ControlP5;
 import processing.controlP5.Slider;
 import processing.controlP5.Textfield;
@@ -12,7 +14,7 @@ import processing.core.PImage;
 import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
 
-public class PEmbroiderConverter extends PApplet {
+public class PEmbroiderConverter extends PApplet  implements Translatable {
 
     private PImage img;
     private PEmbroiderGraphics embroidery;
@@ -41,6 +43,8 @@ public class PEmbroiderConverter extends PApplet {
 
     @Override
     public void setup() {
+        Translator.getInstance().registerTranslatable(this);
+
         surface.setResizable(true);
         cp5 = new ControlP5(this);
         setupGUI();
@@ -332,5 +336,11 @@ public class PEmbroiderConverter extends PApplet {
         Logger.getInstance().log(Logger.Project.Converter,"Fermeture de l'application");
         Logger.getInstance().archiveLogs();
         super.exit();
+    }
+
+    @Override
+    public void updateTranslations() {
+        clear();
+        setup();
     }
 }
