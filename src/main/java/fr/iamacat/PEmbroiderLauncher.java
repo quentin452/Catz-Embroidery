@@ -107,6 +107,9 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
     }
 
     private void checkForUpdates() {
+        if (Updater.isUpdateChecked) {
+            return;
+        }
         new Thread(() -> {
             try {
                 String latestVersion = Updater.getLatestVersionFromGitHub();

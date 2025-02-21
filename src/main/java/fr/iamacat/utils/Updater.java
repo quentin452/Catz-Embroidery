@@ -12,22 +12,14 @@ public class Updater {
 
     public static final String CURRENT_VERSION = "V0.0.1";
     private static final String GITHUB_API_URL = "https://api.github.com/repos/quentin452/Catz-Embroidery/releases/latest";
-
-    public static void main(String[] args) {
-        try {
-            String latestVersion = getLatestVersionFromGitHub();
-            if (isVersionOutdated(CURRENT_VERSION, latestVersion)) {
-                System.out.println("Une nouvelle version est disponible : " + latestVersion);
-                openBrowserToReleasesPage();
-            } else {
-                System.out.println("Vous avez la version la plus récente.");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    public static boolean isUpdateChecked = false;
 
     public static String getLatestVersionFromGitHub() throws IOException {
+        if (!isUpdateChecked) {
+            isUpdateChecked = true;
+        } else  {
+            return "";
+        }
         URL url = new URL(GITHUB_API_URL);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
