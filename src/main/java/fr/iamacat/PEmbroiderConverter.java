@@ -93,9 +93,6 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                     } else {
                         Logger.getInstance().log(Logger.Project.Converter,"Erreur : Aucune valeur sélectionnée !");
                     }
-
-                    // Recharger la prévisualisation avec le nouveau format
-                    resetProgressBar();  // Réinitialiser la barre de progression
                     if (embroidery != null) {
                         showPreview = false; // Masquer la prévisualisation pour la redessiner
                         showPreview = true;  // Forcer l'affichage de la nouvelle prévisualisation
@@ -127,7 +124,6 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .onChange(event -> {
                     try {
                         currentSpacing = Float.parseFloat(event.getController().getStringValue());
-                        resetProgressBar();
                         if (img != null) refreshPreview();
                     } catch (NumberFormatException e) {
                         Logger.getInstance().log(Logger.Project.Converter,"Invalid Value for Spacing");
