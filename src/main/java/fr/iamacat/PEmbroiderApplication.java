@@ -48,28 +48,19 @@ public class PEmbroiderApplication extends PApplet {
         setupGUI();
     }
 
-
     private void setupGUI() {
-        cp5.addButton("loadImage").setPosition(20, 20).setSize(120, 30).setLabel("Charger image").onClick(event -> loadImage());
+        // --- Boutons ---
+        cp5.addButton("loadImage")
+                .setPosition(20, 20)
+                .setSize(120, 30)
+                .setLabel("Charger image")
+                .onClick(event -> loadImage());
 
-        cp5.addButton("saveFile").setPosition(280, 20).setSize(120, 30).setLabel("Sauvegarder").onClick(event -> saveFile());
-
-        Toggle isColorModeField = cp5.addToggle("isColorMode")
-                .setPosition(20, 240)
-                .setSize(50, 20)
-                .setValue(isColorMode)
-                .onChange(event -> {
-                    isColorMode = event.getController().getValue() == 1;
-                    println("Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
-                    if (img != null) refreshPreview();
-                });
-        isColorModeField.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-40)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText("Mode Couleur ?")
-                .setColor(color(0));
-
+        cp5.addButton("saveFile")
+                .setPosition(280, 20)
+                .setSize(120, 30)
+                .setLabel("Sauvegarder")
+                .onClick(event -> saveFile());
 
         cp5.addButton("invertAlphas")
                 .setPosition(420, 20)
@@ -77,6 +68,7 @@ public class PEmbroiderApplication extends PApplet {
                 .setLabel("Inverser Alphas")
                 .onClick(event -> invertAlphas());
 
+        // --- Sélecteur de format ---
         cp5.addDropdownList("formatSelector")
                 .setPosition(160, 20)
                 .setSize(100, 120)
@@ -104,6 +96,24 @@ public class PEmbroiderApplication extends PApplet {
                     }
                 });
 
+        // --- Mode Couleur ---
+        Toggle isColorModeField = cp5.addToggle("isColorMode")
+                .setPosition(20, 240)
+                .setSize(50, 20)
+                .setValue(isColorMode)
+                .onChange(event -> {
+                    isColorMode = event.getController().getValue() == 1;
+                    println("Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
+                    if (img != null) refreshPreview();
+                });
+        isColorModeField.getCaptionLabel()
+                .setPaddingX(0)
+                .setPaddingY(-40)
+                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
+                .setText("Mode Couleur ?")
+                .setColor(color(0));
+
+        // --- Champs de texte ---
         Textfield stitchSpacingField = cp5.addTextfield("stitchSpacing")
                 .setPosition(20, 120)
                 .setSize(100, 30)
@@ -161,7 +171,6 @@ public class PEmbroiderApplication extends PApplet {
                         println("Valeur invalide pour la hauteur");
                     }
                 });
-
         exportHeightField.getCaptionLabel()
                 .setPaddingX(0)
                 .setPaddingY(-40)
@@ -169,7 +178,7 @@ public class PEmbroiderApplication extends PApplet {
                 .setText("Hauteur (mm)")
                 .setColor(color(0));
 
-        // Utilisation d'un Slider comme barre de progression
+        // --- Barre de progression ---
         progressBar = cp5.addSlider("progressBar")
                 .setPosition(20, 240)
                 .setSize(300, 20)
@@ -178,6 +187,7 @@ public class PEmbroiderApplication extends PApplet {
                 .setLabel("Progression");
         progressBar.setVisible(false);
     }
+
     private void invertAlphas() {
         if (embroidery != null) {
             for (int i = 0; i < embroidery.colors.size(); i++) {
