@@ -718,11 +718,11 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             exitApplication();
             return;
         }
-        String[] options = {"Sauvegarder et quitter", "Quitter sans sauvegarder", "Annuler"};
+        String[] options = {Translator.getInstance().translate("save_and_quit"), Translator.getInstance().translate("exit_without_save"),Translator.getInstance().translate("cancel")};
         int option = JOptionPane.showOptionDialog(
                 (java.awt.Component) this.getSurface().getNative(),
-                "Vous n'avez pas sauvegardé vos données. Voulez-vous sauvegarder avant de quitter ?",
-                "Confirmation de fermeture",
+                Translator.getInstance().translate("save_sentence_1"),
+                Translator.getInstance().translate("confirm_closing"),
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.WARNING_MESSAGE,
                 null,
@@ -747,7 +747,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     }
 
     private void exitApplication() {
-        Logger.getInstance().log(Logger.Project.Converter, "Fermeture de l'application");
+        Logger.getInstance().log(Logger.Project.Converter, Translator.getInstance().translate("closing_the_app"));
         Logger.getInstance().archiveLogs();
         if (this.surface.isStopped()) {
             this.exitActual();

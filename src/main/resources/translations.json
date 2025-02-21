@@ -7,7 +7,6 @@
     "launch_viewer": "Launch Viewer",
     "load_image": "Load Image",
     "saving": "Saving",
-    "invert_alpha": "Invert Alpha",
     "format_for_preview": "Format for preview",
     "space_between_points": "Spaces between points",
     "width_in_mm": "Width (mm)",
@@ -20,7 +19,17 @@
     "tooltip_editor_PAINT": "PAINT: Drag mouse to paint curves.",
     "tooltip_editor_FATPAINT": "FATPAINT: Drag mouse to paint fat curves.",
     "tooltip_editor_TEXT": "TEXT: Click to add text to location.",
-    "tooltip_editor_EDIT": "EDIT: Click and drag vertex to move it."
+    "tooltip_editor_EDIT": "EDIT: Click and drag vertex to move it.",
+    "refreshPreview": "Refresh Review",
+    "select_an_image": "Select an image",
+    "save_as": "Save as",
+    "save_and_quit": "Save and quit",
+    "exit_without_save": "Exit without save",
+    "cancel": "cancel",
+    "save_sentence_1":"You have not saved your data. Would you like to save before exiting?",
+    "confirm_closing": "Closing confirmation",
+    "closing_the_app": "Closing the application",
+    "max_color_multicolor_feature": "Max Colors for multicolor feature"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -30,7 +39,6 @@
     "launch_viewer": "Lancer Visionneur",
     "load_image": "Charger l'image",
     "saving": "Sauvegarder",
-    "invert_alpha": "Inverse l'alpha",
     "format_for_preview": "Format de la previsualisation",
     "space_between_points": "Espace entre les points",
     "width_in_mm": "Largeur (mm)",
@@ -43,6 +51,16 @@
     "tooltip_editor_PAINT": "PEINTURE : Faites glisser la souris pour peindre les courbes.",
     "tooltip_editor_FATPAINT": "PEINTURE PLATE : Faites glisser la souris pour peindre des courbes épaisses.",
     "tooltip_editor_TEXT": "TEXTE : Cliquez pour ajouter du texte à l'emplacement.",
-    "tooltip_editor_EDIT": "EDIT : Cliquez et faites glisser le sommet pour le déplacer."
+    "tooltip_editor_EDIT": "EDIT : Cliquez et faites glisser le sommet pour le déplacer.",
+    "refreshPreview": "Rafraichir la Previsualisation",
+    "select_an_image": "Selectione une image",
+    "save_as": "Sauvegarde sous",
+    "save_and_quit": "Sauvegarde et quitte",
+    "exit_without_save": "Quitte sans sauvegarde",
+    "cancel": "Anulle",
+    "save_sentence_1":"Vous n'avez pas sauvegardé vos données. Voulez-vous sauvegarder avant de quitter ?",
+    "confirm_closing": "Confirmation de fermeture",
+    "closing_the_app": "Fermeture de l'application",
+    "max_color_multicolor_feature": "Couleurs maximales pour la fonction multicolore"
   }
 }
