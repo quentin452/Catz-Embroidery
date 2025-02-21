@@ -16,6 +16,7 @@ public class Logger {
         Launcher,
         Converter,
         Editor,
+        Viewer
     }
 
     private Logger() {

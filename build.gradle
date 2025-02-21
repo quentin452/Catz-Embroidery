@@ -62,8 +62,13 @@ tasks.register('buildConverter', ShadowJar) {
         attributes 'Main-Class': 'fr.iamacat.PEmbroiderConverter'
     }
 }
-
+tasks.register('buildViewer', ShadowJar) {
+    archiveFileName = 'PEmbroiderConverter.jar'
+    manifest {
+        attributes 'Main-Class': 'fr.iamacat.PEmbroiderViewer'
+    }
+}
 tasks.named("build") {
-    dependsOn buildEditor, buildConverter
+    dependsOn buildEditor, buildConverter, buildViewer
     finalizedBy tasks.named("createExe")
 }

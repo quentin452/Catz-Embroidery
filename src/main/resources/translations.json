@@ -2,8 +2,9 @@
   "en": {
     "choose_app": "Choose an application to launch:",
     "version": "Current version: ",
-    "launch_editor": "Launch PEmbroiderEditor",
-    "launch_converter": "Launch PEmbroiderConverter",
+    "launch_editor": "Launch Editor",
+    "launch_converter": "Launch Converter",
+    "launch_viewer": "Launch Viewer",
     "load_image": "Load Image",
     "saving": "Saving",
     "invert_alpha": "Invert Alpha",
@@ -18,8 +19,9 @@
   "fr": {
     "choose_app": "Choisissez l'application à lancer :",
     "version": "Version actuelle : ",
-    "launch_editor": "Lancer PEmbroiderEditor",
-    "launch_converter": "Lancer PEmbroiderConverter",
+    "launch_editor": "Lancer Editeur",
+    "launch_converter": "Lancer Convertisseur",
+    "launch_viewer": "Lancer Visionneur",
     "load_image": "Charger l'image",
     "saving": "Sauvegarder",
     "invert_alpha": "Inversé l'alpha",

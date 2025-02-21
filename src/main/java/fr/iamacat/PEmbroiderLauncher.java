@@ -17,6 +17,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
 
     private Button buttonEditor;
     private Button buttonConverter;
+    // TODOprivate Button buttonViewer;
     private ControlP5 cp5;
     private DropdownList languageDropdown;
 
@@ -64,6 +65,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
 
         // Créer des boutons
         buttonEditor = new Button(width / 2 - 100, height / 2 - 40, 200, 40, Translator.getInstance().translate("launch_editor"));
+        // TODO  buttonViewer = new Button(width / 2 - 100, height / 2 - 60, 200, 40, Translator.getInstance().translate("launch_viewer"));
         buttonConverter = new Button(width / 2 - 100, height / 2 + 20, 200, 40, Translator.getInstance().translate("launch_converter"));
 
         fill(0);
@@ -75,6 +77,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
     public void draw() {
         // Affichage des boutons
         buttonEditor.display();
+        // TODO   buttonViewer.display();
         buttonConverter.display();
     }
 
@@ -86,6 +89,10 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         } else if (buttonConverter.isPressed(mouseX, mouseY)) {
             Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderConverter");
             runApplication("fr.iamacat.PEmbroiderConverter");
+            // TODO
+       /* } else if (buttonViewer.isPressed(mouseX, mouseY)) {
+            Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderViewer");
+            runApplication("fr.iamacat.PEmbroiderViewer");*/
         }
     }
 
@@ -147,6 +154,8 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         // Mettre à jour les boutons avec les nouvelles traductions
         buttonEditor.label = Translator.getInstance().translate("launch_editor");
         buttonConverter.label = Translator.getInstance().translate("launch_converter");
+        // TODO    buttonViewer.label = Translator.getInstance().translate("launch_viewer");
+
 
         fill(0);
         textSize(16);

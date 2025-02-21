@@ -261,7 +261,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                     boolean isSVG = selectedFormat.equals("SVG");
                     progressBar.setValue(50);
                     embroidery.optimize();
-                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, width, height, isSVG); // TODO FIX THIS WRITE WRONG .pes
+                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, width, height, isSVG);
                     progressBar.setValue(100);
                     progressBar.setVisible(false);
                 } catch (Exception e) {
