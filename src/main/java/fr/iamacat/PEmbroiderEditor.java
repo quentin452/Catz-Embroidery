@@ -49,12 +49,12 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
 
     String[] tooltip = {
             "",
-            "FREEHAND: Drag mouse to draw polygon, lift mouse to finish.",
-            "VERTEX: Click to add polygon vertex, double-click to finish.",
-            "PAINT: Drag mouse to paint curves.",
-            "FATPAINT: Drag mouse to paint fat curves.",
-            "TEXT: Click to add text to location.",
-            "EDIT: Click and drag vertex to move it.",
+            Translator.getInstance().translate("tooltip_editor_FREEHAND"),
+            Translator.getInstance().translate("tooltip_editor_VERTEX"),
+            Translator.getInstance().translate("tooltip_editor_PAINT"),
+            Translator.getInstance().translate("tooltip_editor_FATPAINT"),
+            Translator.getInstance().translate("tooltip_editor_TEXT"),
+            Translator.getInstance().translate("tooltip_editor_EDIT"),
     };
 
     int tool = TOOL_FREEHAND;
@@ -550,7 +550,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         noStroke();
         textAlign(LEFT,BOTTOM);
         textSize(12);
-        text(tooltip[tool%tooltip.length],5,height-2);
+        text(tooltip[tool%tooltip.length],45,height-2);
         popStyle();
     }
     void drawEditMode(){

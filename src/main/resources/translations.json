@@ -14,7 +14,13 @@
     "height_in_mm": "Height mm)",
     "progess": "Progress",
     "color_mode": "Color Mode ?",
-    "layer": "Layer"
+    "layer": "Layer",
+    "tooltip_editor_FREEHAND": "FREEHAND: Drag mouse to draw polygon, lift mouse to finish.",
+    "tooltip_editor_VERTEX": "VERTEX: Click to add polygon vertex, double-click to finish.",
+    "tooltip_editor_PAINT": "PAINT: Drag mouse to paint curves.",
+    "tooltip_editor_FATPAINT": "FATPAINT: Drag mouse to paint fat curves.",
+    "tooltip_editor_TEXT": "TEXT: Click to add text to location.",
+    "tooltip_editor_EDIT": "EDIT: Click and drag vertex to move it."
   },
   "fr": {
     "choose_app": "Choisissez l'application à lancer :",
@@ -31,6 +37,12 @@
     "height_in_mm": "Hauteur (mm)",
     "progess": "Progression",
     "color_mode": "Mode Couleur ?",
-    "layer": "Couche"
+    "layer": "Couche",
+    "tooltip_editor_FREEHAND": "À MAIN LEVÉE : Faites glisser la souris pour dessiner un polygone, soulevez la souris pour terminer.",
+    "tooltip_editor_VERTEX": "VERTICE : Cliquez pour ajouter un sommet de polygone, double-cliquez pour terminer.",
+    "tooltip_editor_PAINT": "PEINTURE : Faites glisser la souris pour peindre les courbes.",
+    "tooltip_editor_FATPAINT": "PEINTURE PLATE : Faites glisser la souris pour peindre des courbes épaisses.",
+    "tooltip_editor_TEXT": "TEXTE : Cliquez pour ajouter du texte à l'emplacement.",
+    "tooltip_editor_EDIT": "EDIT : Cliquez et faites glisser le sommet pour le déplacer."
   }
 }
