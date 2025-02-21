@@ -27,7 +27,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     private boolean showPreview = false;
     private float exportWidth = 95;  // Largeur par défaut en mm
     private float exportHeight = 95; // Hauteur par défaut en mm
-    private float currentSpacing = 1;
+    private float currentSpacing = 5;
     private int currentWidth = 1280;
     private int currentHeight = 720;
     private boolean isColorMode = true;
@@ -293,7 +293,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
             embroidery.noStroke();
             embroidery.fill(0, 0, 255); // Blue fill
             embroidery.hatchMode(PEmbroiderGraphics.CROSS);
-            embroidery.hatchSpacing(4.0F);
+            embroidery.hatchSpacing(currentSpacing);
             embroidery.image(img, 860, 70);
         } else {
             // Draw it again, but just the stroke this time.
