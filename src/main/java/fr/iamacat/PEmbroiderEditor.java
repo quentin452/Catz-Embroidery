@@ -307,7 +307,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         rect(0,H-PX,PX,PX);
         fill(0);
         textSize(14);
-        text("SAVE",PX/2,H-PX+PX/2-2);
+        text("Save",PX/2,H-PX+PX/2-2);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && H-PX <= mouseY && mouseY <= H){
 
             javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
@@ -498,7 +498,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             noStroke();
             textSize(12);
             textAlign(LEFT,BASELINE);
-            text("Layer "+i,50,oy+14);
+            text(Translator.getInstance().translate("layer") + " " +i,50,oy+14);
 
             if (!clicked && !mouseOnCanvas() && mousePressed && PX+W <= mouseX && mouseX <= width && oy <= mouseY && mouseY <= oy+50){
                 currentLayer = i;

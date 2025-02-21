@@ -3,12 +3,32 @@
     "choose_app": "Choose an application to launch:",
     "version": "Current version: ",
     "launch_editor": "Launch PEmbroiderEditor",
-    "launch_converter": "Launch PEmbroiderConverter"
+    "launch_converter": "Launch PEmbroiderConverter",
+    "load_image": "Load Image",
+    "saving": "Saving",
+    "invert_alpha": "Invert Alpha",
+    "format_for_preview": "Format for preview",
+    "space_between_points": "Spaces between points",
+    "width_in_mm": "Width (mm)",
+    "height_in_mm": "Height mm)",
+    "progess": "Progress",
+    "color_mode": "Color Mode ?",
+    "layer": "Layer"
   },
   "fr": {
     "choose_app": "Choisissez l'application à lancer :",
     "version": "Version actuelle : ",
     "launch_editor": "Lancer PEmbroiderEditor",
-    "launch_converter": "Lancer PEmbroiderConverter"
+    "launch_converter": "Lancer PEmbroiderConverter",
+    "load_image": "Charger l'image",
+    "saving": "Sauvegarder",
+    "invert_alpha": "Inversé l'alpha",
+    "format_for_preview": "Format de la prévisualisation",
+    "space_between_points": "Espace entre les points",
+    "width_in_mm": "Largeur (mm)",
+    "height_in_mm": "Hauteur (mm)",
+    "progess": "Progression",
+    "color_mode": "Mode Couleur ?",
+    "layer": "Couche"
   }
 }

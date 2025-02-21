@@ -56,27 +56,27 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
         cp5.addButton("loadImage")
                 .setPosition(20, 20)
                 .setSize(120, 30)
-                .setLabel("Charger image")
+                .setLabel(Translator.getInstance().translate("load_image"))
                 .onClick(event -> loadImage());
 
         cp5.addButton("saveFile")
                 .setPosition(160, 20)
                 .setSize(120, 30)
-                .setLabel("Sauvegarder")
+                .setLabel(Translator.getInstance().translate("saving"))
                 .onClick(event -> saveFile());
 
         cp5.addButton("invertAlphas")
                 .setPosition(300, 20)
                 .setSize(120, 30)
-                .setLabel("Inverser Alphas")
+                .setLabel(Translator.getInstance().translate("invert_alpha"))
                 .onClick(event -> invertAlphas());
 
         // --- Sélecteur de format ---
         cp5.addDropdownList("formatSelector")
                 .setPosition(440, 22)
-                .setSize(100, 120)
+                .setSize(135, 120)
                 .addItems(formats)
-                .setLabel("Format de sortie")
+                .setLabel(Translator.getInstance().translate("format_for_preview"))
                 .onChange(event -> {
                     float[] values = event.getController().getArrayValue();
                     if (values.length > 0) {
@@ -106,21 +106,19 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
                 .setValue(isColorMode)
                 .onChange(event -> {
                     isColorMode = event.getController().getValue() == 1;
-                    Logger.getInstance().log(Logger.Project.Converter,"Mode : " + (isColorMode ? "Couleur" : "Noir et Blanc"));
                     if (img != null) refreshPreview();
                 });
         isColorModeField.getCaptionLabel()
                 .setPaddingX(0)
                 .setPaddingY(-30)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText("Mode Couleur ?")
+                .setText(Translator.getInstance().translate("color_mode"))
                 .setColor(color(0));
 
         // --- Champs de texte ---
         Textfield stitchSpacingField = cp5.addTextfield("stitchSpacing")
                 .setPosition(20, 120)
                 .setSize(100, 30)
-                .setLabel("Espacement des points")
                 .setText(str(currentSpacing))
                 .setAutoClear(false)
                 .onChange(event -> {
@@ -136,7 +134,7 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
                 .setPaddingX(0)
                 .setPaddingY(-40)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText("Espacement des points")
+                .setText(Translator.getInstance().translate("space_between_points"))
                 .setColor(color(0));
 
         Textfield exportWidthField = cp5.addTextfield("exportWidth")
@@ -157,7 +155,7 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
                 .setPaddingX(0)
                 .setPaddingY(-40)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText("Largeur (mm)")
+                .setText(Translator.getInstance().translate("width_in_mm"))
                 .setColor(color(0));
 
         Textfield exportHeightField = cp5.addTextfield("exportHeight")
@@ -178,7 +176,7 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
                 .setPaddingX(0)
                 .setPaddingY(-40)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText("Hauteur (mm)")
+                .setText(Translator.getInstance().translate("height_in_mm"))
                 .setColor(color(0));
 
         // --- Barre de progression ---
@@ -187,12 +185,12 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
                 .setSize(300, 20)
                 .setRange(0, 100)
                 .setValue(0)
-                .setLabel("Progression");
+                .setLabel(Translator.getInstance().translate("progess"));
         progressBar.setVisible(false);
     }
 
     private void invertAlphas() {
-        if (embroidery != null) {
+        if (img != null && embroidery != null) {
             for (int i = 0; i < embroidery.colors.size(); i++) {
                 int color = embroidery.colors.get(i);
                 int alpha = (color >> 24) & 0xFF;
