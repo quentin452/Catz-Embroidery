@@ -12,7 +12,6 @@ import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
 
 import javax.swing.*;
-// TODO PRINT STATISTICS
 public class PEmbroiderConverter extends PApplet implements Translatable {
 
     private PImage img;
