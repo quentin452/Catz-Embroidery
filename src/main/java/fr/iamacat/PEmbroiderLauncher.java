@@ -1,7 +1,11 @@
 package fr.iamacat;
 
 import fr.iamacat.utils.Logger;
+import fr.iamacat.utils.Updater;
 import processing.core.PApplet;
+
+import java.io.IOException;
+import javax.swing.JOptionPane;
 
 public class PEmbroiderLauncher extends PApplet {
 
@@ -21,6 +25,14 @@ public class PEmbroiderLauncher extends PApplet {
 
         // Initialiser le logger
         Logger.getInstance().log(Logger.Project.Launcher,"Lancement de l'application");
+
+        fill(0);
+        textSize(12);
+        textAlign(LEFT, TOP);
+        text("Version actuelle : " + Updater.CURRENT_VERSION, 10, 10);
+
+        // Vérifier les mises à jour
+        checkForUpdates();
 
         // Créer des boutons
         buttonEditor = new Button(width / 2 - 100, height / 2 - 40, 200, 40, "PEmbroiderEditor");
@@ -65,6 +77,34 @@ public class PEmbroiderLauncher extends PApplet {
         Logger.getInstance().archiveLogs();
         super.exit();
     }
+
+    private void checkForUpdates() {
+        new Thread(() -> {
+            try {
+                String latestVersion = Updater.getLatestVersionFromGitHub();
+                if (Updater.isVersionOutdated(Updater.CURRENT_VERSION, latestVersion)) {
+                    Logger.getInstance().log(Logger.Project.Launcher, "Une nouvelle version est disponible : " + latestVersion);
+
+                    // Afficher un pop-up informant l'utilisateur
+                    int response = JOptionPane.showConfirmDialog(null,
+                            "Une nouvelle version (" + latestVersion + ") est disponible. Voulez-vous ouvrir la page des releases ?",
+                            "Mise à jour disponible",
+                            JOptionPane.YES_NO_OPTION);
+
+                    // Si l'utilisateur clique sur "Oui", ouvrir le navigateur
+                    if (response == JOptionPane.YES_OPTION) {
+                        Updater.openBrowserToReleasesPage();
+                    }
+                } else {
+                    Logger.getInstance().log(Logger.Project.Launcher, "Vous avez la version la plus récente.");
+                }
+            } catch (IOException e) {
+                Logger.getInstance().log(Logger.Project.Launcher, "Erreur lors de la vérification des mises à jour : " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
 
     // Classe Button
     class Button {
