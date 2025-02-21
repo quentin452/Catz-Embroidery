@@ -14,7 +14,9 @@ import processing.core.PImage;
 import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
 
-public class PEmbroiderConverter extends PApplet  implements Translatable {
+import javax.swing.*;
+
+public class PEmbroiderConverter extends PApplet implements Translatable {
 
     private PImage img;
     private PEmbroiderGraphics embroidery;
@@ -29,6 +31,7 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
     private int currentWidth = 1280;
     private int currentHeight = 720;
     private boolean isColorMode = true;
+    private boolean enableEscapeMenu = false;
 
     private boolean isDialogOpen = false;
 
@@ -236,6 +239,7 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
                 img = loadImage(selection.getAbsolutePath());
                 if (img != null) {
                     refreshPreview();
+                    enableEscapeMenu = true;
                     showPreview = true;
                 } else {
                     Logger.getInstance().log(Logger.Project.Converter,"Le fichier sélectionné n'est pas une image valide.");
@@ -329,11 +333,55 @@ public class PEmbroiderConverter extends PApplet  implements Translatable {
         }
     }
 
-    public void exit() {
-        // Sauvegarder les logs et archiver le fichier log au départ
-        Logger.getInstance().log(Logger.Project.Converter,"Fermeture de l'application");
+
+    private void showExitDialog() {
+        if (!enableEscapeMenu) {
+            exitApplication();
+            return;
+        }
+        String[] options = {"Sauvegarder et quitter", "Quitter sans sauvegarder", "Annuler"};
+        int option = JOptionPane.showOptionDialog(
+                (java.awt.Component) this.getSurface().getNative(),
+                "Vous n'avez pas sauvegardé vos données. Voulez-vous sauvegarder avant de quitter ?",
+                "Confirmation de fermeture",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (option == 0) {
+            saveFileAndExit();
+        } else if (option == 1) {
+            exitApplication();
+        } else {
+            isDialogOpen = false;
+        }
+    }
+
+    private void saveFileAndExit() {
+        if (!isDialogOpen) {
+            isDialogOpen = true;
+            selectOutput("Sauvegarder sous", "fileSaved");
+        }
+    }
+    private void exitApplication() {
+        Logger.getInstance().log(Logger.Project.Converter, "Fermeture de l'application");
         Logger.getInstance().archiveLogs();
-        super.exit();
+        if (this.surface.isStopped()) {
+            this.exitActual();
+        } else if (this.looping) {
+            this.finished = true;
+            this.exitCalled = true;
+        } else if (!this.looping) {
+            this.dispose();
+            this.exitActual();
+        }
+    }
+
+    @Override
+    public void exit() {
+        showExitDialog();
     }
 
     @Override

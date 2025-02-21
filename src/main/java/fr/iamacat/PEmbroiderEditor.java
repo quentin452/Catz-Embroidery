@@ -10,6 +10,7 @@ import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
 import processing.event.MouseEvent;
 
+import javax.swing.*;
 import java.io.File;
 import java.util.ArrayList;
 
@@ -17,6 +18,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     PEmbroiderGraphics E;
     private final int currentWidth = 1280;
     private final int currentHeight = 720;
+    private boolean enableEscapeMenu = false , isDialogOpen = false;
     public void settings() {
         size(currentWidth, currentHeight);
     }
@@ -24,7 +26,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderEditor");
     }
-    int W = currentWidth;
+    int W = (int) (currentWidth/ 1.25);
     int H = currentHeight;
 
     int PX = 40;
@@ -310,30 +312,37 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         textSize(14);
         text("Save",PX/2,H-PX+PX/2-2);
         if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && H-PX <= mouseY && mouseY <= H){
-
-            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-            fileChooser.setDialogTitle("Save embroidery file");
-            ////fileChooser.setCurrentDirectory(new File(sketchPath()));
-            int userSelection = fileChooser.showSaveDialog(null);
-            if (userSelection == javax.swing.JFileChooser.APPROVE_OPTION) {
-                File fileToSave = fileChooser.getSelectedFile();
-                Logger.getInstance().log(Logger.Project.Editor,"Save as file: " + fileToSave.getAbsolutePath());
-                writeOut(fileToSave.getAbsolutePath());
-            }
-
-            /* plain old input box */
-            String path = (String)javax.swing.JOptionPane.showInputDialog(null,"Path is relative to the sketch folder, use / for starting absolute paths","Save Embroidery File",javax.swing.JOptionPane.QUESTION_MESSAGE,null,null,"untitled.vp3");
-            if (path != null && path.length()>0){
-                javax.swing.JOptionPane.showMessageDialog(null, "Optimizing stroke order and saving file, this might take a while...");
-                writeOut(sketchPath(path));
-                javax.swing.JOptionPane.showMessageDialog(null, "Embroidery file saved!");
-            }
+            saveFile();
             mousePressed = false;
         }
 
         popMatrix();
     }
 
+    private void saveFile() {
+        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+        fileChooser.setDialogTitle("Save embroidery file");
+        int userSelection = fileChooser.showSaveDialog(null);
+        if (userSelection == javax.swing.JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            Logger.getInstance().log(Logger.Project.Editor, "Save as file: " + fileToSave.getAbsolutePath());
+            writeOut(fileToSave.getAbsolutePath());
+        }
+
+        String path = (String) javax.swing.JOptionPane.showInputDialog(null,
+                "Path is relative to the sketch folder, use / for starting absolute paths",
+                "Save Embroidery File",
+                javax.swing.JOptionPane.QUESTION_MESSAGE,
+                null,
+                null,
+                "untitled.vp3");
+
+        if (path != null && path.length() > 0) {
+            javax.swing.JOptionPane.showMessageDialog(null, "Optimizing stroke order and saving file, this might take a while...");
+            writeOut(sketchPath(path));
+            javax.swing.JOptionPane.showMessageDialog(null, "Embroidery file saved!");
+        }
+    }
 
     void drawLayersGui(){
         int ww = width-PX-W;
@@ -608,11 +617,18 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         return PX < mouseX && mouseX < PX+W && 0 < mouseY && mouseY < H;
     }
 
-
-   public void draw(){
+    private boolean hasEmbroideryRendered() {
+        for (Layer layer : layers) {
+            if (layer.visible && !layer.elements.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public void draw(){
 
         background(100);
-
+        enableEscapeMenu = hasEmbroideryRendered();
         if (tool == TOOL_EDIT){
             drawEditMode();
         }else if (needsUpdate){
@@ -686,10 +702,55 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
             }
         }
     }
-    public void exit() {
-        // Sauvegarder les logs et archiver le fichier log au départ
-        Logger.getInstance().log(Logger.Project.Editor,"Fermeture de l'application");
+    private void showExitDialog() {
+        if (!enableEscapeMenu) {
+            exitApplication();
+            return;
+        }
+        String[] options = {"Sauvegarder et quitter", "Quitter sans sauvegarder", "Annuler"};
+        int option = JOptionPane.showOptionDialog(
+                (java.awt.Component) this.getSurface().getNative(),
+                "Vous n'avez pas sauvegardé vos données. Voulez-vous sauvegarder avant de quitter ?",
+                "Confirmation de fermeture",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (option == 0) {
+            saveFileAndExit();
+        } else if (option == 1) {
+            exitApplication();
+        } else {
+            isDialogOpen = false;
+        }
+    }
+
+    private void saveFileAndExit() {
+        if (!isDialogOpen) {
+            isDialogOpen = true;
+            saveFile();
+            exitApplication();
+        }
+    }
+
+    private void exitApplication() {
+        Logger.getInstance().log(Logger.Project.Converter, "Fermeture de l'application");
         Logger.getInstance().archiveLogs();
-        super.exit();
+        if (this.surface.isStopped()) {
+            this.exitActual();
+        } else if (this.looping) {
+            this.finished = true;
+            this.exitCalled = true;
+        } else if (!this.looping) {
+            this.dispose();
+            this.exitActual();
+        }
+    }
+
+    @Override
+    public void exit() {
+        showExitDialog();
     }
 }
