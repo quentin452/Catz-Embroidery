@@ -33,6 +33,11 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     private boolean isDialogOpen = false;
     private ColorType colorType = ColorType.MultiColor;
 
+    private String[] hatchModes = {"CROSS", "PARALLEL", "CONCENTRIC" , "SPIRAL" , "PERLIN"};
+    private String selectedHatchMode = "CROSS";  // Default hatch mode
+
+    public boolean enableFillInMulticolor = false;
+
     String hoverText = "";
     boolean showTooltip = false;
     PFont tooltipFont;
@@ -77,6 +82,12 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .setSize(120, 30)
                 .setLabel(Translator.getInstance().translate("saving"))
                 .onClick(event -> saveFile());
+        cp5.addButton("enableFillInMulticolorMode")
+                .setPosition(20, 320)
+                .setSize(100, 30)
+                .setLabel(Translator.getInstance().translate("fill_in_multicolor_mode"))
+                .onClick(event -> updateFillMultiMode());
+
         cp5.addDropdownList("formatSelector")
                 .setPosition(440, 22)
                 .setSize(135, 120)
@@ -94,6 +105,18 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                         }
                     } else {
                         Logger.getInstance().log(Logger.Project.Converter,"Erreur : Aucune valeur sélectionnée !");
+                    }
+                });
+        cp5.addDropdownList("hatchModeSelector")
+                .setPosition(580, 22)
+                .setSize(135, 120)
+                .addItems(hatchModes)
+                .setLabel(Translator.getInstance().translate("hatch_mode"))
+                .onChange(event -> {
+                    int index = (int) event.getController().getValue();
+                    if (index >= 0 && index < hatchModes.length) {
+                        selectedHatchMode = hatchModes[index];
+                        if (img != null) refreshPreview();
                     }
                 });
         Textfield maxMultiColorTextField = cp5.addTextfield("maxMultiColorField")
@@ -301,6 +324,12 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
         progressBar.setVisible(false);
     }
 
+    private void updateFillMultiMode()
+    {
+        enableFillInMulticolor = !enableFillInMulticolor;
+        if (img != null) refreshPreview();
+    }
+
     private void resetProgressBar() {
         progressBar.setValue(0);
         progressBar.setVisible(true);
@@ -380,38 +409,58 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
             embroidery.beginDraw();
             embroidery.clear();
         }
-
         img.resize(1000, 1000);
-        embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+        embroidery.beginCull();
+        switch (selectedHatchMode) {
+            case "CROSS":
+                embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                break;
+            case "PARALLEL":
+                embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+                break;
+            case "CONCENTRIC":
+                embroidery.hatchMode(PEmbroiderGraphics.CONCENTRIC);
+                break;
+            case "SPIRAL":
+                embroidery.hatchMode(PEmbroiderGraphics.SPIRAL);
+                break;
+            case "PERLIN":
+                embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
+                break;
+            default:
+                embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+        }
         embroidery.hatchSpacing(currentSpacing);
         if (colorType == ColorType.MonoColor) {
             embroidery.noStroke();
             embroidery.popyLineMulticolor = false;
             embroidery.fill(selectedColor.getForeground()); // TODO FIX THIS DON'T GET THE RIGHT COLOR
-            embroidery.image(img, 860, 70);
         }
         else if (colorType == ColorType.MultiColor) {
-            embroidery.noFill();
+            if (!enableFillInMulticolor) {
+                embroidery.noFill();
+            } else {
+                embroidery.fill(selectedColor.getForeground());
+            }
             embroidery.stroke(0,0,0);
             embroidery.popyLineMulticolor = true;
             embroidery.strokeWeight(currentStrokeWeight);
             embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
             embroidery.strokeSpacing(currentSpacing);
-            embroidery.image(img, 860, 70);
         }
         else if (colorType == ColorType.BlackAndWhite) {
-            embroidery.fill(0, 0, 0); // Noir
+            embroidery.fill(0, 0, 0);
             embroidery.noStroke();
             embroidery.popyLineMulticolor = false;
-            embroidery.image(img, 860, 70);
         }
-       // embroidery.HATCH_MODE = PEmbroiderGraphics.CROSS; // TODO ADD A DROPDOWN TO CHOOSE SOME HATCH_MODE and use stroke or not
+        embroidery.image(img, 860, 70);
+        embroidery.endCull();
     }
 
     @Override
     public void draw() {
         background(240);
-        if (img != null) {
+        if (img != null && img.width > 0 && img.height > 0) {
             image(img, 190, 70, (float) width / 2 - 40, height - 90);
         }
         if (showPreview && embroidery != null) {
