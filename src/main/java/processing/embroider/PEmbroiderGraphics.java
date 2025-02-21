@@ -10,6 +10,9 @@ import java.util.Collections;
 //import processing.awt.PGraphicsJava2D;
 import processing.core.*;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 /**
  * This is a template class and can be used to start a new processing Library.
  * Make sure you rename this class as well as the name of the example package
@@ -540,7 +543,7 @@ public class PEmbroiderGraphics {
 	public void setStitch(float msl, float sl, float rn) {
 		MIN_STITCH_LENGTH = Math.max(0f,msl);
 		STITCH_LENGTH = Math.max(0.1f,sl);
-		RESAMPLE_NOISE = Math.max(0.0f,Math.min(1f,rn));
+		RESAMPLE_NOISE = Math.max(0.0f, min(1f,rn));
 	}
 
 	/** Set render order: render strokes over fill, or other way around?
@@ -715,8 +718,8 @@ public class PEmbroiderGraphics {
 			float xmax = Float.NEGATIVE_INFINITY;
 			float ymax = Float.NEGATIVE_INFINITY;
 			for (int i = 0; i < poly.size(); i++) {
-				xmin = Math.min(xmin,poly.get(i).x);
-				ymin = Math.min(ymin,poly.get(i).y);
+				xmin = min(xmin,poly.get(i).x);
+				ymin = min(ymin,poly.get(i).y);
 				xmax = Math.max(xmax,poly.get(i).x);
 				ymax = Math.max(ymax,poly.get(i).y);
 
@@ -738,8 +741,8 @@ public class PEmbroiderGraphics {
 			float ymax = Float.NEGATIVE_INFINITY;
 			for (int i = 0; i < polys.size(); i++) {
 				for (int j = 0; j < polys.get(i).size(); j++) {
-					xmin = Math.min(xmin,polys.get(i).get(j).x);
-					ymin = Math.min(ymin,polys.get(i).get(j).y);
+					xmin = min(xmin,polys.get(i).get(j).x);
+					ymin = min(ymin,polys.get(i).get(j).y);
 					xmax = Math.max(xmax,polys.get(i).get(j).x);
 					ymax = Math.max(ymax,polys.get(i).get(j).y);
 				}
@@ -3190,7 +3193,7 @@ public class PEmbroiderGraphics {
 					}else {
 						rr = app.randomGaussian()+1;
 					}
-					rr = Math.min(Math.max(rr, -1), 1);
+					rr = min(Math.max(rr, -1), 1);
 					lin[j-1] = (float)j/(float)n + rr*randomize*(1f/(float)n)*0.5f;
 				}
 				for (int j = 0; j < n-1; j++) {
@@ -4422,25 +4425,39 @@ public class PEmbroiderGraphics {
 	 *  @param stitches  whether to visualize stitches, i.e. little dots on end of segments
 	 *  @param route     whether to visualize the path between polylines that will be taken by embroidery machine/plotter. To be able to not see a mess when enabling this option, try optimize()
 	 */
-	public void visualize(boolean color, boolean stitches, boolean route, int nStitches) {
+	public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight) {
+		// Calculer le facteur d'échelle en conservant les proportions
+		float scaleX = targetWidth / width;
+		float scaleY = targetHeight / height;
+		float scale = max(scaleX, scaleY); // Utiliser le même facteur pour X et Y
+
+		// Centrer le rendu dans l'espace de visualisation
+		float offsetX = (targetWidth - width * scale) / 2;
+		float offsetY = (targetHeight - height * scale) / 2;
+
 		int n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
 			if (color) {
-				app.stroke(app.red(colors.get(i)),app.green(colors.get(i)),app.blue(colors.get(i)));	
-			}else if (stitches){
+				app.stroke(app.red(colors.get(i)), app.green(colors.get(i)), app.blue(colors.get(i)));
+			} else if (stitches) {
 				app.stroke(0);
-			}else {
-				app.stroke(app.random(200),app.random(200),app.random(200));
+			} else {
+				app.stroke(app.random(200), app.random(200), app.random(200));
 			}
-			for (int j = 0; j < polylines.get(i).size()-1; j++) {
+			for (int j = 0; j < polylines.get(i).size() - 1; j++) {
 				PVector p0 = polylines.get(i).get(j);
-				PVector p1 = polylines.get(i).get(j+1);
+				PVector p1 = polylines.get(i).get(j + 1);
+
+				// Appliquer le facteur d'échelle et centrer les coordonnées
+				float scaledP0X = p0.x * scale + offsetX;
+				float scaledP0Y = p0.y * scale + offsetY;
+				float scaledP1X = p1.x * scale + offsetX;
+				float scaledP1Y = p1.y * scale + offsetY;
 
 				app.strokeWeight(1);
-				app.line(p0.x,p0.y,p1.x,p1.y);
+				app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
 				n++;
 				if (n >= nStitches) {
-//					PApplet.println(p0,p1);
 					break;
 				}
 			}
@@ -4448,33 +4465,47 @@ public class PEmbroiderGraphics {
 				break;
 			}
 		}
+
 		n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
 			if (route) {
-				if (i != 0 && polylines.get(i-1).size() > 0 && polylines.get(i).size() > 0) {
-					app.stroke(255,0,0);
+				if (i != 0 && polylines.get(i - 1).size() > 0 && polylines.get(i).size() > 0) {
+					app.stroke(255, 0, 0);
 					app.strokeWeight(1);
-					PVector p0 = polylines.get(i-1).get(polylines.get(i-1).size()-1);
+					PVector p0 = polylines.get(i - 1).get(polylines.get(i - 1).size() - 1);
 					PVector p1 = polylines.get(i).get(0);
-					app.line(p0.x,p0.y,p1.x,p1.y);
+
+					// Appliquer le facteur d'échelle et centrer les coordonnées
+					float scaledP0X = p0.x * scale + offsetX;
+					float scaledP0Y = p0.y * scale + offsetY;
+					float scaledP1X = p1.x * scale + offsetX;
+					float scaledP1Y = p1.y * scale + offsetY;
+
+					app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
 				}
 			}
 			if (stitches) {
-				for (int j = 0; j < polylines.get(i).size()-1; j++) {
+				for (int j = 0; j < polylines.get(i).size() - 1; j++) {
 					PVector p0 = polylines.get(i).get(j);
-					PVector p1 = polylines.get(i).get(j+1);
+					PVector p1 = polylines.get(i).get(j + 1);
+
+					// Appliquer le facteur d'échelle et centrer les coordonnées
+					float scaledP0X = p0.x * scale + offsetX;
+					float scaledP0Y = p0.y * scale + offsetY;
+					float scaledP1X = p1.x * scale + offsetX;
+					float scaledP1Y = p1.y * scale + offsetY;
+
 					app.noStroke();
 					if (j == 0) {
-						app.fill(0,255,0);
-						app.rect(p0.x-1,p0.y-1,2,2);
+						app.fill(0, 255, 0);
+						app.rect(scaledP0X - 1, scaledP0Y - 1, 2, 2);
 					}
-					app.fill(255,0,255);
-					app.rect(p1.x-1,p1.y-1,2,2);
+					app.fill(255, 0, 255);
+					app.rect(scaledP1X - 1, scaledP1Y - 1, 2, 2);
 					n++;
-					if (n>=nStitches) {
+					if (n >= nStitches) {
 						break;
 					}
-					
 				}
 				if (n >= nStitches) {
 					break;
@@ -4490,7 +4521,7 @@ public class PEmbroiderGraphics {
 		visualize(false,true,false);
 	}
 	public void visualize(boolean color, boolean stitches, boolean route) {
-		visualize(color,stitches,route,Integer.MAX_VALUE);
+		visualize(color,stitches,route,Integer.MAX_VALUE,width,height);
 	}
 
 

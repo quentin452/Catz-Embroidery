@@ -27,7 +27,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     private boolean showPreview = false;
     private float exportWidth = 95;  // Largeur par défaut en mm
     private float exportHeight = 95; // Hauteur par défaut en mm
-    private float currentSpacing = 5;
+    private float currentSpacing = 8;
     private int currentWidth = 1280;
     private int currentHeight = 720;
     private boolean isColorMode = true;
@@ -259,7 +259,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                     boolean isSVG = selectedFormat.equals("SVG");
                     progressBar.setValue(50);
                     embroidery.optimize();
-                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, width, height, isSVG);
+                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, (int) exportWidth, (int) exportHeight, isSVG);
                     progressBar.setValue(100);
                     progressBar.setVisible(false);
                 } catch (Exception e) {
@@ -280,7 +280,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
             embroidery.beginDraw();
             embroidery.clear();
         }
-        img.resize((int) (exportWidth * 2.71430), (int) (exportHeight * 2.71430));
+        img.resize((1000), (1000)); // FOR PRECISION AND FIX ISSUES ON MINI IMAGES
         // Use the Cull feature to make lines and strokes not overlap
         embroidery.beginCull();
 
@@ -319,8 +319,8 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
         if (img != null) {
             image(img, 190, 70, width / 2 - 40, height - 90);
         }
-        if (showPreview) {
-            embroidery.visualize(true, false,false, Integer.MAX_VALUE);
+        if (showPreview && embroidery != null) {
+            embroidery.visualize(true, false,false,Integer.MAX_VALUE, (float) ((int)exportWidth * 2.71430),(float) ((int)exportHeight * 2.71430));
         }
     }
 
