@@ -29,7 +29,8 @@
     "save_sentence_1":"You have not saved your data. Would you like to save before exiting?",
     "confirm_closing": "Closing confirmation",
     "closing_the_app": "Closing the application",
-    "max_color_multicolor_feature": "Max Colors for multicolor feature"
+    "max_color_multicolor_feature": "Max Colors for multicolor feature",
+    "stroke_weight": "Stroke Weight"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -61,6 +62,7 @@
     "save_sentence_1":"Vous n'avez pas sauvegardé vos données. Voulez-vous sauvegarder avant de quitter ?",
     "confirm_closing": "Confirmation de fermeture",
     "closing_the_app": "Fermeture de l'application",
-    "max_color_multicolor_feature": "Couleurs maximales pour la fonction multicolore"
+    "max_color_multicolor_feature": "Couleurs maximales pour la fonction multicolore",
+    "stroke_weight": "Poids du trait"
   }
 }

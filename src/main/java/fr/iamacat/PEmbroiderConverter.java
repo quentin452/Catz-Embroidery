@@ -7,6 +7,7 @@ import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
 import processing.controlP5.*;
 import processing.core.PApplet;
+import processing.core.PFont;
 import processing.core.PImage;
 import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
@@ -31,6 +32,12 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     private boolean enableEscapeMenu = false;
     private boolean isDialogOpen = false;
     private ColorType colorType = ColorType.MultiColor;
+
+    String hoverText = "";
+    boolean showTooltip = false;
+    PFont tooltipFont;
+
+
     private enum ColorType {
         MonoColor,
         MultiColor,
@@ -48,6 +55,8 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
 
     @Override
     public void setup() {
+        tooltipFont = createFont("Arial", 24);
+
         Translator.getInstance().registerTranslatable(this);
 
         surface.setResizable(true);
@@ -110,6 +119,15 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
                 .setText(Translator.getInstance().translate("max_color_multicolor_feature"))
                 .setColor(color(0));
+
+        maxMultiColorTextField.onEnter(event -> {
+            hoverText = Translator.getInstance().translate("max_color_multicolor_feature");
+            showTooltip = true;
+        });
+
+        maxMultiColorTextField.onLeave(event -> {
+            showTooltip = false;
+        });
         Controller<?> monoColorController = cp5.getController("monoColorPicker");
         if (monoColorController != null) {
             monoColorController.addListener(event -> {
@@ -122,6 +140,16 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
         } else {
             Logger.getInstance().log(Logger.Project.Converter, "Controller for monoColorPicker is null");
         }
+        // TODO FIX monoColorController is null
+        /*assert monoColorController != null;
+        monoColorController.onEnter(event -> {
+            hoverText = Translator.getInstance().translate("monoColorPicker");
+            showTooltip = true;
+        });
+
+        monoColorController.onLeave(event -> {
+            showTooltip = false;
+        });*/
         DropdownList colorModeDropdown = cp5.addDropdownList("colorMode")
                 .setPosition(310, 22)
                 .setSize(100, 150)
@@ -169,6 +197,14 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
                 .setText(Translator.getInstance().translate("space_between_points"))
                 .setColor(color(0));
+        stitchSpacingField.onEnter(event -> {
+            hoverText = Translator.getInstance().translate("space_between_points");
+            showTooltip = true;
+        });
+
+        stitchSpacingField.onLeave(event -> {
+            showTooltip = false;
+        });
         Textfield strokeWeightField = cp5.addTextfield("strokeWeight")
                 .setPosition(20, 240)
                 .setSize(100, 30)
@@ -186,14 +222,23 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .setPaddingX(0)
                 .setPaddingY(-40)
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText("Stroke weight")
+                .setText(Translator.getInstance().translate("stroke_weight"))
                 .setColor(color(0));
+        strokeWeightField.onEnter(event -> {
+            hoverText = Translator.getInstance().translate("stroke_weight");
+            showTooltip = true;
+        });
 
+        strokeWeightField.onLeave(event -> {
+            showTooltip = false;
+        });
         Textfield exportWidthField = cp5.addTextfield("exportWidth")
                 .setPosition(20, 160)
                 .setSize(100, 30)
                 .setText(str(exportWidth))
                 .setAutoClear(false)
+                .setLock(true)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
+                .setVisible(false)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
                 .onChange(event -> {
                     try {
                         exportWidth = Float.parseFloat(event.getController().getStringValue());
@@ -209,12 +254,21 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
                 .setText(Translator.getInstance().translate("width_in_mm"))
                 .setColor(color(0));
+        exportWidthField.onEnter(event -> {
+            hoverText = Translator.getInstance().translate("width_in_mm");
+            showTooltip = true;
+        });
 
+        exportWidthField.onLeave(event -> {
+            showTooltip = false;
+        });
         Textfield exportHeightField = cp5.addTextfield("exportHeight")
                 .setPosition(20, 200)
                 .setSize(100, 30)
                 .setText(str(exportHeight))
                 .setAutoClear(false)
+                .setLock(true)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
+                .setVisible(false)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
                 .onChange(event -> {
                     try {
                         exportHeight = Float.parseFloat(event.getController().getStringValue());
@@ -230,7 +284,14 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
                 .setText(Translator.getInstance().translate("height_in_mm"))
                 .setColor(color(0));
+        exportHeightField.onEnter(event -> {
+            hoverText = Translator.getInstance().translate("height_in_mm");
+            showTooltip = true;
+        });
 
+        exportHeightField.onLeave(event -> {
+            showTooltip = false;
+        });
         progressBar = cp5.addSlider("progressBar")
                 .setPosition(20, 240)
                 .setSize(300, 20)
@@ -366,6 +427,13 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                         (float)((int)exportHeight * 2.71430), offsetX, offsetY);
             }
         }
+        if (showTooltip) {
+            textAlign(CENTER, BOTTOM);
+            textFont(tooltipFont);
+            fill(0);
+            text(hoverText, width / 2, height - 20);
+        }
+
     }
 
 
