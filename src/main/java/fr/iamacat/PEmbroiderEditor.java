@@ -15,16 +15,17 @@ import java.util.ArrayList;
 
 public class PEmbroiderEditor extends PApplet implements Translatable {
     PEmbroiderGraphics E;
-
+    private final int currentWidth = 1280;
+    private final int currentHeight = 720;
     public void settings() {
-        size(1280, 720);
+        size(currentWidth, currentHeight);
     }
 
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderEditor");
     }
-    int W = 800;
-    int H = 800;
+    int W = currentWidth;
+    int H = currentHeight;
 
     int PX = 40;
 
