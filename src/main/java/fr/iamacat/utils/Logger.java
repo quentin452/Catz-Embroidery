@@ -7,9 +7,10 @@ import java.util.zip.*;
 
 public class Logger {
 
-    private static Logger instance;  // Instance unique du logger
+    private static Logger instance;
     private File logFile;
     private BufferedWriter writer;
+    private boolean isClosed = false;
 
     public enum Project {
         Launcher,
@@ -17,15 +18,11 @@ public class Logger {
         Editor,
     }
 
-    // Constructeur privé pour empêcher la création d'instances multiples
     private Logger() {
-        // Créer un dossier Logs s'il n'existe pas
         File logsDir = new File("Logs");
         if (!logsDir.exists()) {
             logsDir.mkdir();
         }
-
-        // Créer un fichier log avec un timestamp
         String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         logFile = new File(logsDir, "log_" + timestamp + ".txt");
 
@@ -37,16 +34,17 @@ public class Logger {
         }
     }
 
-    // Méthode statique pour récupérer l'instance unique du logger
     public static Logger getInstance() {
         if (instance == null) {
-            instance = new Logger();  // Si l'instance n'existe pas, on la crée
+            instance = new Logger();
         }
         return instance;
     }
 
-    // Méthode pour ajouter un message dans le log
-    public void log(Project project, String message) {
+    public synchronized void log(Project project, String message) {
+        if (isClosed) {
+            return;
+        }
         String logMessage = "[" + project.name() + "] " + message;
         try {
             writer.write(logMessage + "\n");
@@ -56,24 +54,24 @@ public class Logger {
         }
     }
 
-    // Méthode pour fermer le writer
-    public void closeWriter() {
+    public synchronized void closeWriter() {
+        if (isClosed) {
+            return;
+        }
         try {
             if (writer != null) {
                 writer.close();
+                isClosed = true;
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Méthode pour archiver les logs dans un fichier zip
-    public void archiveLogs() {
-        try {
-            // Fermer le writer avant d'archiver
-            closeWriter();
+    public synchronized void archiveLogs() {
+        closeWriter();
 
-            // Créer un fichier zip dans le dossier Logs
+        try {
             String zipFileName = "Logs/logs_" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()) + ".zip";
             File zipFile = new File(zipFileName);
             try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
@@ -88,11 +86,7 @@ public class Logger {
                     zos.closeEntry();
                 }
             }
-
-            // Supprimer le fichier log original après l'archivage
-            if (!logFile.delete()) {
-                System.err.println("Failed to delete log file: " + logFile.getAbsolutePath());
-            }
+            logFile.delete();
         } catch (IOException e) {
             e.printStackTrace();
         }
