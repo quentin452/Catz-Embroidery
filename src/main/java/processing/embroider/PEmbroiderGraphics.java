@@ -5300,25 +5300,40 @@ public class PEmbroiderGraphics {
 	  * @param trials   number of trials. the more times you try, the higher chance you'll get a better result
 	  * @param maxIter  maximum number of iterations to run 2-Opt. 
 	  */
-	public void optimize(int trials,int maxIter) {
-		if (polylines.size() <= 2) {
-			return;
-		}
-		int idx0 = 0;
-		for (int i = 1; i <= polylines.size(); i++) {
-			if (i == polylines.size() || !colors.get(i).equals(colors.get(i-1))){
-				ArrayList<ArrayList<PVector>> p = new ArrayList<ArrayList<PVector>>(polylines.subList(idx0,i));
-				PApplet.println(p.size());
-				if (p.size() > 2) {
-					p = PEmbroiderTSP.solve(p,trials,maxIter);
-				}
-				PApplet.println(p.size());
-				polylines.subList(idx0,i).clear();
-				polylines.addAll(idx0,p);
-				idx0 = i;
-			}
-		}
-	}
+	 public void optimize(int trials, int maxIter) {
+		 if (polylines.size() <= 2) {
+			 return;
+		 }
+
+		 int idx0 = 0;
+		 for (int i = 1; i <= polylines.size(); i++) {
+			 // Check if the color is different from the previous one or if we reached the end of the list
+			 if (i == polylines.size() || !colors.get(i).equals(colors.get(i - 1))) {
+				 // Create a sublist of polylines and corresponding colors
+				 ArrayList<ArrayList<PVector>> p = new ArrayList<ArrayList<PVector>>(polylines.subList(idx0, i));
+				 ArrayList<Integer> c = new ArrayList<Integer>(colors.subList(idx0, i));
+
+				 // Only optimize if we have more than 2 elements
+				 if (p.size() > 2) {
+					 p = PEmbroiderTSP.solve(p, trials, maxIter);
+				 }
+
+				 // Clear the original polylines and colors and add back the optimized ones
+				 polylines.subList(idx0, i).clear();
+				 colors.subList(idx0, i).clear();
+
+				 // Re-add the optimized polylines and corresponding colors
+				 for (int j = 0; j < p.size(); j++) {
+					 polylines.add(idx0 + j, p.get(j));
+					 colors.add(idx0 + j, c.get(j));
+				 }
+
+				 // Update idx0 to the current index i
+				 idx0 = i;
+			 }
+		 }
+	 }
+
 	 /**
 	  * Simplified version of optimize(2) where the trial and maxIter is picked for you
 	  */
