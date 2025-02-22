@@ -4451,10 +4451,9 @@ public class PEmbroiderGraphics {
 	 *  @param route     whether to visualize the path between polylines that will be taken by embroidery machine/plotter. To be able to not see a mess when enabling this option, try optimize()
 	 */
 	public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight , float offsetX , float offsetY) {
-		// Calculer le facteur d'échelle en conservant les proportions
 		float scaleX = targetWidth / width;
 		float scaleY = targetHeight / height;
-		float scale = max(scaleX, scaleY); // Utiliser le même facteur pour X et Y
+		float scale = max(scaleX, scaleY);
 
 		int n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
@@ -4465,21 +4464,22 @@ public class PEmbroiderGraphics {
 			} else {
 				app.stroke(app.random(200), app.random(200), app.random(200));
 			}
-			for (int j = 0; j < polylines.get(i).size() - 1; j++) {
-				PVector p0 = polylines.get(i).get(j);
-				PVector p1 = polylines.get(i).get(j + 1);
+			if (polylines.get(i) != null && polylines.get(i).size() > 1) {
+				for (int j = 0; j < polylines.get(i).size() - 1; j++) {
+					PVector p0 = polylines.get(i).get(j);
+					PVector p1 = polylines.get(i).get(j + 1);
 
-				// Appliquer le facteur d'échelle et centrer les coordonnées
-				float scaledP0X = p0.x * scale + offsetX;
-				float scaledP0Y = p0.y * scale + offsetY;
-				float scaledP1X = p1.x * scale + offsetX;
-				float scaledP1Y = p1.y * scale + offsetY;
+					float scaledP0X = p0.x * scale + offsetX;
+					float scaledP0Y = p0.y * scale + offsetY;
+					float scaledP1X = p1.x * scale + offsetX;
+					float scaledP1Y = p1.y * scale + offsetY;
 
-				app.strokeWeight(1);
-				app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
-				n++;
-				if (n >= nStitches) {
-					break;
+					app.strokeWeight(1);
+					app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
+					n++;
+					if (n >= nStitches) {
+						break;
+					}
 				}
 			}
 			if (n >= nStitches) {
@@ -4490,13 +4490,12 @@ public class PEmbroiderGraphics {
 		n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
 			if (route) {
-				if (i != 0 && polylines.get(i - 1).size() > 0 && polylines.get(i).size() > 0) {
+				if (i != 0 && !polylines.get(i - 1).isEmpty() && !polylines.get(i).isEmpty()) {
 					app.stroke(255, 0, 0);
 					app.strokeWeight(1);
 					PVector p0 = polylines.get(i - 1).get(polylines.get(i - 1).size() - 1);
 					PVector p1 = polylines.get(i).get(0);
 
-					// Appliquer le facteur d'échelle et centrer les coordonnées
 					float scaledP0X = p0.x * scale + offsetX;
 					float scaledP0Y = p0.y * scale + offsetY;
 					float scaledP1X = p1.x * scale + offsetX;
@@ -4506,26 +4505,27 @@ public class PEmbroiderGraphics {
 				}
 			}
 			if (stitches) {
-				for (int j = 0; j < polylines.get(i).size() - 1; j++) {
-					PVector p0 = polylines.get(i).get(j);
-					PVector p1 = polylines.get(i).get(j + 1);
+				if (polylines.get(i) != null && polylines.get(i).size() > 1) {
+					for (int j = 0; j < polylines.get(i).size() - 1; j++) {
+						PVector p0 = polylines.get(i).get(j);
+						PVector p1 = polylines.get(i).get(j + 1);
 
-					// Appliquer le facteur d'échelle et centrer les coordonnées
-					float scaledP0X = p0.x * scale + offsetX;
-					float scaledP0Y = p0.y * scale + offsetY;
-					float scaledP1X = p1.x * scale + offsetX;
-					float scaledP1Y = p1.y * scale + offsetY;
+						float scaledP0X = p0.x * scale + offsetX;
+						float scaledP0Y = p0.y * scale + offsetY;
+						float scaledP1X = p1.x * scale + offsetX;
+						float scaledP1Y = p1.y * scale + offsetY;
 
-					app.noStroke();
-					if (j == 0) {
-						app.fill(0, 255, 0);
-						app.rect(scaledP0X - 1, scaledP0Y - 1, 2, 2);
-					}
-					app.fill(255, 0, 255);
-					app.rect(scaledP1X - 1, scaledP1Y - 1, 2, 2);
-					n++;
-					if (n >= nStitches) {
-						break;
+						app.noStroke();
+						if (j == 0) {
+							app.fill(0, 255, 0);
+							app.rect(scaledP0X - 1, scaledP0Y - 1, 2, 2);
+						}
+						app.fill(255, 0, 255);
+						app.rect(scaledP1X - 1, scaledP1Y - 1, 2, 2);
+						n++;
+						if (n >= nStitches) {
+							break;
+						}
 					}
 				}
 				if (n >= nStitches) {

@@ -1,6 +1,12 @@
 package fr.iamacat.pembroider_converter;
 
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDropEvent;
 import java.io.File;
+import java.util.List;
 
 import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
@@ -12,6 +18,7 @@ import processing.core.PFont;
 import processing.core.PImage;
 import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
+import processing.event.KeyEvent;
 
 import javax.swing.*;
 public class Main extends PApplet implements Translatable {
@@ -19,8 +26,8 @@ public class Main extends PApplet implements Translatable {
     private PImage img;
     private PEmbroiderGraphics embroidery;
     private ControlP5 cp5;
-    private Slider progressBar;  // Utilisation d'un Slider comme barre de progression
-    private String selectedFormat = "PES";
+    private Slider progressBar;
+    private final String selectedFormat = "PES";
     private boolean showPreview = false;
     private float exportWidth = 95;  // Largeur par défaut en mm
     private float exportHeight = 95; // Hauteur par défaut en mm
@@ -28,13 +35,13 @@ public class Main extends PApplet implements Translatable {
     private float currentStrokeWeight = 25;
     private int currentWidth = 1280;
     private int currentHeight = 720;
-    private CColor selectedColor = new CColor().setForeground(color(255, 0, 0)); // Use a default initial color
+    private CColor selectedColor = new CColor().setForeground(color(255, 0, 0));
     private boolean enableEscapeMenu = false;
     private boolean isDialogOpen = false;
     private ColorType colorType = ColorType.MultiColor;
 
-    private String[] hatchModes = {"CROSS", "PARALLEL", "CONCENTRIC" , "SPIRAL" , "PERLIN"};
-    private String selectedHatchMode = "CROSS";  // Default hatch mode
+    private final String[] hatchModes = {"CROSS", "PARALLEL", "CONCENTRIC" , "SPIRAL" , "PERLIN"};
+    private String selectedHatchMode = "CROSS";
 
     public boolean FillColor= false;
 
@@ -68,6 +75,26 @@ public class Main extends PApplet implements Translatable {
         cp5 = new ControlP5(this);
         embroidery = new PEmbroiderGraphics(this, width, height);
         setupGUI();
+
+        new DropTarget((Component) this.getSurface().getNative(), new java.awt.dnd.DropTargetAdapter() {
+            public void drop(DropTargetDropEvent event) {
+                try {
+                    event.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
+                    Transferable transferable = event.getTransferable();
+                    if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                        List<File> files = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
+                        if (!files.isEmpty()) {
+                            File file = files.get(0);
+                            showPreview = false;
+                            imageSelected(file);
+                            showPreview = true;
+                        }
+                    }
+                } catch (Exception e) {
+                    Logger.getInstance().log(Logger.Project.Converter, "Erreur lors du glisser-déposer : " + e.getMessage());
+                }
+            }
+        });
     }
 
     private void setupGUI() {
@@ -316,6 +343,7 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void refreshPreview() {
+        showPreview = false;
         processImageWithProgress();
         showPreview = true;
     }
@@ -384,11 +412,9 @@ public class Main extends PApplet implements Translatable {
     private void processImageWithProgress() {
         if (embroidery == null) {
             embroidery = new PEmbroiderGraphics(this, img.width, img.height);
-            embroidery.beginDraw();
-        } else {
-            embroidery.beginDraw();
-            embroidery.clear();
         }
+        embroidery.beginDraw();
+        embroidery.clear();
         img.resize(1000, 1000);
         embroidery.beginCull();
         switch (selectedHatchMode) {
@@ -460,10 +486,12 @@ public class Main extends PApplet implements Translatable {
             float offsetX = (exportWidth - width * scale) / 2;
             float offsetY = (exportHeight - height * scale) / 2;
             offsetX += 600;
-            if (!embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
+            if (img != null && embroidery.polylines != null && embroidery.colors != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
                 embroidery.visualize(true, false, false, Integer.MAX_VALUE,
-                        (float)((int)exportWidth * 2.71430),
-                        (float)((int)exportHeight * 2.71430), offsetX, offsetY);
+                        (float) ((int) exportWidth * 2.71430),
+                        (float) ((int) exportHeight * 2.71430), offsetX, offsetY);
+            } else {
+                Logger.getInstance().log(Logger.Project.Converter, "Erreur: embroidery.polylines ou embroidery.colors est vide.");
             }
         }
         if (showTooltip) {
@@ -472,17 +500,35 @@ public class Main extends PApplet implements Translatable {
             fill(0);
             text(hoverText, width / 2, height - 20);
         }
-
     }
 
-
     @Override
-    public void keyPressed() {
+    public void keyPressed(KeyEvent event) {
         if (key == 'p') {
             showPreview = !showPreview;
+        } else if (key == 'v' && (event.isControlDown() || event.isMetaDown())) {
+            pasteImageFromClipboard();  // TODO FIX DOESNT WORK
         }
     }
 
+    private void pasteImageFromClipboard() {
+        try {
+            java.awt.datatransfer.Clipboard clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+            Transferable transferable = clipboard.getContents(null);
+
+            if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+                java.awt.Image awtImage = (java.awt.Image) transferable.getTransferData(DataFlavor.imageFlavor);
+                img = new PImage(awtImage.getWidth(null), awtImage.getHeight(null));
+                img.loadPixels();
+                awtImage.getSource();
+                refreshPreview();
+            } else {
+                Logger.getInstance().log(Logger.Project.Converter, "Aucune image trouvée dans le presse-papiers.");
+            }
+        } catch (Exception e) {
+            Logger.getInstance().log(Logger.Project.Converter, "Erreur lors du collage de l'image : " + e.getMessage());
+        }
+    }
 
     private void showExitDialog() {
         if (!enableEscapeMenu) {
