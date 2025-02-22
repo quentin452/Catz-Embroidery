@@ -336,9 +336,6 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         }
     }
 
-
-
-
     void drawLayersGui(){
         int ww = width-PX-W;
         pushStyle();
