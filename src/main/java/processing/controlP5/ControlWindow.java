@@ -37,6 +37,8 @@ import processing.core.PGraphics;
 import processing.event.KeyEvent;
 import processing.event.MouseEvent;
 
+import javax.swing.*;
+
 // TODO ! add mouse-button mask for left, center, right; also see Controller #mouse-button ^1
 
 /**
@@ -841,15 +843,16 @@ public final class ControlWindow {
 		return this;
 	}
 
-	public ControlWindow setUndecorated( boolean theFlag ) {
-		if ( theFlag != isUndecorated( ) ) {
+	public ControlWindow setUndecorated(boolean theFlag) {
+		if (theFlag != isUndecorated()) {
 			isUndecorated = theFlag;
-			_myApplet.frame.removeNotify( );
-			_myApplet.frame.setUndecorated( isUndecorated );
-			_myApplet.setSize( _myApplet.width , _myApplet.height );
-			//_myApplet.setBounds( 0 , 0 , _myApplet.width , _myApplet.height );
-			_myApplet.frame.setSize( _myApplet.width , _myApplet.height );
-			_myApplet.frame.addNotify( );
+			JFrame frame = (JFrame) ((processing.awt.PSurfaceAWT.SmoothCanvas) _myApplet.getSurface().getNative()).getFrame();
+
+			frame.removeNotify();
+			frame.setUndecorated(isUndecorated);
+			_myApplet.setSize(_myApplet.width, _myApplet.height);
+			frame.setSize(_myApplet.width, _myApplet.height);
+			frame.addNotify();
 		}
 		return this;
 	}
@@ -862,8 +865,9 @@ public final class ControlWindow {
 		return setLocation( theX , theY );
 	}
 
-	public ControlWindow setLocation( int theX , int theY ) {
-		_myApplet.frame.setLocation( theX , theY );
+	public ControlWindow setLocation(int theX, int theY) {
+		JFrame frame = (JFrame) ((processing.awt.PSurfaceAWT.SmoothCanvas) _myApplet.getSurface().getNative()).getFrame();
+		frame.setLocation(theX, theY);
 		return this;
 	}
 
