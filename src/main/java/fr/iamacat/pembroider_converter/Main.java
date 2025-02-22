@@ -36,7 +36,7 @@ public class Main extends PApplet implements Translatable {
     private String[] hatchModes = {"CROSS", "PARALLEL", "CONCENTRIC" , "SPIRAL" , "PERLIN"};
     private String selectedHatchMode = "CROSS";  // Default hatch mode
 
-    public boolean enableFillInMulticolor = false;
+    public boolean FillColor= false;
 
     String hoverText = "";
     boolean showTooltip = false;
@@ -82,11 +82,11 @@ public class Main extends PApplet implements Translatable {
                 .setSize(120, 30)
                 .setLabel(Translator.getInstance().translate("saving"))
                 .onClick(event -> saveFile());
-        cp5.addButton("enableFillInMulticolorMode")
+        cp5.addButton("enableFillMode")
                 .setPosition(20, 320)
                 .setSize(100, 30)
-                .setLabel(Translator.getInstance().translate("fill_in_multicolor_mode"))
-                .onClick(event -> updateFillMultiMode());
+                .setLabel(Translator.getInstance().translate("enable_fill_mode"))
+                .onClick(event -> updateFillMode());
         cp5.addDropdownList("hatchModeSelector")
                 .setPosition(580, 22)
                 .setSize(135, 120)
@@ -304,9 +304,9 @@ public class Main extends PApplet implements Translatable {
         progressBar.setVisible(false);
     }
 
-    private void updateFillMultiMode()
+    private void updateFillMode()
     {
-        enableFillInMulticolor = !enableFillInMulticolor;
+        FillColor = !FillColor;
         if (img != null) refreshPreview();
     }
 
@@ -413,11 +413,16 @@ public class Main extends PApplet implements Translatable {
         embroidery.hatchSpacing(currentSpacing);
         if (colorType == ColorType.MonoColor) {
             embroidery.noStroke();
+            if (!FillColor) {
+                embroidery.noFill();
+                embroidery.stroke(0,0,0);
+            } else {
+                embroidery.fill(selectedColor.getForeground());
+            }
             embroidery.popyLineMulticolor = false;
-            embroidery.fill(selectedColor.getForeground()); // TODO FIX THIS DON'T GET THE RIGHT COLOR
         }
         else if (colorType == ColorType.MultiColor) {
-            if (!enableFillInMulticolor) {
+            if (!FillColor) {
                 embroidery.noFill();
             } else {
                 embroidery.fill(selectedColor.getForeground());
@@ -429,8 +434,13 @@ public class Main extends PApplet implements Translatable {
             embroidery.strokeSpacing(currentSpacing);
         }
         else if (colorType == ColorType.BlackAndWhite) {
-            embroidery.fill(0, 0, 0);
-            embroidery.noStroke();
+            if (!FillColor) {
+                embroidery.noFill();
+                embroidery.stroke(0,0,0);
+            } else {
+                embroidery.fill(0, 0, 0);
+                embroidery.noStroke();
+            }
             embroidery.popyLineMulticolor = false;
         }
         embroidery.image(img, 860, 70);

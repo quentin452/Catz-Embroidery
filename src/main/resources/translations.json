@@ -32,7 +32,7 @@
     "max_color_multicolor_feature": "Max Colors for multicolor feature",
     "stroke_weight": "Stroke Weight",
     "hatch_mode": "Hatch Mode",
-    "fill_in_multicolor_mode": "Fill in multicolor mode"
+    "enable_fill_mode": "Enable Fill color mode?"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -67,6 +67,6 @@
     "max_color_multicolor_feature": "Couleurs maximales pour la fonction multicolore",
     "stroke_weight": "Poids du trait",
     "hatch_mode": "Mode de hachures",
-    "fill_in_multicolor_mode": "Mode de pour multicolore"
+    "enable_fill_mode": "Active le Fill mode?"
   }
 }
