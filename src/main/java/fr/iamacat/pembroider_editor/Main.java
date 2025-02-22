@@ -713,7 +713,7 @@ public class Main extends PApplet implements Translatable {
             } catch (CloneNotSupportedException e) {
                 throw new RuntimeException(e);
             }
-        } else if (keyCode == BACKSPACE && keyEvent.isControlDown()) {
+        } else if (keyCode == BACKSPACE && (keyEvent.isControlDown() || keyEvent.isMetaDown())) {
             try {
                 removeElementFromPolyBuff();
             } catch (CloneNotSupportedException e) {

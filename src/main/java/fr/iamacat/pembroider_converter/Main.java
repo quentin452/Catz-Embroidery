@@ -504,10 +504,10 @@ public class Main extends PApplet implements Translatable {
 
     @Override
     public void keyPressed(KeyEvent event) {
-        if (key == 'p') {
+        if ((event.isControlDown() || event.isMetaDown()) && event.getKeyCode() == java.awt.event.KeyEvent.VK_V) {
+            pasteImageFromClipboard();
+        } else if (event.getKeyCode() == java.awt.event.KeyEvent.VK_P) {
             showPreview = !showPreview;
-        } else if (key == 'v' && (event.isControlDown() || event.isMetaDown())) {
-            pasteImageFromClipboard();  // TODO FIX DOESNT WORK
         }
     }
 
@@ -516,19 +516,43 @@ public class Main extends PApplet implements Translatable {
             java.awt.datatransfer.Clipboard clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
             Transferable transferable = clipboard.getContents(null);
 
-            if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                java.awt.Image awtImage = (java.awt.Image) transferable.getTransferData(DataFlavor.imageFlavor);
-                img = new PImage(awtImage.getWidth(null), awtImage.getHeight(null));
-                img.loadPixels();
-                awtImage.getSource();
-                refreshPreview();
+            if (transferable != null) {
+                boolean imageProcessed = false;
+
+                // Vérifier si le presse-papiers contient un fichier image
+                if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                    List<File> files = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
+                    if (!files.isEmpty()) {
+                        File file = files.get(0);
+                        java.awt.Image awtImage = javax.imageio.ImageIO.read(file);
+                        img = new PImage(awtImage);
+                        refreshPreview();
+                        imageProcessed = true;
+                    }
+                }
+
+                // Vérifier si le presse-papiers contient une image directement
+                if (!imageProcessed && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+                    java.awt.Image awtImage = (java.awt.Image) transferable.getTransferData(DataFlavor.imageFlavor);
+                    img = new PImage(awtImage);
+                    refreshPreview();
+                    imageProcessed = true;
+                }
+
+                if (!imageProcessed) {
+                    Logger.getInstance().log(Logger.Project.Converter, "Aucune image trouvée dans le presse-papiers.");
+                }
+
             } else {
-                Logger.getInstance().log(Logger.Project.Converter, "Aucune image trouvée dans le presse-papiers.");
+                Logger.getInstance().log(Logger.Project.Converter, "Le presse-papiers est vide ou inaccessible.");
             }
         } catch (Exception e) {
             Logger.getInstance().log(Logger.Project.Converter, "Erreur lors du collage de l'image : " + e.getMessage());
+            e.printStackTrace();
         }
     }
+
+
 
     private void showExitDialog() {
         if (!enableEscapeMenu) {
