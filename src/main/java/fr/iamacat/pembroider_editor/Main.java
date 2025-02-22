@@ -609,7 +609,7 @@ public class Main extends PApplet implements Translatable {
 
     private boolean hasEmbroideryRendered() {
         for (Layer layer : layers) {
-            if (layer.visible && !layer.elements.isEmpty()) {
+            if (!layer.elements.isEmpty()) {
                 return true;
             }
         }
