@@ -12,7 +12,7 @@ import processing.event.MouseEvent;
 import javax.swing.*;
 import java.io.File;
 import java.util.ArrayList;
-
+// TODO FIX , USING THE TOOL_FINELINE set a color and if you use an another tool it set an another color
 public class PEmbroiderEditor extends PApplet implements Translatable {
     PEmbroiderGraphics E;
     private final int currentWidth = 1280;
