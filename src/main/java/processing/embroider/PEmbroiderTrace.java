@@ -242,12 +242,12 @@ public class PEmbroiderTrace {
 
 		ArrayList<ArrayList<PVector>> contours = new ArrayList<ArrayList<PVector>>();
 
-		for (int i = 1; i < h-1; i++){
+		/*for (int i = 1; i < h-1; i++){
 			F[i*w] = 0; F[i*w+w-1]=0;
 		}
 		for (int i = 0; i < w; i++){
 			F[i] = 0; F[w*h-1-i]=0;
-		}
+		}*/
 		for (int i = 1; i < h-1; i++) {
 			lnbd = 1;
 
@@ -298,7 +298,8 @@ public class PEmbroiderTrace {
 		        	int b0 = lnbd-2;
 		        	int parent = -1;
 		        	if (b0 >= 0) {
-			        	if (oIsHole.get(b0)){
+                        assert oIsHole != null;
+                        if (oIsHole.get(b0)){
 			        		if (isHole){
 			        			parent = oParent.get(b0);
 			        		}else{
@@ -317,7 +318,8 @@ public class PEmbroiderTrace {
 		        
 				while (true){
 					int[] i4j4 = ccwNon0(F,w,h,i3,j3,i2,j2,1);
-					int i4 = i4j4[0];
+                    assert i4j4 != null;
+                    int i4 = i4j4[0];
 					int j4 = i4j4[1];
 
 					contours.get(contours.size()-1).add(new PVector(j4,i4));
