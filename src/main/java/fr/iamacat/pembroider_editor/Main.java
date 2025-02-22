@@ -1,5 +1,6 @@
 package fr.iamacat.pembroider_editor;
 
+import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
@@ -753,7 +754,7 @@ public class Main extends PApplet implements Translatable {
 
     private void showExitDialog() {
         if (!enableEscapeMenu) {
-            exitApplication();
+            ApplicationUtil.exitApplication(this);
             return;
         }
         String[] options = {Translator.getInstance().translate("save_and_quit"), Translator.getInstance().translate("exit_without_save"),Translator.getInstance().translate("cancel")};
@@ -770,7 +771,7 @@ public class Main extends PApplet implements Translatable {
         if (option == 0) {
             saveFileAndExit();
         } else if (option == 1) {
-            exitApplication();
+            ApplicationUtil.exitApplication(this);
         } else {
             isDialogOpen = false;
         }
@@ -780,21 +781,7 @@ public class Main extends PApplet implements Translatable {
         if (!isDialogOpen) {
             isDialogOpen = true;
             saveFile();
-            exitApplication();
-        }
-    }
-
-    private void exitApplication() {
-        Logger.getInstance().log(Logger.Project.Converter, Translator.getInstance().translate("closing_the_app"));
-        Logger.getInstance().archiveLogs();
-        if (this.surface.isStopped()) {
-            this.exitActual();
-        } else if (this.looping) {
-            this.finished = true;
-            this.exitCalled = true;
-        } else if (!this.looping) {
-            this.dispose();
-            this.exitActual();
+            ApplicationUtil.exitApplication(this);
         }
     }
 
