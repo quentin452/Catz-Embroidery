@@ -12,40 +12,33 @@ import static processing.controlP5.ControlP5Legacy.println;
 public class PEmbroiderReader {
     public static class PES {
 
-
-        // Lecture d'un fichier PES et remplissage des polylines et couleurs
-        public static void read(String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors) throws IOException {
+        public static void read(String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int canvasWidth, int canvasHeight) throws IOException {
             try (DataInputStream dis = new DataInputStream(new FileInputStream(filename))) {
-                // Lire l'en-tête PES (8 octets)
                 byte[] header = new byte[8];
                 dis.readFully(header);
-                String pesHeader = new String(header);
-                System.out.println("En-tête PES détecté : " + pesHeader);
+                System.out.println("En-tête PES détecté : " + new String(header));
 
-                // Lire l'offset des données de couture
-                dis.skipBytes(8); // Skip 8 bytes to get to the data section offset
+                dis.skipBytes(8); // Skip to data section offset
                 int dataOffset = readIntLittleEndian(dis);
                 dis.skipBytes(dataOffset - 16); // Skip to the data section
 
-                // Lire les points et les couleurs
                 ArrayList<PVector> currentPolyline = new ArrayList<>();
                 int currentColor = -1;
 
-                while (dis.available() > 0) {
+                while (dis.available() >= 3) {
                     int b1 = dis.readUnsignedByte();
                     int b2 = dis.readUnsignedByte();
                     int command = dis.readUnsignedByte();
 
                     if (command == 0x80) {
-                        // Color change command
                         currentColor = b1;
                         colors.add(currentColor);
+
                         if (!currentPolyline.isEmpty()) {
                             polylines.add(new ArrayList<>(currentPolyline));
                             currentPolyline.clear();
                         }
                     } else {
-                        // Stitch command
                         short x = (short) ((b1 & 0xFF) | ((b2 & 0x03) << 8));
                         short y = (short) (((b2 >> 2) & 0x3F) | ((command & 0x0F) << 6));
                         if ((b2 & 0x80) != 0) x = (short) -x;
@@ -55,13 +48,13 @@ public class PEmbroiderReader {
                     }
                 }
 
-                // Ajouter la dernière polyline
                 if (!currentPolyline.isEmpty()) {
                     polylines.add(currentPolyline);
                     colors.add(currentColor);
                 }
 
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new IOException("Erreur de lecture du fichier PES : " + e.getMessage(), e);
             }
         }
@@ -122,7 +115,7 @@ public class PEmbroiderReader {
             } else if (tokens[1].equalsIgnoreCase("VP3")) {
                 //VP3.read(filename, polylines, colors);
             } else if (tokens[1].equalsIgnoreCase("PES")) {
-                PES.read(filename, polylines, colors);
+                PES.read(filename, polylines, colors,canvasWidth,canvasHeight);
             } else {
                 println("Unsupported format: " + tokens[1]);
             }

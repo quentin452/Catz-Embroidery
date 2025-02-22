@@ -373,6 +373,7 @@ public class Main extends PApplet implements Translatable {
             String fileName = selection.getName().toLowerCase();
             if (fileName.endsWith(".jpg") || fileName.endsWith(".png") || fileName.endsWith(".jpeg") || fileName.endsWith(".bmp") || fileName.endsWith(".gif")) {
                 img = loadImage(selection.getAbsolutePath());
+
                 if (img != null) {
                     refreshPreview();
                     enableEscapeMenu = true;
@@ -381,7 +382,7 @@ public class Main extends PApplet implements Translatable {
                     Logger.getInstance().log(Logger.Project.Converter, "Le fichier sélectionné n'est pas une image valide.");
                 }
             } else if (fileName.endsWith(".pes")) {
-                PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(),150,150);
+                PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(),width,height);
                 ArrayList<ArrayList<PVector>> polylines = data.getPolylines();
                 ArrayList<Integer> colors = data.getColors();
                 // Faites quelque chose avec les polylines et les couleurs, par exemple, les afficher, etc.
@@ -390,7 +391,7 @@ public class Main extends PApplet implements Translatable {
 
                 if (polylines != null && colors != null) {
                     // Convert polylines and colors to a PImage
-                    img = createImageFromPolylines(polylines, colors, 800, 800); // You can specify the desired width and height
+                    img = createImageFromPolylines(polylines, colors, width, height); // You can specify the desired width and height
 
                     // Use the img for display or further processing
                     if (img != null) {
@@ -411,12 +412,12 @@ public class Main extends PApplet implements Translatable {
         PImage image = createImage(width, height, PApplet.RGB);
         image.loadPixels();
 
-        // Clear the image to white background
+        // Effacer l'image pour obtenir un fond blanc
         for (int i = 0; i < image.pixels.length; i++) {
             image.pixels[i] = color(255);
         }
 
-        // Draw the polylines on the image
+        // Dessiner les polylines sur l'image
         for (int i = 0; i < polylines.size(); i++) {
             ArrayList<PVector> polyline = polylines.get(i);
             int color = colors.get(i);
@@ -433,12 +434,12 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void drawLineOnImage(PImage image, PVector p1, PVector p2, int color) {
-        int x1 = (int) p1.x;
-        int y1 = (int) p1.y;
-        int x2 = (int) p2.x;
-        int y2 = (int) p2.y;
+        int x1 = (int) PApplet.map(p1.x, 0, width, 0, image.width);
+        int y1 = (int) PApplet.map(p1.y, 0, height, 0, image.height);
+        int x2 = (int) PApplet.map(p2.x, 0, width, 0, image.width);
+        int y2 = (int) PApplet.map(p2.y, 0, height, 0, image.height);
 
-        // Bresenham's line algorithm
+        // Algorithme de tracé de ligne de Bresenham
         int dx = Math.abs(x2 - x1);
         int dy = Math.abs(y2 - y1);
         int sx = x1 < x2 ? 1 : -1;
@@ -446,7 +447,9 @@ public class Main extends PApplet implements Translatable {
         int err = dx - dy;
 
         while (true) {
-            image.set(x1, y1, color);
+            if (x1 >= 0 && x1 < image.width && y1 >= 0 && y1 < image.height) {
+                image.set(x1, y1, color);
+            }
 
             if (x1 == x2 && y1 == y2) {
                 break;
@@ -532,7 +535,7 @@ public class Main extends PApplet implements Translatable {
             if (!FillColor) {
                 embroidery.noFill();
             } else {
-                embroidery.fill(selectedColor.getForeground());
+                embroidery.fill(0,0,0);
             }
             embroidery.stroke(0,0,0);
             embroidery.popyLineMulticolor = true;
