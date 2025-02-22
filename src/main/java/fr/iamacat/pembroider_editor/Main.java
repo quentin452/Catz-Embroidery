@@ -1,4 +1,4 @@
-package fr.iamacat;
+package fr.iamacat.pembroider_editor;
 
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
@@ -13,7 +13,7 @@ import javax.swing.*;
 import java.io.File;
 import java.util.ArrayList;
 // TODO FIX , USING THE TOOL_FINELINE set a color and if you use an another tool it set an another color
-public class PEmbroiderEditor extends PApplet implements Translatable {
+public class Main extends PApplet implements Translatable {
     PEmbroiderGraphics E;
     private final int currentWidth = 1280;
     private final int currentHeight = 720;
@@ -26,7 +26,7 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
     }
 
     public static void main(String[] args) {
-        PApplet.main("fr.iamacat.PEmbroiderEditor");
+        PApplet.main("fr.iamacat.pembroider_editor.Main");
     }
     int W = (int) (currentWidth/ 1.25);
     int H = currentHeight;

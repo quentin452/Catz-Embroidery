@@ -85,10 +85,10 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         // Vérifier si les boutons sont cliqués
         if (buttonEditor.isPressed(mouseX, mouseY)) {
             Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderEditor");
-            runApplication("fr.iamacat.PEmbroiderEditor");
+            runApplication("fr.iamacat.pembroider_editor.Main");
         } else if (buttonConverter.isPressed(mouseX, mouseY)) {
             Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderConverter");
-            runApplication("fr.iamacat.PEmbroiderConverter");
+            runApplication("fr.iamacat.pembroider_converter.Main");
             // TODO
        /* } else if (buttonViewer.isPressed(mouseX, mouseY)) {
             Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderViewer");

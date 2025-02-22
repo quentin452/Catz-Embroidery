@@ -1,4 +1,4 @@
-package fr.iamacat;
+package fr.iamacat.pembroider_converter;
 
 import java.io.File;
 
@@ -13,7 +13,7 @@ import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderWriter;
 
 import javax.swing.*;
-public class PEmbroiderConverter extends PApplet implements Translatable {
+public class Main extends PApplet implements Translatable {
 
     private PImage img;
     private PEmbroiderGraphics embroidery;
@@ -49,7 +49,7 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     }
 
     public static void main(String[] args) {
-        PApplet.main("fr.iamacat.PEmbroiderConverter");
+        PApplet.main("fr.iamacat.pembroider_converter.Main");
     }
 
     @Override

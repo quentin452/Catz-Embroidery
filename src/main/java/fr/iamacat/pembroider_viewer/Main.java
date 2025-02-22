@@ -1,25 +1,19 @@
-package fr.iamacat;
+package fr.iamacat.pembroider_viewer;
 
-import fr.iamacat.utils.Logger;
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PShape;
-import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
-import processing.embroider.PEmbroiderWriter;
 import processing.event.MouseEvent;
 
-import javax.swing.*;
-import java.io.File;
-
-public class PEmbroiderViewer extends PApplet {
+public class Main extends PApplet {
 
     private PShape embroideryShape;
     private PGraphics pg;
     private PEmbroiderGraphics embroidery;
 
     public static void main(String[] args) {
-        PApplet.main("fr.iamacat.PEmbroiderViewer");
+        PApplet.main("fr.iamacat.pembroider_viewer.Main");
     }
 
     public void settings() {

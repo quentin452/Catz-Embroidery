@@ -52,23 +52,29 @@ launch4j {
 tasks.register('buildEditor', ShadowJar) {
     archiveFileName = 'PEmbroiderEditor.jar'
     manifest {
-        attributes 'Main-Class': 'fr.iamacat.PEmbroiderEditor'
+        attributes 'Main-Class': 'fr.iamacat.pembroider_editor.Main'
     }
 }
 
 tasks.register('buildConverter', ShadowJar) {
     archiveFileName = 'PEmbroiderConverter.jar'
     manifest {
-        attributes 'Main-Class': 'fr.iamacat.PEmbroiderConverter'
+        attributes 'Main-Class': 'fr.iamacat.pembroider_converter.Main'
     }
 }
 tasks.register('buildViewer', ShadowJar) {
     archiveFileName = 'PEmbroiderConverter.jar'
     manifest {
-        attributes 'Main-Class': 'fr.iamacat.PEmbroiderViewer'
+        attributes 'Main-Class': 'fr.iamacat.pembroider_viewer.Main'
+    }
+}
+tasks.register('buildInfiniteDraw', ShadowJar) {
+    archiveFileName = 'PEmbroiderInfiniteDraw.jar'
+    manifest {
+        attributes 'Main-Class': 'fr.iamacat.pembroider_infinitedraw.Main'
     }
 }
 tasks.named("build") {
-    dependsOn buildEditor, buildConverter, buildViewer
+    dependsOn buildEditor, buildConverter, buildViewer, buildInfiniteDraw
     finalizedBy tasks.named("createExe")
 }
