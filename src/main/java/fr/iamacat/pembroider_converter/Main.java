@@ -528,6 +528,7 @@ public class Main extends PApplet implements Translatable {
                         img = new PImage(awtImage);
                         refreshPreview();
                         imageProcessed = true;
+                        enableEscapeMenu = true;
                     }
                 }
 
@@ -537,6 +538,7 @@ public class Main extends PApplet implements Translatable {
                     img = new PImage(awtImage);
                     refreshPreview();
                     imageProcessed = true;
+                    enableEscapeMenu = true;
                 }
 
                 if (!imageProcessed) {
@@ -551,8 +553,6 @@ public class Main extends PApplet implements Translatable {
             e.printStackTrace();
         }
     }
-
-
 
     private void showExitDialog() {
         if (!enableEscapeMenu) {
