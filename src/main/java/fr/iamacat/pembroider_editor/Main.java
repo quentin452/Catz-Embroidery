@@ -152,27 +152,40 @@ public class Main extends PApplet implements Translatable {
         pg.endDraw();
     }
 
-    void stitchLayer(int idx){
+    void stitchLayer(int idx) {
         Layer lay = layers.get(idx);
-        if (lay.elements.isEmpty()){
-            if (E!=null){
+        if (lay.elements.isEmpty()) {
+            if (E != null) {
                 E.clear();
             }
             return;
         }
+
         rasterizeLayer(lay);
-        if (lay.cull){
-            lay.render.beginDraw();
-            lay.render.blendMode(SUBTRACT);
-            for (int i = idx+1; i < layers.size(); i++){
-                rasterizeLayer(layers.get(i));
-                lay.render.image(layers.get(i).render,0,0);
+
+        if (lay.cull) {
+            if (lay.render.width > 0 && lay.render.height > 0) {
+                lay.render.beginDraw();
+                lay.render.blendMode(SUBTRACT);
+                for (int i = idx + 1; i < layers.size(); i++) {
+                    rasterizeLayer(layers.get(i));
+                    if (layers.get(i).render.width > 0 && layers.get(i).render.height > 0) {
+                        lay.render.image(layers.get(i).render, 0, 0);
+                    }
+                }
+                lay.render.blendMode(BLEND);
+                lay.render.endDraw();
+            } else {
+                Logger.getInstance().log(Logger.Project.Converter, "Invalid render dimensions for layer: " + idx);
             }
-            lay.render.blendMode(BLEND);
-            lay.render.endDraw();
         }
+
         PEmbroiderGraphics E = getPEmbroiderGraphics(lay);
-        E.image(lay.render,0,0);
+        if (E.width > 0 && E.height > 0 && lay.render.width > 0 && lay.render.height > 0) {
+            E.image(lay.render, 0, 0);
+        } else {
+            Logger.getInstance().log(Logger.Project.Converter, "Invalid dimensions for PEmbroiderGraphics or lay.render in stitchLayer.");
+        }
     }
 
     private static PEmbroiderGraphics getPEmbroiderGraphics(Layer lay) {
