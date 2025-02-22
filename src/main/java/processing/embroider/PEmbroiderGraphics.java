@@ -1073,26 +1073,22 @@ public class PEmbroiderGraphics {
 
 
 
-	/**
-	 *  Add a polyline to the global array of all polylines drawn
+	/** Add a polyline to the global array of all polylines drawn
 	 *  Applying transformation matrices and resampling
 	 *  All shape drawing routines go through this function for finalization
 	 *
 	 *  @param poly                   a polyline
 	 *  @param color                  the color of the polyline (0xRRGGBB)
-	 *  @param resampleRandomizeOffset whether to add a random offset during resample step to prevent alignment patterns
-	 *  @param multicolor             whether the polyline should be multicolor
+	 *  @param resampleRandomOffset   whether to add a random offset during resample step to prevent alignment patterns
 	 */
 	public void pushPolyline(ArrayList<PVector> poly, int color, float resampleRandomizeOffset) {
 		ArrayList<PVector> poly2 = new ArrayList<PVector>();
-		// Copier tous les points de poly dans poly2 avec les transformations appliquées
 		for (int i = 0; i < poly.size(); i++) {
 			poly2.add(poly.get(i).copy());
-			for (int j = matStack.size() - 1; j >= 0; j--) {
+			for (int j = matStack.size()-1; j>= 0; j--) {
 				poly2.set(i, matStack.get(j).mult(poly2.get(i), null));
 			}
 		}
-
 		// Liste des couleurs à attribuer
 		if (popyLineMulticolor) {
 			// Créer une liste des couleurs avant la boucle
@@ -1112,22 +1108,16 @@ public class PEmbroiderGraphics {
 				colors.add(generatedColors.get(generatedColors.size() - 1)); // Dernière couleur
 			}
 		} else {
-			// Si pas de multi-couleurs, utiliser la couleur passée en paramètre
-			for (int i = 0; i < poly2.size() - 1; i++) {
-				colors.add(color);
-			}
+			colors.add(color);
 		}
-
-		// Ajouter la polyligne, avec ou sans échantillonnage
 		if (NO_RESAMPLE) {
 			polylines.add(poly2);
-		} else {
-			polylines.add(resample(poly2, MIN_STITCH_LENGTH, STITCH_LENGTH, RESAMPLE_NOISE, resampleRandomizeOffset));
+		}else {
+			polylines.add(resample(poly2,MIN_STITCH_LENGTH,STITCH_LENGTH,RESAMPLE_NOISE,resampleRandomizeOffset));
 		}
 
 		cullGroups.add(currentCullGroup);
 	}
-
 
 	/** Simplified version for pushPolyline(3) where resampleRandomizeOffset is set to false
 	 *  @param poly                   a polyline
