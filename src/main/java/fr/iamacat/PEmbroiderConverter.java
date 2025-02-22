@@ -19,7 +19,6 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
     private PEmbroiderGraphics embroidery;
     private ControlP5 cp5;
     private Slider progressBar;  // Utilisation d'un Slider comme barre de progression
-    private String[] formats = {"PES"/*, "DST", "EXP", "SVG"*/};
     private String selectedFormat = "PES";
     private boolean showPreview = false;
     private float exportWidth = 95;  // Largeur par défaut en mm
@@ -87,26 +86,6 @@ public class PEmbroiderConverter extends PApplet implements Translatable {
                 .setSize(100, 30)
                 .setLabel(Translator.getInstance().translate("fill_in_multicolor_mode"))
                 .onClick(event -> updateFillMultiMode());
-
-        cp5.addDropdownList("formatSelector")
-                .setPosition(440, 22)
-                .setSize(135, 120)
-                .addItems(formats)
-                .setLabel(Translator.getInstance().translate("format_for_preview"))
-                .onChange(event -> {
-                    float[] values = event.getController().getArrayValue();
-                    if (values.length > 0) {
-                        int index = (int) values[0];
-                        if (index >= 0 && index < formats.length) {
-                            selectedFormat = formats[index];
-                            Logger.getInstance().log(Logger.Project.Converter,"Format sélectionné: " + selectedFormat);
-                        } else {
-                            Logger.getInstance().log(Logger.Project.Converter,"Erreur : index hors limites (" + index + ")");
-                        }
-                    } else {
-                        Logger.getInstance().log(Logger.Project.Converter,"Erreur : Aucune valeur sélectionnée !");
-                    }
-                });
         cp5.addDropdownList("hatchModeSelector")
                 .setPosition(580, 22)
                 .setSize(135, 120)
