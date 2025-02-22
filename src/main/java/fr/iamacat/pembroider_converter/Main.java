@@ -6,6 +6,7 @@ import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import fr.iamacat.utils.ApplicationUtil;
@@ -16,7 +17,9 @@ import processing.controlP5.*;
 import processing.core.PApplet;
 import processing.core.PFont;
 import processing.core.PImage;
+import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
+import processing.embroider.PEmbroiderReader;
 import processing.embroider.PEmbroiderWriter;
 import processing.event.KeyEvent;
 
@@ -375,13 +378,91 @@ public class Main extends PApplet implements Translatable {
                     enableEscapeMenu = true;
                     showPreview = true;
                 } else {
-                    Logger.getInstance().log(Logger.Project.Converter,"Le fichier sélectionné n'est pas une image valide.");
+                    Logger.getInstance().log(Logger.Project.Converter, "Le fichier sélectionné n'est pas une image valide.");
+                }
+            } else if (fileName.endsWith(".pes")) {
+                PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(),150,150);
+                ArrayList<ArrayList<PVector>> polylines = data.getPolylines();
+                ArrayList<Integer> colors = data.getColors();
+                // Faites quelque chose avec les polylines et les couleurs, par exemple, les afficher, etc.
+                System.out.println("Polylines: " + polylines);
+                System.out.println("Colors: " + colors);
+
+                if (polylines != null && colors != null) {
+                    // Convert polylines and colors to a PImage
+                    img = createImageFromPolylines(polylines, colors, 800, 800); // You can specify the desired width and height
+
+                    // Use the img for display or further processing
+                    if (img != null) {
+                        refreshPreview();
+                        enableEscapeMenu = true;
+                        showPreview = true;
+                    } else {
+                        Logger.getInstance().log(Logger.Project.Converter, "Erreur lors de la création de l'image depuis les polylines et couleurs.");
+                    }
                 }
             } else {
-                Logger.getInstance().log(Logger.Project.Converter,"Le fichier sélectionné n'est pas un fichier image valide.");
+                Logger.getInstance().log(Logger.Project.Converter, "Le fichier sélectionné n'est pas un fichier image valide.");
             }
         }
     }
+
+    private PImage createImageFromPolylines(ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height) {
+        PImage image = createImage(width, height, PApplet.RGB);
+        image.loadPixels();
+
+        // Clear the image to white background
+        for (int i = 0; i < image.pixels.length; i++) {
+            image.pixels[i] = color(255);
+        }
+
+        // Draw the polylines on the image
+        for (int i = 0; i < polylines.size(); i++) {
+            ArrayList<PVector> polyline = polylines.get(i);
+            int color = colors.get(i);
+
+            for (int j = 0; j < polyline.size() - 1; j++) {
+                PVector p1 = polyline.get(j);
+                PVector p2 = polyline.get(j + 1);
+                drawLineOnImage(image, p1, p2, color);
+            }
+        }
+
+        image.updatePixels();
+        return image;
+    }
+
+    private void drawLineOnImage(PImage image, PVector p1, PVector p2, int color) {
+        int x1 = (int) p1.x;
+        int y1 = (int) p1.y;
+        int x2 = (int) p2.x;
+        int y2 = (int) p2.y;
+
+        // Bresenham's line algorithm
+        int dx = Math.abs(x2 - x1);
+        int dy = Math.abs(y2 - y1);
+        int sx = x1 < x2 ? 1 : -1;
+        int sy = y1 < y2 ? 1 : -1;
+        int err = dx - dy;
+
+        while (true) {
+            image.set(x1, y1, color);
+
+            if (x1 == x2 && y1 == y2) {
+                break;
+            }
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x1 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y1 += sy;
+            }
+        }
+    }
+
 
     public void fileSaved(File selection) {
         isDialogOpen = false;
