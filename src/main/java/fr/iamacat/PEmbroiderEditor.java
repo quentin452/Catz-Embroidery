@@ -255,95 +255,47 @@ public class PEmbroiderEditor extends PApplet implements Translatable {
         E.endDraw();
     }
 
-    void drawToolsGui(){
+    void drawToolButton(int index, int toolType, String label) {
+        float x = 0;
+        float y = PX * index;
+
+        fill(tool == toolType ? 180 : 255);
+        stroke(0);
+        strokeWeight(1);
+        rect(x, y, PX, PX);
+        fill(0);
+        textSize(30);
+        text(label, (float) PX / 2, y + (float) PX / 2 - 5);
+
+        if (!mouseOnCanvas() && mousePressed && x <= mouseX && mouseX <= x + PX && y <= mouseY && mouseY <= y + PX) {
+            switchTool(toolType);
+        }
+    }
+
+    void drawToolsGui() {
         pushMatrix();
-        textAlign(CENTER,CENTER);
-        fill(tool==TOOL_FREEHAND?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,0,PX,PX);
-        fill(0);
-        textSize(30);
-        text("S", (float) PX /2, (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && 0 <= mouseY && mouseY <= PX){
-            switchTool(TOOL_FREEHAND);
-        }
+        textAlign(CENTER, CENTER);
 
-        fill(tool==TOOL_VERTEX?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,PX,PX,PX);
-        fill(0);
-        textSize(30);
-        text("Z", (float) PX /2,PX+ (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX <= mouseY && mouseY <= PX*2){
-            switchTool(TOOL_VERTEX);
-        }
+        drawToolButton(0, TOOL_FREEHAND, "S");
+        drawToolButton(1, TOOL_VERTEX, "Z");
+        drawToolButton(2, TOOL_PAINT, "o");
+        drawToolButton(3, TOOL_FATPAINT, "O");
+        drawToolButton(4, TOOL_FINELINE, "FL");
+        drawToolButton(5, TOOL_TEXT, "T");
+        drawToolButton(6, TOOL_EDIT, "E");
 
-
-        fill(tool==TOOL_PAINT?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,PX*2,PX,PX);
-        fill(0);
-        textSize(30);
-        text("o", (float) PX /2,PX*2+ (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*2 <= mouseY && mouseY <= PX*3){
-            switchTool(TOOL_PAINT);
-        }
-
-        fill(tool==TOOL_FATPAINT?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,PX*3,PX,PX);
-        fill(0);
-        textSize(30);
-        text("O", (float) PX /2,PX*3+ (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*3 <= mouseY && mouseY <= PX*4){
-            switchTool(TOOL_FATPAINT);
-        }
-
-        fill(tool==TOOL_FINELINE?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,PX*4,PX,PX);
-        fill(0);
-        textSize(30);
-        text("FL", (float) PX /2,PX*4+ (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*4 <= mouseY && mouseY <= PX*5){
-            switchTool(TOOL_FINELINE);
-        }
-
-        fill(tool==TOOL_TEXT?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,PX*5,PX,PX);
-        fill(0);
-        textSize(30);
-        text("T", (float) PX /2,PX*5+ (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*5 <= mouseY && mouseY <= PX*6){
-            switchTool(TOOL_TEXT);
-        }
-
-        fill(tool==TOOL_EDIT?180:255);
-        stroke(0);
-        strokeWeight(1);
-        rect(0,PX*6,PX,PX);
-        fill(0);
-        textSize(30);
-        text("E", (float) PX /2,PX*6+ (float) PX /2-5);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && PX*6 <= mouseY && mouseY <= PX*7){
-            switchTool(TOOL_EDIT);
-        }
-
+        // Bouton Save
+        float x = 0;
+        float y = H - PX;
         fill(255);
         stroke(0);
         strokeWeight(1);
-        rect(0,H-PX,PX,PX);
+        rect(x, y, PX, PX);
         fill(0);
         textSize(14);
-        text("Save", (float) PX /2,H-PX+ (float) PX /2-2);
-        if (!mouseOnCanvas() && mousePressed && 0 <= mouseX && mouseX <= PX && H-PX <= mouseY && mouseY <= H){
+        text("Save", (float) PX / 2, y + (float) PX / 2 - 2);
+
+        if (!mouseOnCanvas() && mousePressed && x <= mouseX && mouseX <= x + PX && y <= mouseY && mouseY <= y + PX) {
             saveFile();
             mousePressed = false;
         }
