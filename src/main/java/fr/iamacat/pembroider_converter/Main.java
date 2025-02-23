@@ -28,7 +28,6 @@ import javax.swing.*;
 public class Main extends PApplet implements Translatable {
 
     private PImage img;
-    private PImage oldImg;
     private PEmbroiderGraphics embroidery;
     private ControlP5 cp5;
     private Slider progressBar;
@@ -470,10 +469,7 @@ public class Main extends PApplet implements Translatable {
                 embroidery.beginDraw();
                 embroidery.clear();
                 img.resize(1000, 1000);
-                if (oldImg != img) {
-                    embroidery.extractedColors = embroidery.extractColorsFromImage(img);
-                    oldImg = img;
-                }
+                embroidery.extractedColors = embroidery.extractColorsFromImage(img);
                 progressBar.setValue(10);
                 embroidery.beginCull();
                 switch (selectedHatchMode) {
