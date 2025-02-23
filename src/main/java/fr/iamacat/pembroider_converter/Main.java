@@ -577,11 +577,17 @@ public class Main extends PApplet implements Translatable {
     public void draw() {
         background(240);
         if (img != null && img.width > 0 && img.height > 0) {
-            float displayWidth = (float) width / 2 - 40;
-            float displayHeight = height - 90;
-            displayWidth = Math.min(displayWidth, img.width);
-            displayHeight = Math.min(displayHeight, img.height);
-            image(img, 190, 70, displayWidth, displayHeight);
+            float maxDisplayWidth = max((float) width / 2 - 40, 10);
+            float maxDisplayHeight = max(height - 90, 10);
+            float displayWidth = min(maxDisplayWidth, img.width);
+            float displayHeight = min(maxDisplayHeight, img.height);
+            float x = constrain(190, 0, width - displayWidth);
+            float y = constrain(70, 0, height - displayHeight);
+            try {
+                image(img, x, y, displayWidth, displayHeight);
+            } catch (Exception e) {
+                println("Erreur d'affichage : " + e.getMessage());
+            }
         }
 
         if (showPreview && embroidery != null) {
