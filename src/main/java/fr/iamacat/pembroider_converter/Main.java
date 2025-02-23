@@ -128,14 +128,7 @@ public class Main extends PApplet implements Translatable {
                 .onChange(event -> {
                     int index = (int) event.getController().getValue();
                     if (index >= 0 && index < hatchModes.length) {
-                        String selectedHatchModeTemp = hatchModes[index];
-                        if (embroidery.colorizeEmbroideryFromImage && "CROSS".equals(selectedHatchModeTemp)) {
-                            selectedHatchMode = "PARALLEL";
-                            event.getController().setValue(java.util.Arrays.asList(hatchModes).indexOf("PARALLEL"));
-                            Logger.getInstance().log(Logger.Project.Converter,"Force to use \"PARALLEL\" Even if you choosed \"CROSS\" because with \"colorizeEmbroideryFromImage\" CROSS ISNT PROPERLY SUPPORTED");
-                        } else {
-                            selectedHatchMode = selectedHatchModeTemp;
-                        }
+                        selectedHatchMode = hatchModes[index];
                         if (img != null) refreshPreview();
                     }
                 });
@@ -477,7 +470,7 @@ public class Main extends PApplet implements Translatable {
                 embroidery.beginCull();
                 switch (selectedHatchMode) {
                     case "CROSS":
-                        embroidery.hatchMode(embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.CROSS : PEmbroiderGraphics.PARALLEL);
+                        embroidery.hatchMode(Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.PARALLEL : PEmbroiderGraphics.CROSS);
                         break;
                     case "PARALLEL":
                         embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
@@ -492,7 +485,7 @@ public class Main extends PApplet implements Translatable {
                         embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
                         break;
                     default:
-                        embroidery.hatchMode(embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.CROSS : PEmbroiderGraphics.PARALLEL);
+                        embroidery.hatchMode(Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.PARALLEL : PEmbroiderGraphics.CROSS);
                 }
                 embroidery.hatchSpacing(currentSpacing);
                 embroidery.colorizeEmbroideryFromImage = false;
