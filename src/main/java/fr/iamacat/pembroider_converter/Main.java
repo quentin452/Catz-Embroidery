@@ -202,7 +202,7 @@ public class Main extends PApplet implements Translatable {
                 .setBarHeight(20)
                 .setItemHeight(20)
                 .addItems(new String[] {"Mono Color", "Multi Color", "Black and White", "Realistic"})
-                .setValue(0)
+                .setValue(1)
                 .onChange(event -> {
                     int selectedIndex = (int) event.getController().getValue();
                     switch (selectedIndex) {
