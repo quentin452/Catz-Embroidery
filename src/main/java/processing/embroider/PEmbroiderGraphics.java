@@ -1089,7 +1089,6 @@ public class PEmbroiderGraphics {
 		sortedColors.sort((a, b) -> b.getValue().compareTo(a.getValue()));
 		// Étape 3: Sélectionner les 16 couleurs les plus fréquentes
 		Set<Integer> dominantColors = new LinkedHashSet<>();
-		int maxColors = 16;
 		for (Map.Entry<Integer, Integer> entry : sortedColors) {
 			dominantColors.add(entry.getKey());
 			if (dominantColors.size() >= maxColors) break;
