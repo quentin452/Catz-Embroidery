@@ -4,10 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 //import processing.awt.PGraphicsJava2D;
 import fr.iamacat.utils.Logger;
@@ -1079,6 +1076,27 @@ public class PEmbroiderGraphics {
 	}
 
 
+	public Set<Integer> extractColorsFromImage(PImage im) {
+		// Étape 1: Compter la fréquence de chaque couleur
+		Map<Integer, Integer> colorFrequency = new HashMap<>();
+		im.loadPixels();
+		for (int pixel : im.pixels) {
+			int rgb = pixel & 0x00FFFFFF; // Ignorer le canal alpha
+			colorFrequency.put(rgb, colorFrequency.getOrDefault(rgb, 0) + 1);
+		}
+		// Étape 2: Trier les couleurs par fréquence décroissante
+		List<Map.Entry<Integer, Integer>> sortedColors = new ArrayList<>(colorFrequency.entrySet());
+		sortedColors.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+		// Étape 3: Sélectionner les 16 couleurs les plus fréquentes
+		Set<Integer> dominantColors = new LinkedHashSet<>();
+		int maxColors = 16;
+		for (Map.Entry<Integer, Integer> entry : sortedColors) {
+			dominantColors.add(entry.getKey());
+			if (dominantColors.size() >= maxColors) break;
+		}
+		return dominantColors;
+	}
+
 
 	/** Add a polyline to the global array of all polylines drawn
 	 *  Applying transformation matrices and resampling
@@ -1114,30 +1132,17 @@ public class PEmbroiderGraphics {
 			for (int i = generatedColors.size(); i < poly2.size() - 1; i++) {
 				colors.add(generatedColors.get(generatedColors.size() - 1)); // Dernière couleur
 			}
-		} else if (colorizeEmbroideryFromImage) {
-			int i = 0;
-			Integer[] extractedColorsArray = extractedColors.toArray(new Integer[0]);
-			int extractedColorsSize = extractedColorsArray.length;
-
-			if (extractedColorsSize == 0) {
-				// Add the default color for all points if no extracted colors
-				for (PVector point : poly2) {
-					colors.add(color);
-				}
-			} else {
-				for (PVector point : poly2) {
-					if (i < extractedColorsSize) {
-						colors.add(extractedColorsArray[i]);
-					} else {
-						colors.add(color);
-					}
-					i++;
-				}
+		} else if (colorizeEmbroideryFromImage && !extractedColors.isEmpty()) {
+			int totalSegments = poly2.size() - 1;
+			List<Integer> colorList = new ArrayList<>(extractedColors);
+			for (int i = 0; i < totalSegments; i++) {
+				int colorIndex = (i * colorList.size()) / totalSegments;
+				colors.add(colorList.get(colorIndex));
 			}
 		} else {
 			colors.add(color);
 		}
-		if (NO_RESAMPLE) {
+		if (!colorizeEmbroideryFromImage || NO_RESAMPLE) {
 			polylines.add(poly2);
 		}else {
 			polylines.add(resample(poly2,MIN_STITCH_LENGTH,STITCH_LENGTH,RESAMPLE_NOISE,resampleRandomizeOffset));
@@ -3460,7 +3465,7 @@ public class PEmbroiderGraphics {
 					iparamsArr[k] = (float)iparams.get(k);
 				}
 				iparamsArr = PApplet.sort(iparamsArr);
-				
+
 				for (int k = 0; k < iparams.size(); k++) {
 					PVector _p0 = a.copy();
 					PVector _p1 = b.copy();
@@ -3810,7 +3815,7 @@ public class PEmbroiderGraphics {
 		}else if (HATCH_MODE == CROSS) {
 			polys = hatchParallelRaster(im,hatch_angle,HATCH_SPACING,1);
 			polys.addAll(hatchParallelRaster(im,hatch_angle2,HATCH_SPACING,1));
-			
+
 		}else if (HATCH_MODE == CONCENTRIC) {
 			polys = isolines(im,HATCH_SPACING);
 		}else if (HATCH_MODE == SPIRAL) {

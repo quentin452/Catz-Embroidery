@@ -6,10 +6,8 @@ import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
 
 import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
@@ -29,6 +27,7 @@ import javax.swing.*;
 public class Main extends PApplet implements Translatable {
 
     private PImage img;
+    private PImage oldImg;
     private PEmbroiderGraphics embroidery;
     private ControlP5 cp5;
     private Slider progressBar;
@@ -129,10 +128,18 @@ public class Main extends PApplet implements Translatable {
                 .onChange(event -> {
                     int index = (int) event.getController().getValue();
                     if (index >= 0 && index < hatchModes.length) {
-                        selectedHatchMode = hatchModes[index];
+                        String selectedHatchModeTemp = hatchModes[index];
+                        if (embroidery.colorizeEmbroideryFromImage && "CROSS".equals(selectedHatchModeTemp)) {
+                            selectedHatchMode = "PARALLEL";
+                            event.getController().setValue(java.util.Arrays.asList(hatchModes).indexOf("PARALLEL"));
+                            Logger.getInstance().log(Logger.Project.Converter,"Force to use \"PARALLEL\" Even if you choosed \"CROSS\" because with \"colorizeEmbroideryFromImage\" CROSS ISNT PROPERLY SUPPORTED");
+                        } else {
+                            selectedHatchMode = selectedHatchModeTemp;
+                        }
                         if (img != null) refreshPreview();
                     }
                 });
+
         Textfield maxMultiColorTextField = cp5.addTextfield("maxMultiColorField")
                 .setPosition(20, 280)
                 .setSize(100, 30)
@@ -352,10 +359,8 @@ public class Main extends PApplet implements Translatable {
         progressBar.setVisible(true);
     }
 
-    private void refreshPreview() {
-        showPreview = false;
+    private void  refreshPreview(){
         processImageWithProgress();
-        showPreview = true;
     }
 
     public void loadImage() {
@@ -385,9 +390,6 @@ public class Main extends PApplet implements Translatable {
                 img = loadImage(selection.getAbsolutePath());
 
                 if (img != null) {
-                    // New: Edge analysis logging
-                    logImageEdges(img, selection.getName());
-                    embroidery.extractedColors = extractColors(img);
                     refreshPreview();
                     enableEscapeMenu = true;
                     showPreview = true;
@@ -407,7 +409,6 @@ public class Main extends PApplet implements Translatable {
                     img = createImageFromPolylines(polylines, colors, width, height);
 
                     if (img != null) {
-                        // New: Edge analysis for generated images
                         logImageEdges(img, "Generated from PES");
                         refreshPreview();
                         enableEscapeMenu = true;
@@ -422,15 +423,6 @@ public class Main extends PApplet implements Translatable {
                         "Le fichier sélectionné n'est pas un fichier image valide.");
             }
         }
-    }
-
-    public Set<Integer> extractColors(PImage img) {
-        Set<Integer> colors = new HashSet<>();
-        img.loadPixels();
-        for (int pixel : img.pixels) {
-            colors.add(pixel);
-        }
-        return colors;
     }
 
     // New edge analysis method
@@ -574,16 +566,25 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void processImageWithProgress() {
+        showPreview = false;
         if (embroidery == null) {
             embroidery = new PEmbroiderGraphics(this, img.width, img.height);
         }
         embroidery.beginDraw();
         embroidery.clear();
         img.resize(1000, 1000);
+        if (oldImg != img) {
+            embroidery.extractedColors = embroidery.extractColorsFromImage(img);
+            oldImg = img;
+        }
         embroidery.beginCull();
         switch (selectedHatchMode) {
             case "CROSS":
-                embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                if (embroidery.colorizeEmbroideryFromImage) {
+                    embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                } else {
+                    embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+                }
                 break;
             case "PARALLEL":
                 embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
@@ -598,7 +599,11 @@ public class Main extends PApplet implements Translatable {
                 embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
                 break;
             default:
-                embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                if (embroidery.colorizeEmbroideryFromImage) {
+                    embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                } else {
+                    embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+                }
         }
         embroidery.hatchSpacing(currentSpacing);
         embroidery.colorizeEmbroideryFromImage = false;
@@ -633,6 +638,7 @@ public class Main extends PApplet implements Translatable {
             }
             embroidery.popyLineMulticolor = false;
         } else if (colorType == ColorType.Realistic) {
+            embroidery.popyLineMulticolor = false;
             embroidery.colorizeEmbroideryFromImage = true;
             if (!FillB) {
                 embroidery.noFill();
@@ -640,10 +646,10 @@ public class Main extends PApplet implements Translatable {
                 embroidery.fill(0,0,0);
             }
             embroidery.stroke(0,0,0);
-            embroidery.popyLineMulticolor = false;
         }
         embroidery.image(img, 860, 70);
         embroidery.endCull();
+        showPreview = true;
     }
 
     @Override
