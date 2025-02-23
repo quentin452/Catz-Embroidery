@@ -409,7 +409,6 @@ public class Main extends PApplet implements Translatable {
                     img = createImageFromPolylines(polylines, colors, width, height);
 
                     if (img != null) {
-                        logImageEdges(img, "Generated from PES");
                         refreshPreview();
                         enableEscapeMenu = true;
                         showPreview = true;
@@ -424,62 +423,7 @@ public class Main extends PApplet implements Translatable {
             }
         }
     }
-
-    // New edge analysis method
-    private void logImageEdges(PImage im, String sourceName) {
-        println("Edge analysis for: " + sourceName);
-        println("Dimensions: " + im.width + "x" + im.height);
-
-        analyzeEdge(im, "Top edge", 0, 0, im.width, 0);          // Top border
-        analyzeEdge(im, "Bottom edge", 0, im.height-1, im.width, im.height-1); // Bottom
-        analyzeEdge(im, "Left edge", 0, 0, 0, im.height);        // Left border
-        analyzeEdge(im, "Right edge", im.width-1, 0, im.width-1, im.height); // Right
-    }
-
-    private void analyzeEdge(PImage im, String edgeName, int x1, int y1, int x2, int y2) {
-        int samples = 10;
-        int transparentCount = 0;
-        int blackCount = 0;
-        int whiteCount = 0;
-        int otherCount = 0;
-
-        for (int i = 0; i < samples; i++) {
-            float t = (float)i/(samples-1);
-            int x = (int)lerp(x1, x2, t);
-            int y = (int)lerp(y1, y2, t);
-            x = constrain(x, 0, im.width-1);
-            y = constrain(y, 0, im.height-1);
-
-            int c = im.get(x, y);
-            int a = (c >> 24) & 0xFF;
-            int r = (c >> 16) & 0xFF;
-            int g = (c >> 8) & 0xFF;
-            int b = c & 0xFF;
-
-            if (a < 50) {
-                transparentCount++;
-            } else if (r < 50 && g < 50 && b < 50) {
-                blackCount++;
-            } else if (r > 200 && g > 200 && b > 200) {
-                whiteCount++;
-            } else {
-                otherCount++;
-            }
-        }
-
-        String logMsg = String.format(
-                "%s: Transparent=%d (%.0f%%) | Black=%d | White=%d | Other=%d",
-                edgeName,
-                transparentCount,
-                (transparentCount * 100.0f)/samples,
-                blackCount,
-                whiteCount,
-                otherCount
-        );
-
-        println(logMsg);
-    }
-
+    
     private PImage createImageFromPolylines(ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height) {
         PImage image = createImage(width, height, PApplet.RGB);
         image.loadPixels();
