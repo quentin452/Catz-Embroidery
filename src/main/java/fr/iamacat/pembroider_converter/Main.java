@@ -559,8 +559,13 @@ public class Main extends PApplet implements Translatable {
     public void draw() {
         background(240);
         if (img != null && img.width > 0 && img.height > 0) {
-            image(img, 190, 70, (float) width / 2 - 40, height - 90);
+            float displayWidth = (float) width / 2 - 40;
+            float displayHeight = height - 90;
+            displayWidth = Math.min(displayWidth, img.width);
+            displayHeight = Math.min(displayHeight, img.height);
+            image(img, 190, 70, displayWidth, displayHeight);
         }
+
         if (showPreview && embroidery != null) {
             float scaleX = exportWidth / width;
             float scaleY = exportHeight / height;
