@@ -399,6 +399,9 @@ public class Main extends PApplet implements Translatable {
                 img = loadImage(selection.getAbsolutePath());
 
                 if (img != null) {
+                    if (Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage) {
+                        selectedHatchMode = "PARALLEL";
+                    }
                     refreshPreview();
                     enableEscapeMenu = true;
                     showPreview = true;
