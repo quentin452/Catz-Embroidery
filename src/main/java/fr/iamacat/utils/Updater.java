@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 public class Updater {
 
-    public static final String CURRENT_VERSION = "V0.1.7";
+    public static final String CURRENT_VERSION = "V0.1.8";
     private static final String GITHUB_API_URL = "https://api.github.com/repos/quentin452/Catz-Embroidery/releases/latest";
     public static boolean isUpdateChecked = false;
 
