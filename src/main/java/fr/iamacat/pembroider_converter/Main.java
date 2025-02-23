@@ -5,9 +5,6 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -46,7 +43,6 @@ public class Main extends PApplet implements Translatable {
     private float currentStrokeWeight = 25;
     private int currentWidth = 1280;
     private int currentHeight = 720;
-    private CColor selectedColor = new CColor().setForeground(color(255, 0, 0));
     private boolean enableEscapeMenu = false;
     private boolean isDialogOpen = false;
     private ColorType colorType = ColorType.MultiColor;
@@ -60,8 +56,8 @@ public class Main extends PApplet implements Translatable {
     boolean showTooltip = false;
     PFont tooltipFont;
 
+    Textfield maxMultiColorTextField;
     private enum ColorType {
-        MonoColor,
         MultiColor,
         BlackAndWhite,
         Realistic
@@ -145,7 +141,7 @@ public class Main extends PApplet implements Translatable {
                     }
                 });
 
-        Textfield maxMultiColorTextField = cp5.addTextfield("maxMultiColorField")
+        maxMultiColorTextField = cp5.addTextfield("maxMultiColorField")
                 .setPosition(20, 280)
                 .setSize(100, 30)
                 .setColor(color(255))
@@ -157,7 +153,6 @@ public class Main extends PApplet implements Translatable {
                 embroidery.maxColors = Integer.parseInt(event.getController().getStringValue());
                 if (embroidery.maxColors < 1) embroidery.maxColors = 1;
                 if (img != null) refreshPreview();
-                maxMultiColorTextField.setVisible(colorType != ColorType.MonoColor);  // TODO FIX THIS DOESN'T WORK
             } catch (NumberFormatException e) {
                 Logger.getInstance().log(Logger.Project.Converter,"Invalid value for max multi color");
             }
@@ -177,52 +172,20 @@ public class Main extends PApplet implements Translatable {
         maxMultiColorTextField.onLeave(event -> {
             showTooltip = false;
         });
-        Controller<?> monoColorController = cp5.getController("monoColorPicker");
-        if (monoColorController != null) {
-            monoColorController.addListener(event -> {
-                if (event.getController().getName().equals("monoColorPicker")) {
-                    selectedColor = event.getController().getColor();
-                    if (img != null) refreshPreview();
-                    monoColorController.setVisible(colorType != ColorType.MultiColor); // TODO FIX THIS DOESN'T WORK
-                }
-            });
-        } else {
-            Logger.getInstance().log(Logger.Project.Converter, "Controller for monoColorPicker is null");
-        }
-        // TODO FIX monoColorController is null
-        /*assert monoColorController != null;
-        monoColorController.onEnter(event -> {
-            hoverText = Translator.getInstance().translate("monoColorPicker");
-            showTooltip = true;
-        });
-
-        monoColorController.onLeave(event -> {
-            showTooltip = false;
-        });*/
         DropdownList colorModeDropdown = cp5.addDropdownList("colorMode")
                 .setPosition(310, 22)
                 .setSize(100, 150)
                 .setBarHeight(20)
                 .setItemHeight(20)
-                .addItems(new String[] {"Mono Color", "Multi Color", "Black and White", "Realistic"})
+                .addItems(Arrays.stream(ColorType.values())
+                        .map(Enum::name) // Convert enum to string
+                        .toArray(String[]::new))
                 .onChange(event -> {
-                    int selectedIndex = (int) event.getController().getValue();
-                    switch (selectedIndex) {
-                        case 0:
-                            colorType = ColorType.MonoColor;
-                            break;
-                        case 1:
-                            colorType = ColorType.MultiColor;
-                            break;
-                        case 2:
-                            colorType = ColorType.BlackAndWhite;
-                            break;
-                        case 3:
-                            colorType = ColorType.Realistic;
-                            break;
-                    }
+                    colorType = ColorType.values()[(int) event.getController().getValue()];
                     if (img != null) refreshPreview();
                 });
+
+
         colorModeDropdown.getCaptionLabel()
                 .setPaddingX(0)
                 .setPaddingY(-30)
@@ -288,8 +251,6 @@ public class Main extends PApplet implements Translatable {
                 .setSize(100, 30)
                 .setText(str(exportWidth))
                 .setAutoClear(false)
-                .setLock(true)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
-                .setVisible(false)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
                 .onChange(event -> {
                     try {
                         exportWidth = Float.parseFloat(event.getController().getStringValue());
@@ -318,8 +279,6 @@ public class Main extends PApplet implements Translatable {
                 .setSize(100, 30)
                 .setText(str(exportHeight))
                 .setAutoClear(false)
-                .setLock(true)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
-                .setVisible(false)// TODO FIX https://github.com/quentin452/Catz-Embroidery/issues/1
                 .onChange(event -> {
                     try {
                         exportHeight = Float.parseFloat(event.getController().getStringValue());
@@ -499,7 +458,8 @@ public class Main extends PApplet implements Translatable {
                 embroidery.extractedColors = embroidery.extractColorsFromImage(img);
                 progressBar.setValue(10);
                 embroidery.beginCull();
-                switch (selectedHatchMode) {
+                embroidery.colorizeEmbroideryFromImage = colorType == ColorType.Realistic;
+                switch (selectedHatchMode) { // TODO FIX "CROSS" hatchMode Destroy Realistic colors with fill
                     case "CROSS":
                         embroidery.hatchMode(Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.PARALLEL : PEmbroiderGraphics.CROSS);
                         break;
@@ -519,44 +479,19 @@ public class Main extends PApplet implements Translatable {
                         embroidery.hatchMode(Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.PARALLEL : PEmbroiderGraphics.CROSS);
                 }
                 embroidery.hatchSpacing(currentSpacing);
-                embroidery.colorizeEmbroideryFromImage = false;
                 embroidery.strokeWeight(currentStrokeWeight);
+                embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
+                embroidery.strokeSpacing(currentSpacing);
+                embroidery.stroke(0, 0, 0);
                 progressBar.setValue(40);
-                if (colorType == ColorType.MonoColor) {
-                    if (!FillB) {
-                        embroidery.noFill();
-                        embroidery.stroke(0, 0, 0);
-                    } else {
-                        embroidery.fill(selectedColor.getForeground());
-                    }
-                    embroidery.popyLineMulticolor = false;
-                } else if (colorType == ColorType.MultiColor) {
-                    if (!FillB) {
-                        embroidery.noFill();
-                    } else {
-                        embroidery.fill(0, 0, 0);
-                    }
-                    embroidery.stroke(0, 0, 0);
+                if (!FillB) {
+                    embroidery.noFill();
+                } else {
+                    embroidery.fill(0, 0, 0);
+                }
+                embroidery.popyLineMulticolor = false;
+                if (colorType == ColorType.MultiColor) {
                     embroidery.popyLineMulticolor = true;
-                    embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
-                    embroidery.strokeSpacing(currentSpacing);
-                } else if (colorType == ColorType.BlackAndWhite) {
-                    if (!FillB) {
-                        embroidery.noFill();
-                        embroidery.stroke(0, 0, 0);
-                    } else {
-                        embroidery.fill(0, 0, 0);
-                    }
-                    embroidery.popyLineMulticolor = false;
-                } else if (colorType == ColorType.Realistic) {
-                    embroidery.popyLineMulticolor = false;
-                    embroidery.colorizeEmbroideryFromImage = true;
-                    if (!FillB) {
-                        embroidery.noFill();
-                    } else {
-                        embroidery.fill(0, 0, 0);
-                    }
-                    embroidery.stroke(0, 0, 0);
                 }
                 embroidery.image(img, 860, 70);
                 embroidery.endCull();

@@ -1,8 +1,5 @@
 package fr.iamacat.pembroider_editor;
 
-import com.dropbox.core.DbxException;
-import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.WriteMode;
 import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
@@ -15,13 +12,7 @@ import processing.embroider.PEmbroiderGraphics;
 import processing.event.MouseEvent;
 
 import javax.swing.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Objects;
 
