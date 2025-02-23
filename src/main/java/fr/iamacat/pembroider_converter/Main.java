@@ -452,7 +452,7 @@ public class Main extends PApplet implements Translatable {
                     boolean isSVG = selectedFormat.equals("SVG");
                     progressBar.setValue(50);
                     embroidery.optimize();
-                    PEmbroiderWriter.write(path, embroidery.polylines, embroidery.colors, (int) exportWidth, (int) exportHeight, isSVG);
+                    PEmbroiderWriter.write(this,path, embroidery.polylines, embroidery.colors, (int) exportWidth, (int) exportHeight, isSVG);
                     progressBar.setValue(100);
                     progressBar.setVisible(false);
                 } catch (Exception e) {

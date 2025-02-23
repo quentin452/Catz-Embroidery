@@ -8,13 +8,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Stack;
+import java.util.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
+import processing.core.PApplet;
+import processing.core.PConstants;
+import processing.core.PImage;
 import processing.core.PVector;
+
+import static processing.controlP5.ControlP5Legacy.println;
 
 public class PEmbroiderWriter {
 
@@ -78,7 +80,7 @@ public class PEmbroiderWriter {
 				if (x < -1) {b1 += bit(1);x += 3;}
 				if (x > 0) {b0 += bit(0);x -= 1;}
 				if (x < 0) {b0 += bit(1);x += 1;}
-				if (x != 0) {System.out.println(logPrefix+"Error: Write exceeded possible distance.");}
+				if (x != 0) {println(logPrefix+"Error: Write exceeded possible distance.");}
 				if (y > 40) {b2 += bit(5);y -= 81;}
 				if (y < -40) {b2 += bit(4);y += 81;}
 				if (y > 13) {b1 += bit(5);y -= 27;}
@@ -89,7 +91,7 @@ public class PEmbroiderWriter {
 				if (y < -1) {b1 += bit(6);y += 3;}
 				if (y > 0) {b0 += bit(7);y -= 1;}
 				if (y < 0) {b0 += bit(6);y += 1;}
-				if (y != 0) {System.out.println(logPrefix+"Error: Write exceeded possible distance.");}
+				if (y != 0) {println(logPrefix+"Error: Write exceeded possible distance.");}
 				break;
 			case COLOR_CHANGE:
 				b2 = (byte) 0b11000011;
@@ -389,7 +391,7 @@ public class PEmbroiderWriter {
 							count_color_blocks_total ++;
 						}
 					}
-					System.out.println(logPrefix+"Color count: "+count_color_blocks_total);
+					println(logPrefix+"Color count: "+count_color_blocks_total);
 
 					writeInt32BE((int) (bounds[2] * 100)); //right
 					writeInt32BE((int) (bounds[1] * -100));//-top
@@ -403,7 +405,7 @@ public class PEmbroiderWriter {
 						}
 						count_just_stitches += 1;
 					}
-					//			        System.out.println(count_just_stitches);
+					//			        println(count_just_stitches);
 					writeInt32BE(count_just_stitches);
 					writeInt8(0x00);
 					writeInt8(count_color_blocks_total);
@@ -905,7 +907,7 @@ public class PEmbroiderWriter {
 			            float x = stitches.get(i).x;
 			            float y = stitches.get(i).y;
 			            
-//			            System.out.println(x+" "+y);
+//			            println(x+" "+y);
 			            dx = (int) Math.rint(x - xx);
 			            dy = (int) Math.rint(y - yy);
 			            int odx = dx;
@@ -1328,7 +1330,7 @@ public class PEmbroiderWriter {
 				}
 				
 			}else {
-				System.out.println(logPrefix+"Error: PES version inexistent or unimplemented");
+				println(logPrefix+"Error: PES version inexistent or unimplemented");
 			}
 	        
 	    }
@@ -1709,7 +1711,7 @@ public class PEmbroiderWriter {
 								palette.add(colors.get(i));
 							}
 						}
-						System.out.println(logPrefix+"Color count: "+palette.size());
+						println(logPrefix+"Color count: "+palette.size());
 						writeInt8(palette.size()-1);
 //			        
 						for (int i = 0; i < palette.size(); i++) {
@@ -1816,7 +1818,7 @@ public class PEmbroiderWriter {
 			            float x = stitches.get(i).x;
 			            float y = stitches.get(i).y;
 			            
-//			            System.out.println(x+" "+y);
+//			            println(x+" "+y);
 			            dx = (int) Math.rint(x - xx);
 			            dy = (int) Math.rint(y - yy);
 			            xx += dx;
@@ -2213,7 +2215,7 @@ public class PEmbroiderWriter {
 		public static void write(String name, float[] bounds, ArrayList<PVector> stitches, ArrayList<Integer> colors, String title, ArrayList<Boolean> jumps) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".svg");
 			String svg = svgString(bounds,stitches,colors,jumps);
-//			System.out.println(svg);
+//			println(svg);
 			stream.write(svg.getBytes());
 			stream.close();
 
@@ -2261,13 +2263,98 @@ public class PEmbroiderWriter {
 		public static void write(String name, float[] bounds, ArrayList<PVector> stitches, ArrayList<Integer> colors, String titles, ArrayList<Boolean> jumps) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".pdf");
 			String pdf = pdfString(bounds,stitches,colors,jumps);
-//			System.out.println(svg);
+//			println(svg);
 			stream.write(pdf.getBytes());
 			stream.close();
 		}
 		
 	}
-	
+
+	public static class PNG {
+		public static void write(PApplet app, String filename, String extension,
+								 ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors) {
+			int width = 1000;
+			int height = 1000;
+
+			PImage img = app.createImage(width, height, PConstants.ARGB);
+			img.loadPixels();
+			Arrays.fill(img.pixels, app.color(0, 0, 0, 0));
+
+			float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+			float maxX = Float.MIN_VALUE, maxY = Float.MIN_VALUE;
+
+			for (ArrayList<PVector> polyline : polylines) {
+				for (PVector point : polyline) {
+					if (point.x < minX) minX = point.x;
+					if (point.y < minY) minY = point.y;
+					if (point.x > maxX) maxX = point.x;
+					if (point.y > maxY) maxY = point.y;
+				}
+			}
+
+			float centerX = (minX + maxX) / 2;
+			float centerY = (minY + maxY) / 2;
+
+			float offsetX = (float) width / 2 - centerX;
+			float offsetY = (float) height / 2 - centerY;
+
+			for (int i = 0; i < polylines.size(); i++) {
+				ArrayList<PVector> polyline = polylines.get(i);
+				int col = colors.get(i);
+
+				float[] hsb = new float[3];
+				Color.RGBtoHSB((col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, hsb);
+				hsb[1] = Math.min(1.0f, hsb[1] * 1.5f); // Augment saturation of 50 %
+				col = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
+
+				if (polyline.isEmpty()) {
+					continue;
+				}
+
+				for (int j = 0; j < polyline.size() - 1; j++) {
+					PVector p0 = polyline.get(j);
+					PVector p1 = polyline.get(j + 1);
+
+					int x0 = (int) (p0.x + offsetX);
+					int y0 = (int) (p0.y + offsetY);
+					int x1 = (int) (p1.x + offsetX);
+					int y1 = (int) (p1.y + offsetY);
+
+					if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height &&
+							x1 >= 0 && x1 < width && y1 >= 0 && y1 < height) {
+
+						int dx = Math.abs(x1 - x0);
+						int dy = -Math.abs(y1 - y0);
+						int sx = x0 < x1 ? 1 : -1;
+						int sy = y0 < y1 ? 1 : -1;
+						int err = dx + dy;
+
+						while (true) {
+							img.pixels[y0 * width + x0] = col;
+
+							if (x0 == x1 && y0 == y1) {
+								break;
+							}
+
+							int e2 = 2 * err;
+							if (e2 >= dy) {
+								err += dy;
+								x0 += sx;
+							}
+							if (e2 <= dx) {
+								err += dx;
+								y0 += sy;
+							}
+						}
+					}
+				}
+			}
+			img.updatePixels();
+			img.save(filename + "." + extension);
+		}
+	}
+
+
 	public static class GCODE{
 		public static String gcodeString(float[] bounds, ArrayList<PVector> stitches, ArrayList<Integer> colors) {
 			String g = "M3\nS1000\nG21\n";
@@ -2285,7 +2372,7 @@ public class PEmbroiderWriter {
 		public static void write(String name, float[] bounds, ArrayList<PVector> stitches, ArrayList<Integer> colors, String title) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".gcode");
 			String g = gcodeString(bounds,stitches,colors);
-//			System.out.println(svg);
+//			println(svg);
 			stream.write(g.getBytes());
 			stream.close();
 		}
@@ -2313,18 +2400,18 @@ public class PEmbroiderWriter {
 		public static void write(String name, float[] bounds, ArrayList<PVector> stitches, ArrayList<Integer> colors, String title) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".tsv");
 			String tsv = tsvString(bounds,stitches,colors);
-//			System.out.println(svg);
+//			println(svg);
 			stream.write(tsv.getBytes());
 			stream.close();
 		}
 	}
 	
 
-	public static void write(String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height){
-		write(filename,polylines,colors,width,height,false);
+	public static void write(PApplet app,String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height){
+		write(app,filename,polylines,colors,width,height,false);
 	}
-	public static void write(String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height, boolean noConnect){
-		System.out.println(filename);
+	public static void write(PApplet app,String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height, boolean noConnect){
+		println(filename);
 		boolean isCustomMatrix = true;
 		boolean isCustomBounds = true;
 		boolean isCustomTitle = true;
@@ -2355,15 +2442,15 @@ public class PEmbroiderWriter {
 		}
 		
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
-		System.out.println(logPrefix+"BASENAME :"+tokens[0]);
-		System.out.println(logPrefix+"EXTENSION:"+tokens[1]);
+		println(logPrefix+"BASENAME :"+tokens[0]);
+		println(logPrefix+"EXTENSION:"+tokens[1]);
 		
 		if (TITLE == null) {
 			isCustomTitle = false;
 			String[] strs = tokens[0].split("/|\\\\");
         	TITLE = strs[strs.length-1];
 		}
-		System.out.println(TITLE);
+		println(TITLE);
         TITLE = TITLE.substring(0, Math.min(8, TITLE.length()));
         
 		try {
@@ -2388,14 +2475,16 @@ public class PEmbroiderWriter {
 			}else if (tokens[1].equalsIgnoreCase("TSV")) {
 				TSV.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);	
 			}else if (tokens[1].equalsIgnoreCase("GCODE")) {
-				GCODE.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);	
+				GCODE.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
+			}else if (tokens[1].equalsIgnoreCase("PNG") || tokens[1].equalsIgnoreCase("JPG") || tokens[1].equalsIgnoreCase("JPEG")|| tokens[1].equalsIgnoreCase("BMP")|| tokens[1].equalsIgnoreCase("GIF")) {
+				PNG.write(app,tokens[0],tokens[1], polylines, colors);
 			}else {
-				System.out.println(logPrefix+"Unsupported format. Try dst, exp, pdf, pec, pes, svg, tsv, vp3, xxx, or gcode.");
+				println(logPrefix+"Unsupported format. Try dst, exp, pdf, pec, pes, svg, tsv, vp3, xxx,png,jpg,jpeg,bmp,gif or gcode.");
 				throw new IOException("Unimplemented");
 			}
-			System.out.println(logPrefix+"Written!");
+			println(logPrefix+"Written!");
 		}catch(IOException e) {
-			System.out.println(logPrefix+" IO Error.");
+			println(logPrefix+" IO Error.");
 		}
 		
 		if (!isCustomMatrix) {
@@ -2409,8 +2498,8 @@ public class PEmbroiderWriter {
 		}
 	}
 	
-	public static void write(PEmbroiderGraphics E) {
-		write((PATH != null) ? PATH : E.path, E.polylines, E.colors, E.width, E.height);
+	public static void write(PApplet app,PEmbroiderGraphics E) {
+		write(app,(PATH != null) ? PATH : E.path, E.polylines, E.colors, E.width, E.height);
 	}
 
 }

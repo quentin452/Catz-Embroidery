@@ -4595,7 +4595,7 @@ public class PEmbroiderGraphics {
 			return;
 		}
 		checkOutOfBounds();
-		PEmbroiderWriter.write(path, polylines, colors, width, height, NO_CONNECT);
+		PEmbroiderWriter.write(app,path, polylines, colors, width, height, NO_CONNECT);
 	}
 
 
