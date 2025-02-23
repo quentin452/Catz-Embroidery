@@ -46,7 +46,7 @@ public class Main extends PApplet implements Translatable {
     private final String[] hatchModes = {"CROSS", "PARALLEL", "CONCENTRIC" , "SPIRAL" , "PERLIN"};
     private String selectedHatchMode = "CROSS";
 
-    public boolean FillColor= false;
+    public boolean FillB= false;
 
     String hoverText = "";
     boolean showTooltip = false;
@@ -56,7 +56,8 @@ public class Main extends PApplet implements Translatable {
     private enum ColorType {
         MonoColor,
         MultiColor,
-        BlackAndWhite
+        BlackAndWhite,
+        Realistic
     }
 
     public static void main(String[] args) {
@@ -133,13 +134,13 @@ public class Main extends PApplet implements Translatable {
                 .setPosition(20, 280)
                 .setSize(100, 30)
                 .setColor(color(255))
-                .setText(str(embroidery.maxMultiColors))
+                .setText(str(embroidery.maxColors))
                 .setAutoClear(false);
 
         maxMultiColorTextField.onChange(event -> {
             try {
-                embroidery.maxMultiColors = Integer.parseInt(event.getController().getStringValue());
-                if (embroidery.maxMultiColors < 1) embroidery.maxMultiColors = 1;
+                embroidery.maxColors = Integer.parseInt(event.getController().getStringValue());
+                if (embroidery.maxColors < 1) embroidery.maxColors = 1;
                 if (img != null) refreshPreview();
                 maxMultiColorTextField.setVisible(colorType != ColorType.MonoColor);  // TODO FIX THIS DOESN'T WORK
             } catch (NumberFormatException e) {
@@ -188,7 +189,7 @@ public class Main extends PApplet implements Translatable {
                 .setSize(100, 150)
                 .setBarHeight(20)
                 .setItemHeight(20)
-                .addItems(new String[] {"Mono Color", "Multi Color", "Black and White"})
+                .addItems(new String[] {"Mono Color", "Multi Color", "Black and White", "Realistic"})
                 .setValue(0)
                 .onChange(event -> {
                     int selectedIndex = (int) event.getController().getValue();
@@ -201,6 +202,9 @@ public class Main extends PApplet implements Translatable {
                             break;
                         case 2:
                             colorType = ColorType.BlackAndWhite;
+                            break;
+                        case 3:
+                            colorType = ColorType.Realistic;
                             break;
                     }
                     if (img != null) refreshPreview();
@@ -336,7 +340,7 @@ public class Main extends PApplet implements Translatable {
 
     private void updateFillMode()
     {
-        FillColor = !FillColor;
+        FillB = !FillB;
         if (img != null) refreshPreview();
     }
 
@@ -371,17 +375,26 @@ public class Main extends PApplet implements Translatable {
         isDialogOpen = false;
         if (selection != null) {
             String fileName = selection.getName().toLowerCase();
-            if (fileName.endsWith(".jpg") || fileName.endsWith(".png") || fileName.endsWith(".jpeg") || fileName.endsWith(".bmp") || fileName.endsWith(".gif")) {
+            if (fileName.endsWith(".jpg") || fileName.endsWith(".png") ||
+                    fileName.endsWith(".jpeg") || fileName.endsWith(".bmp") ||
+                    fileName.endsWith(".gif")) {
+
                 img = loadImage(selection.getAbsolutePath());
 
                 if (img != null) {
+                    // New: Edge analysis logging
+                    logImageEdges(img, selection.getName());
                     refreshPreview();
                     enableEscapeMenu = true;
                     showPreview = true;
                 } else {
-                    Logger.getInstance().log(Logger.Project.Converter, "Le fichier sélectionné n'est pas une image valide.");
+                    Logger.getInstance().log(Logger.Project.Converter,
+                            "Le fichier sélectionné n'est pas une image valide.");
                 }
+
             } else if (fileName.endsWith(".pes")) {
+                // [Existing PES handling...]
+
                 PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(),width,height);
                 ArrayList<ArrayList<PVector>> polylines = data.getPolylines();
                 ArrayList<Integer> colors = data.getColors();
@@ -390,22 +403,79 @@ public class Main extends PApplet implements Translatable {
                 System.out.println("Colors: " + colors);
 
                 if (polylines != null && colors != null) {
-                    // Convert polylines and colors to a PImage
-                    img = createImageFromPolylines(polylines, colors, width, height); // You can specify the desired width and height
+                    img = createImageFromPolylines(polylines, colors, width, height);
 
-                    // Use the img for display or further processing
                     if (img != null) {
+                        // New: Edge analysis for generated images
+                        logImageEdges(img, "Generated from PES");
                         refreshPreview();
                         enableEscapeMenu = true;
                         showPreview = true;
                     } else {
-                        Logger.getInstance().log(Logger.Project.Converter, "Erreur lors de la création de l'image depuis les polylines et couleurs.");
+                        Logger.getInstance().log(Logger.Project.Converter,
+                                "Erreur lors de la création de l'image depuis les polylines et couleurs.");
                     }
                 }
             } else {
-                Logger.getInstance().log(Logger.Project.Converter, "Le fichier sélectionné n'est pas un fichier image valide.");
+                Logger.getInstance().log(Logger.Project.Converter,
+                        "Le fichier sélectionné n'est pas un fichier image valide.");
             }
         }
+    }
+
+    // New edge analysis method
+    private void logImageEdges(PImage im, String sourceName) {
+        println("Edge analysis for: " + sourceName);
+        println("Dimensions: " + im.width + "x" + im.height);
+
+        analyzeEdge(im, "Top edge", 0, 0, im.width, 0);          // Top border
+        analyzeEdge(im, "Bottom edge", 0, im.height-1, im.width, im.height-1); // Bottom
+        analyzeEdge(im, "Left edge", 0, 0, 0, im.height);        // Left border
+        analyzeEdge(im, "Right edge", im.width-1, 0, im.width-1, im.height); // Right
+    }
+
+    private void analyzeEdge(PImage im, String edgeName, int x1, int y1, int x2, int y2) {
+        int samples = 10;
+        int transparentCount = 0;
+        int blackCount = 0;
+        int whiteCount = 0;
+        int otherCount = 0;
+
+        for (int i = 0; i < samples; i++) {
+            float t = (float)i/(samples-1);
+            int x = (int)lerp(x1, x2, t);
+            int y = (int)lerp(y1, y2, t);
+            x = constrain(x, 0, im.width-1);
+            y = constrain(y, 0, im.height-1);
+
+            int c = im.get(x, y);
+            int a = (c >> 24) & 0xFF;
+            int r = (c >> 16) & 0xFF;
+            int g = (c >> 8) & 0xFF;
+            int b = c & 0xFF;
+
+            if (a < 50) {
+                transparentCount++;
+            } else if (r < 50 && g < 50 && b < 50) {
+                blackCount++;
+            } else if (r > 200 && g > 200 && b > 200) {
+                whiteCount++;
+            } else {
+                otherCount++;
+            }
+        }
+
+        String logMsg = String.format(
+                "%s: Transparent=%d (%.0f%%) | Black=%d | White=%d | Other=%d",
+                edgeName,
+                transparentCount,
+                (transparentCount * 100.0f)/samples,
+                blackCount,
+                whiteCount,
+                otherCount
+        );
+
+        println(logMsg);
     }
 
     private PImage createImageFromPolylines(ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height) {
@@ -521,9 +591,10 @@ public class Main extends PApplet implements Translatable {
                 embroidery.hatchMode(PEmbroiderGraphics.CROSS);
         }
         embroidery.hatchSpacing(currentSpacing);
+        embroidery.colorizeEmbroideryFromImage = false;
         if (colorType == ColorType.MonoColor) {
             embroidery.noStroke();
-            if (!FillColor) {
+            if (!FillB) {
                 embroidery.noFill();
                 embroidery.stroke(0,0,0);
             } else {
@@ -532,7 +603,7 @@ public class Main extends PApplet implements Translatable {
             embroidery.popyLineMulticolor = false;
         }
         else if (colorType == ColorType.MultiColor) {
-            if (!FillColor) {
+            if (!FillB) {
                 embroidery.noFill();
             } else {
                 embroidery.fill(0,0,0);
@@ -544,7 +615,7 @@ public class Main extends PApplet implements Translatable {
             embroidery.strokeSpacing(currentSpacing);
         }
         else if (colorType == ColorType.BlackAndWhite) {
-            if (!FillColor) {
+            if (!FillB) {
                 embroidery.noFill();
                 embroidery.stroke(0,0,0);
             } else {
@@ -552,6 +623,16 @@ public class Main extends PApplet implements Translatable {
                 embroidery.noStroke();
             }
             embroidery.popyLineMulticolor = false;
+        } else if (colorType == ColorType.Realistic) {
+            if (!FillB) {
+                embroidery.noFill();
+                embroidery.stroke(0,0,0);
+            } else {
+                embroidery.fill(0, 0, 0);
+                embroidery.noStroke();
+            }
+            embroidery.popyLineMulticolor = false;
+            embroidery.colorizeEmbroideryFromImage = true;
         }
         embroidery.image(img, 860, 70);
         embroidery.endCull();

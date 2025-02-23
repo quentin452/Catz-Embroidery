@@ -5,6 +5,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.zip.*;
 
+import static processing.controlP5.ControlP5Legacy.println;
+
 public class Logger {
 
     private static Logger instance;
@@ -16,7 +18,8 @@ public class Logger {
         Launcher,
         Converter,
         Editor,
-        Viewer
+        Viewer,
+        Embroidery,
     }
 
     private Logger() {
@@ -47,6 +50,7 @@ public class Logger {
             return;
         }
         String logMessage = "[" + project.name() + "] " + message;
+        println(logMessage);
         try {
             writer.write(logMessage + "\n");
             writer.flush();

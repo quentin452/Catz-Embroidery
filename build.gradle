@@ -3,6 +3,7 @@ plugins {
     id 'application'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'edu.sc.seis.launch4j' version '3.0.6'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
 }
 
 group = 'org.example'
@@ -13,14 +14,21 @@ repositories {
     maven { url "https://maven.org/processing" }
     maven { url "https://jogamp.org/deployment/maven"}
 }
-
+javafx {
+    version = '17.0.6'
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.swing' , 'javafx.media']
+}
 dependencies {
-    implementation 'org.processing:core:4.3.2'
     implementation 'com.google.code.gson:gson:2.8.9'
     implementation 'org.jogamp.gluegen:gluegen-rt-main:2.5.0'
     implementation 'org.jogamp.jogl:jogl-all:2.5.0'
+    implementation 'javax.xml.bind:jaxb-api:2.1'
+    implementation 'com.yuvimasory:orange-extensions:1.3.0'
+
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation fileTree(dir: 'library', include: '*.jar')
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -35,6 +43,10 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 shadowJar {
     archiveFileName = 'untitled-dependencies.jar'
+    mergeServiceFiles()
+    manifest {
+        attributes 'Main-Class': 'fr.iamacat.PEmbroiderLauncher'
+    }
 }
 
 launch4j {

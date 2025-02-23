@@ -8,10 +8,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 //import processing.awt.PGraphicsJava2D;
+import fr.iamacat.utils.Logger;
+import jdk.jshell.spi.ExecutionControl;
 import processing.core.*;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static processing.controlP5.ControlP5Legacy.println;
 
 /**
  * This is a template class and can be used to start a new processing Library.
@@ -140,65 +143,66 @@ public class PEmbroiderGraphics {
 	public int FONT_ALIGN = PConstants.LEFT;
 	public int FONT_ALIGN_VERTICAL = PConstants.BASELINE;
 
-	public int maxMultiColors = 10;
+	public int maxColors = 10;
+	public boolean colorizeEmbroideryFromImage;
 
 	public boolean popyLineMulticolor;
-	
+
 	/**
 	 * Anti-alignment for rings of concentric hatching to reduce visual ridges.
 	 */
 	public float CONCENTRIC_ANTIALIGN = 0.6f;
-	
+
 	/**
 	 * Maximum turning angle (in radians) for vertices that the resampling algorithm is allowed optimize out.
 	 */
 	public float RESAMPLE_MAXTURN = 0.2f;
-	
+
 	public int OUT_OF_BOUNDS_HANDLER = ASK;
-	
+
 	boolean randomizeOffsetEvenOdd = false;
 	float randomizeOffsetPrevious = 0.0f;
-	
-	
+
+
 	/**
 	 * Add staggering to the resampling of parallel hatches, to reduce visual ridges. Recommanded range: (0,1)
 	 */
 	public float PARALLEL_RESAMPLING_OFFSET_FACTOR = 0.5f;
-	
+
 	/**
 	 * Add staggering to the resampling of satin hatches, to reduce visual ridges. Recommanded range: (0,1)
 	 */
 	public float SATIN_RESAMPLING_OFFSET_FACTOR = 0.5f;
-	
+
 	/**
 	 * Experimental resampling method for crosshatching, that tries un-align stitch placement.
 	 */
 	public boolean EXPERIMENTAL_CROSS_RESAMPLE = false;
-	
+
 	/**
 	 * Stroke density of perpendicular stroke caps / stroke joins.
 	 */
 	public float PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER = 1.0f;
-	
+
 	public float CULL_SPACING = 7;
-	
+
 	public int SATIN_MODE = ZIGZAG;
-	
+
 	/**
 	 * When drawing text, optimize the stroke order of each character individually, instead of optimizing once for the whole sentece.
 	 */
 	public boolean TEXT_OPTIMIZE_PER_CHAR = true;
-	
-	
+
+
 	static String logPrefix = "[PEmbroider] ";
-	
+
 	public PEmbroiderBooleanShapeGraphics composite;
-	
+
 	/**
 	* The constructor for PEmbroiderGraphics object.
 	*
 	* @param  _app the running PApplet instance: in Processing, just pass the keyword 'this'
-	* @param  w    width 
+	* @param  w    width
 	* @param  h    height
 	*/
 	public PEmbroiderGraphics(PApplet _app, int w, int h) {
@@ -214,7 +218,7 @@ public class PEmbroiderGraphics {
 		colors = new ArrayList<Integer>();
 		cullGroups = new ArrayList<Integer>();
 		processing.embroider.PEmbroiderHatchSatin.setGraphics(this);
-		
+
 	}
 	public PEmbroiderGraphics(PApplet _app) {
 		this(_app,_app.width,_app.height);
@@ -222,19 +226,19 @@ public class PEmbroiderGraphics {
 
 	/**
 	* Set the output file path.
-	* The filename should include the file type extension. 
-	* Supported embroidery formats are: .DST, .EXP, .JEF, .PEC, .PES, .VP3, and .XXX. 
-	* Additionally supported formats are: .PDF, .SVG, .TSV, and .GCODE. 
+	* The filename should include the file type extension.
+	* Supported embroidery formats are: .DST, .EXP, .JEF, .PEC, .PES, .VP3, and .XXX.
+	* Additionally supported formats are: .PDF, .SVG, .TSV, and .GCODE.
 	*e
 	* @param  _path output file path. The format will be automatically inferred from the extension.
 	*/
 	public void setPath(String _path) {
 		path = _path;
 	}
-	
+
 	/**
-	* Clear all current drawings. 
-	* 
+	* Clear all current drawings.
+	*
 	*/
 	public void clear() {
 		polylines.clear();
@@ -243,7 +247,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/* ======================================== STYLE SETTING ======================================== */
-	
+
 	/** Change fill color
 	 *  @param r red value, 0-255
 	 *  @param g green value, 0-255
@@ -268,7 +272,7 @@ public class PEmbroiderGraphics {
 	public void noFill() {
 		isFill = false;
 	}
-	
+
 	/** Change stroke color
 	 *  @param r red value, 0-255
 	 *  @param g green value, 0-255
@@ -279,7 +283,7 @@ public class PEmbroiderGraphics {
 		isStroke = true;
 		currentStroke = 0xFF000000 | ((r & 255) << 16) | ((g & 255) << 8) | (b & 255);
 	}
-	
+
 	/** Change stroke color
 	 *  @param gray  grayscale value 0-255
 	 */
@@ -319,7 +323,7 @@ public class PEmbroiderGraphics {
 
 	/** Modifies the location from which ellipses are drawn by changing the way in which parameters given to ellipse() are intepreted.
 	 *  also governs circle()
-	 *  
+	 *
 	 *  @param j  Same as Processing ellipseMode, this can be RADIUS, CENTER, CORNER, CORNERS etc.
 	 *  @see   rectMode
 	 */
@@ -328,7 +332,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Modifies the location from which rectangles are drawn by changing the way in which parameters given to rect() are intepreted.
-	 *  
+	 *
 	 *  @param j  Same as Processing rectMode, this can be RADIUS, CENTER, CORNER, CORNERS etc.
 	 *  @see   ellipseMode
 	 */
@@ -336,8 +340,8 @@ public class PEmbroiderGraphics {
 		RECT_MODE = mode;
 	}
 
-	/** Change number of steps bezier curve is interpolated. 
-	 *  
+	/** Change number of steps bezier curve is interpolated.
+	 *
 	 *  @param n The higher this number, the smoother the Bezier curve.
 	 */
 	public void bezierDetail(int n) {
@@ -351,43 +355,43 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Change hatching pattern
-	 *  
-	 *  @param mode  This can be one of: PARALLEL, CROSS, CONCENTRIC, SPIRAL, PERLIN, VECFIELD, DRUNK	
+	 *
+	 *  @param mode  This can be one of: PARALLEL, CROSS, CONCENTRIC, SPIRAL, PERLIN, VECFIELD, DRUNK
 	 */
 	public void hatchMode(int mode) {
 		HATCH_MODE = mode;
 	}
 
 	/** Change outline drawing method
-	 *  
-	 *  @param mode  This can be either PERPENDICULAR or TANGENT	
+	 *
+	 *  @param mode  This can be either PERPENDICULAR or TANGENT
 	 */
 	public void strokeMode(int mode) {
 		STROKE_MODE = mode;
 	}
 
 	/** Change outline drawing method
-	 *  
-	 *  @param mode     This can be either PERPENDICULAR or TANGENT	
+	 *
+	 *  @param mode     This can be either PERPENDICULAR or TANGENT
 	 *  @param tanMode  This can be one of COUNT (stroke weight used as line count), WEIGHT (honour stroke weight setting over spacing) or SPACING (honour spacing over stroke weight)
 	 */
 	public void strokeMode(int mode, int tanMode) {
 		STROKE_MODE = mode;
 		STROKE_TANGENT_MODE = tanMode;
 	}
-	
+
 
 	/** Set the position of the stroke, relative to the shape's edge
-	 *  
-	 *  @param x     Float between -1.0 (inside) and 1.0 (outside). 0.0 is centered.	
+	 *
+	 *  @param x     Float between -1.0 (inside) and 1.0 (outside). 0.0 is centered.
 	 */
 	public void strokeLocation(float x) {
 		STROKE_LOCATION = PApplet.min(PApplet.max(-1,x),1);
 	}
-	
+
 	/** Set the position of the stroke, relative to the shape's edge
-	 *  
-	 *  @param x     This can be one of CENTER, INSIDE, or OUTSIDE 	
+	 *
+	 *  @param x     This can be one of CENTER, INSIDE, or OUTSIDE
 	 */
 	public void strokeLocation(int mode) {
 		if (mode == CENTER) {
@@ -396,9 +400,9 @@ public class PEmbroiderGraphics {
 			strokeLocation((float)mode);
 		}
 	}
-	
+
 	/** Change angle of parallel hatch lines
-	 *  
+	 *
 	 *  @param ang     the angle from +x in radians
 	 *  @see   hatchAngleDeg
 	 *  @see   hatchAngles
@@ -413,7 +417,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Change angles of parallel and cross hatching lines
-	 *  
+	 *
 	 *  @param ang1     the angle from +x in radians (for parallel hatches and the first direction of cross hatching)
 	 *  @param ang2     the angle from +x in radians (for second direction of cross hatching)
 	 *  @see   hatchAngle
@@ -430,7 +434,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Change angle of parallel hatch lines
-	 *  
+	 *
 	 *  @param ang     the angle from +x in degrees
 	 *  @see   hatchAngle
 	 *  @see   hatchAnglesDeg
@@ -445,7 +449,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Change angles of parallel and cross hatching lines
-	 *  
+	 *
 	 *  @param ang1     the angle from +x in degrees (for parallel hatches and the first direction of cross hatching)
 	 *  @param ang2     the angle from +x in degrees (for second direction of cross hatching)
 	 *  @see   hatchAngles
@@ -459,7 +463,7 @@ public class PEmbroiderGraphics {
 		AUTO_HATCH_ANGLE = false;
 		hatchAngles(PApplet.radians(ang1),PApplet.radians(ang2));
 	}
-	
+
 	/** Sets the orientation of the stitches within a stroke
 	 *  @param ang     the angle (in radians)
 	 */
@@ -468,24 +472,24 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Sets the orientation of the stitches within a stroke
-	 *  @param ang     the angle (in degrees) 
+	 *  @param ang     the angle (in degrees)
 	 */
 	public void strokeAngleDeg(float ang) {
 		STROKE_ANGLE=PApplet.radians(ang);
 	}
-	
+
 	/** Changes the spacing between hatching lines: a.k.a sparsity or inverse-density
-	 *  
+	 *
 	 *  @param d   the spacing in pixels
 	 *  @see       strokeSpacing
 	 */
-	
+
 	public void hatchSpacing(float d) {
 		HATCH_SPACING = Math.max(0.1f,d);
 	}
 
 	/** Changes the spacing between stroke lines: a.k.a sparsity or inverse-density
-	 *  
+	 *
 	 *  @param d   the spacing in pixels
 	 *  @see       hatchSpacing
 	 */
@@ -495,7 +499,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Changes the scaling for perlin noise hatching
-	 *  
+	 *
 	 *  @param s   the scale
 	 */
 	public void hatchScale(float s) {
@@ -503,7 +507,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Switches the algorithms used to compute the drawing
-	 *  
+	 *
 	 *  @param mode   one of ADAPTIVE (use most appropriate method for each situation according to Lingdong) FORCE_VECTOR (uses vector math whenever possible) FORCE_RASTER (first render shapes as raster and re-extract the structures, generally more robust)
 	 */
 	public void hatchBackend(int mode) {
@@ -511,7 +515,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Set the vector field used for vector field hatching
-	 *  
+	 *
 	 *  @param vf a vector field defination -- simple, just a class with a get(x,y) method
 	 */
 	public void setVecField(VectorField vf) {
@@ -519,7 +523,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Set the desirable stitch length. Stitches will try their best to be around this length, but actual length will vary slightly for best result
-	 *  
+	 *
 	 *  @param x the desirable stitch length
 	 *  @see minSitchLength
 	 *  @see setStitch
@@ -529,7 +533,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Set the minimum stitch length. Drawings with higher precision than this will be resampled down to have at least this stitch length
-	 *  
+	 *
 	 *  @param x the minimum stitch length
 	 *  @see stichLength
 	 *  @see setStitch
@@ -539,7 +543,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Set stitch properties
-	 *  
+	 *
 	 *  @param msl minimum stitch length
 	 *  @param sl  desirable stitch length
 	 *  @param rn  resample noise -- to avoid alignment patterns; must be in the range [0...1]
@@ -551,7 +555,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Set render order: render strokes over fill, or other way around?
-	 *  
+	 *
 	 *  @param mode  This can either be STROKE_OVER_FILL or FILL_OVER_STROKE
 	 */
 	public void setRenderOrder(int mode) {
@@ -563,7 +567,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Turn resampling on and off. For embroidery machines, you might want it; for plotters you probably won't need it.
-	 *  
+	 *
 	 *  @param b   true for on, false for off
 	 */
 	public void toggleResample(boolean b) {
@@ -572,35 +576,35 @@ public class PEmbroiderGraphics {
 	public void toggleConnectingLines(boolean b) {
 		NO_CONNECT = !b;
 	}
-	
+
 	/** Sets whether SPIRAL hatching proceeds clockwise or counterclockwise
-	 *  
+	 *
 	 *  @param mode   This can be CLOCKWISE or COUNTERCLOCKWISE. CW and CCW are also permissible.
 	 */
 	public void setSpiralDirection(int mode) {
 		HATCH_SPIRAL_DIRECTION = mode;
 	}
-	
+
 	/** Sets the file exporting behavior if a stitch was placed out of bounds.
-	 *  
+	 *
 	 *  @param mode   This can be one of WARN, CROP, IGNORE, ASK, or ABORT
 	 */
 	public void setOutOfBoundsHandler(int mode) {
 		OUT_OF_BOUNDS_HANDLER = mode;
 	}
 
-	/** Sets how the SATIN hatching mode operates. 
-	 *  
+	/** Sets how the SATIN hatching mode operates.
+	 *
 	 *  @param mode   This can be one of ZIGZAG, SIGSAG, or BOUSTROPHEDON
 	 */
 	public void satinMode(int mode) {
 		SATIN_MODE = mode;
 	}
-	
+
 	/* ======================================== MATH ======================================== */
-	
+
 	/** Compute the determinant of a 3x3 matrix as 3 row vectors.
-	 *  
+	 *
 	 *  @param r1 row 1
 	 *  @param r2 row 2
 	 *  @param r3 row 3
@@ -615,7 +619,7 @@ public class PEmbroiderGraphics {
 
 	/** Intersect two segments in 3D, returns lerp params instead of actual points, because the latter can cheaply be derived from the former; more expensive the other way around.
 	 *  Also works for 2D.
-	 *  
+	 *
 	 *  @param p0 first endpoint of first segment
 	 *  @param p1 second endpoint of first segment
 	 *  @param q0 first endpoint of second segment
@@ -645,7 +649,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Averages a bunch of points
-	 *  
+	 *
 	 *  @param poly a bunch of points
 	 *  @return a vector holding the average value
 	 */
@@ -660,7 +664,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Averages a bunch of bunches of points
-	 *  
+	 *
 	 *  @param poly a bunch of bunches of points
 	 *  @param whatever literally pass in whatever. It is necessary because of type erasure in Java, which basically means Java cannot tell the difference between List<T> and List<List<T>> in arguments, so a difference in number of arguments is required for overloading to work
 	 *  @return a vector holding the average value
@@ -678,7 +682,7 @@ public class PEmbroiderGraphics {
 	}
 
 	/** Class for a bounding box
-	 * 
+	 *
 	 */
 	public class BBox{
 		public float x;
@@ -687,7 +691,7 @@ public class PEmbroiderGraphics {
 		public float h;
 
 		/** Constructor that makes a bounding box from top left corner and dimensions
-		 *  
+		 *
 		 *  @param _x left
 		 *  @param _y top
 		 *  @param _w width
@@ -701,7 +705,7 @@ public class PEmbroiderGraphics {
 		}
 
 		/** Constructor that makes a bounding box from top left corner and bottom right corner
-		 *  
+		 *
 		 *  @param p top left corner
 		 *  @param p bottom right corner
 		 */
@@ -713,7 +717,7 @@ public class PEmbroiderGraphics {
 		}
 
 		/** Constructor that makes a bounding box from a bunch of points
-		 *  
+		 *
 		 *  @param poly a bunch of points
 		 */
 		public BBox(ArrayList<PVector> poly) {
@@ -734,7 +738,7 @@ public class PEmbroiderGraphics {
 			h = ymax-ymin;
 		}
 		/** Constructor that makes a bounding box from a bunch of bunches of points
-		 *  
+		 *
 		 *  @param polys a bunch of bunches of points
 		 *  @param whatever literally pass in whatever. It is necessary because of type erasure in Java, which basically means Java cannot tell the difference between List<T> and List<List<T>> in arguments, so a difference in number of arguments is required for overloading to work
 		 */
@@ -761,14 +765,14 @@ public class PEmbroiderGraphics {
 	/** Class for a bounding circle.
 	 * The bounding circle is not the minimal bounding circle for now. It's just some bounding circle.
 	 * It works well enough for current use cases, but we might implement minimal bounding circle in the future
-	 * 
+	 *
 	 */
 	public class BCircle {
 		public float x;
 		public float y;
 		public float r;
 		/** Constructor that makes a bounding circle from center and radius
-		 *  
+		 *
 		 *  @param _x x coordinate of center
 		 *  @param _y y coordinate of center
 		 *  @param _r radius
@@ -779,7 +783,7 @@ public class PEmbroiderGraphics {
 			r = _r;
 		}
 		/** Constructor that makes a bounding circle from a bunch of points
-		 *  
+		 *
 		 *  @param poly a bunch of points
 		 */
 		public BCircle(ArrayList<PVector> poly) {
@@ -793,7 +797,7 @@ public class PEmbroiderGraphics {
 			r = rmax;
 		}
 		/** Constructor that makes a bounding circle from a bunch of bunches of points
-		 *  
+		 *
 		 *  @param polys a bunch of bunches of points
 		 *  @param whatever literally pass in whatever. It is necessary because of type erasure in Java, which basically means Java cannot tell the difference between List<T> and List<List<T>> in arguments, so a difference in number of arguments is required for overloading to work
 		 */
@@ -810,9 +814,9 @@ public class PEmbroiderGraphics {
 			r = rmax;
 		}
 	}
-	
+
 	/** Find intersection between a segment and a polygon. Intersections returned are sorted from one endpoint of the segment to the other endpoint
-	 *  
+	 *
 	 *  @param p0   first endpoint of first segment
 	 *  @param p1   second endpoint of first segment
 	 *  @param poly the polygon
@@ -845,9 +849,9 @@ public class PEmbroiderGraphics {
 		}
 		return isects;
 	}
-	
+
 	/** Find intersection between a segment and several polygons. Intersections returned are sorted from one endpoint of the segment to the other endpoint
-	 *  
+	 *
 	 *  @param p0   first endpoint of first segment
 	 *  @param p1   second endpoint of first segment
 	 *  @param poly several polygons
@@ -882,7 +886,7 @@ public class PEmbroiderGraphics {
 		return isects;
 	}
 	/** Check if a point is inside a polygon.
-	 *  
+	 *
 	 *  @param p the point in question
 	 *  @param poly the polygon
 	 *  @param trials try a couple times to be sure, otherwise we might encounter degenerate cases
@@ -906,7 +910,7 @@ public class PEmbroiderGraphics {
 	}
 	/** Check if a point is inside a polygon.
 	 *  Dumbed down version of pointinPolygon(3) where I pick the number of trials for you
-	 *  
+	 *
 	 *  @param p the point in question
 	 *  @param poly the polygon
 	 *  @return true means inside, false means outside
@@ -915,7 +919,7 @@ public class PEmbroiderGraphics {
 		return pointInPolygon(p,poly,3);
 	}
 	/** Generate a random point that is inside a polygon
-	 *  
+	 *
 	 *  @param poly the polygon
 	 *  @param trials number of times we try before giving up
 	 *  @return either null or a point inside the polygon. If it is null, it either means the polygon has zero or almost zero area, or that the number of trials specified is not large enough to find one
@@ -939,7 +943,7 @@ public class PEmbroiderGraphics {
 	}
 	/** Generate a random point that is inside a polygon
 	 *  Dumbed down version of randomPointInPolygon(2) where I pick the number of trials for you
-	 *  
+	 *
 	 *  @param poly the polygon
 	 *  @return either null or a point inside the polygon. If it is null, it either means the polygon has zero or almost zero area, or that the default number of trials is not large enough to find one
 	 */
@@ -947,19 +951,19 @@ public class PEmbroiderGraphics {
 		return randomPointInPolygon(poly,9999);
 	}
 
-	
+
 	//---------------------------------
 	// Calculate the orientation angle of the shape
 	// by Golan
 	float calcPolygonTilt (ArrayList<PVector> poly) {
-		
+
 	  // lingdong's hack agianst NaN's
 	  ArrayList<PVector> pts = new ArrayList<PVector>();
 	  for (int i = 0; i < poly.size(); i++) {
 		  pts.add(poly.get(i).copy().add(new PVector(app.random(-0.5f,0.5f),app.random(-0.5f,0.5f))));
 	  }
 	  // end lingdong's hack
-	  
+
 	  PVector centroidPoint = centerpoint(pts);
 	  float orientation  = 0.0f; // The angle of the shape's orientation, in radians
 
@@ -974,11 +978,11 @@ public class PEmbroiderGraphics {
 
 	      // first we look at all the pixels, determine which ones contribute mass (the black ones),
 	      // and accumulate the sums for the tensor matrix
-	      float dX, dY; 
+	      float dX, dY;
 	      float XXsum, YYsum, XYsum;
-	      XXsum = 0; 
-	      YYsum = 0; 
-	      XYsum = 0; 
+	      XXsum = 0;
+	      YYsum = 0;
+	      XYsum = 0;
 
 	      for (int j=0; j<nPoints; j++) {
 	        PVector pt = (PVector) pts.get(j);
@@ -989,8 +993,8 @@ public class PEmbroiderGraphics {
 	        XYsum += dX * dY;
 	      }
 
-	      // here's the tensor matrix. 
-	      // watch out for memory leaks. 
+	      // here's the tensor matrix.
+	      // watch out for memory leaks.
 	      float matrix2x2[][] = new float[2][2];
 	      matrix2x2[0][0] =  YYsum;
 	      matrix2x2[0][1] = -XYsum;
@@ -1012,12 +1016,12 @@ public class PEmbroiderGraphics {
 	float[] calcEigenvector ( float[][] matrix ) {
 
 	  //this function takes a 2x2 matrix, and returns a pair of angles which are the eigenvectors
-	  float A = matrix[0][0]; 
+	  float A = matrix[0][0];
 	  float B = matrix[0][1];
 	  float C = matrix[1][0];
 	  float D = matrix[1][1];
 
-	  float multiPartData[] = new float[2]; // watch out for memory leaks. 
+	  float multiPartData[] = new float[2]; // watch out for memory leaks.
 
 	  // because we assume a 2x2 matrix,
 	  // we can solve explicitly for the eigenValues using the Quadratic formula.
@@ -1031,7 +1035,7 @@ public class PEmbroiderGraphics {
 	    root1 = ((0.0f - b) + PApplet.sqrt ( Q)) / (2.0f * a);
 	    root2 = ((0.0f - b) - PApplet.sqrt ( Q)) / (2.0f * a);
 
-	    // assume x1 and x2 are the elements of the eigenvector.  Then, because Ax1 + Bx2 = lambda * x1, 
+	    // assume x1 and x2 are the elements of the eigenvector.  Then, because Ax1 + Bx2 = lambda * x1,
 	    // we know that x2 = x1 * (lambda - A) / B.
 	    float factor2 = ( PApplet.min (root1, root2) - A) / B;
 
@@ -1093,13 +1097,13 @@ public class PEmbroiderGraphics {
 		if (popyLineMulticolor) {
 			// Créer une liste des couleurs avant la boucle
 			ArrayList<Integer> generatedColors = new ArrayList<>();
-			for (int i = 0; i < Math.min(poly2.size() - 1, maxMultiColors); i++) {
+			for (int i = 0; i < Math.min(poly2.size() - 1, maxColors); i++) {
 				int randomColor = (int) app.color(app.random(255), app.random(255), app.random(255));
 				generatedColors.add(randomColor);
 			}
 
 			// Assigner les couleurs générées aux segments de poly2
-			for (int i = 0; i < Math.min(poly2.size() - 1, maxMultiColors); i++) {
+			for (int i = 0; i < Math.min(poly2.size() - 1, maxColors); i++) {
 				colors.add(generatedColors.get(i));  // Utiliser la couleur générée pour chaque segment
 			}
 
@@ -1107,6 +1111,8 @@ public class PEmbroiderGraphics {
 			for (int i = generatedColors.size(); i < poly2.size() - 1; i++) {
 				colors.add(generatedColors.get(generatedColors.size() - 1)); // Dernière couleur
 			}
+		} else if(colorizeEmbroideryFromImage) {
+			Logger.getInstance().log(Logger.Project.Embroidery,"the \"colorizeEmbroideryFromImage\" function isn't implemented");
 		} else {
 			colors.add(color);
 		}
