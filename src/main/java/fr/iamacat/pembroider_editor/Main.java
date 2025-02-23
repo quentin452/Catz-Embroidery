@@ -1,9 +1,6 @@
 package fr.iamacat.pembroider_editor;
 
-import fr.iamacat.utils.ApplicationUtil;
-import fr.iamacat.utils.Logger;
-import fr.iamacat.utils.Translatable;
-import fr.iamacat.utils.Translator;
+import fr.iamacat.utils.*;
 import processing.awt.PSurfaceAWT;
 import processing.core.PApplet;
 import processing.core.PGraphics;
@@ -12,6 +9,7 @@ import processing.embroider.PEmbroiderGraphics;
 import processing.event.MouseEvent;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Objects;
@@ -796,99 +794,30 @@ public class Main extends PApplet implements Translatable {
         return copy;
     }
     private void showSavingDialog() {
-        String[] options = {
-                Translator.getInstance().translate("save_locally"),
-                Translator.getInstance().translate("save_to_dropbox"),
-                Translator.getInstance().translate("cancel")
-        };
-
-        int option = JOptionPane.showOptionDialog(
-                (java.awt.Component) this.getSurface().getNative(),
-                Translator.getInstance().translate("save_sentence_1"),
-                Translator.getInstance().translate("confirm_saving"),
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.WARNING_MESSAGE,
-                null,
-                options,
-                options[0]
+        DialogUtil.showSavingDialog(
+                (Component) this.getSurface().getNative(), // Composant parent
+                (dropboxClient != null), // Vérifier si Dropbox est disponible
+                this::saveFile, // Action de sauvegarde locale
+                selectedFile -> { // Action de sauvegarde sur Dropbox
+                    saveFile(selectedFile);
+                    uploadToDropbox(selectedFile);
+                }
         );
-
-        if (option == 0) {
-            saveFile();
-        } else if (option == 1 && dropboxClient != null) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Select a file to upload to Dropbox");
-            int result = fileChooser.showOpenDialog(null);
-            if (result == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-                saveFile(selectedFile);
-                uploadToDropbox(selectedFile);
-            } else {
-                JOptionPane.showMessageDialog(null, "No file selected.");
-            }
-        } else {
-            isDialogOpen = false;
-        }
     }
 
+
     private void showExitDialog() {
-        if (!enableEscapeMenu) {
-            ApplicationUtil.exitApplication(this);
-            return;
-        }
-
-        String[] options = {
-                Translator.getInstance().translate("save_and_quit"),
-                Translator.getInstance().translate("exit_without_save"),
-                Translator.getInstance().translate("cancel")
-        };
-        if (dropboxClient != null) {
-            options = new String[] {
-                    Translator.getInstance().translate("save_and_quit"),
-                    Translator.getInstance().translate("save_to_dropbox"),
-                    Translator.getInstance().translate("exit_without_save"),
-                    Translator.getInstance().translate("cancel")
-            };
-        }
-
-        int option = JOptionPane.showOptionDialog(
-                (java.awt.Component) this.getSurface().getNative(),
-                Translator.getInstance().translate("save_sentence_1"),
-                Translator.getInstance().translate("confirm_closing"),
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.WARNING_MESSAGE,
-                null,
-                options,
-                options[0]
+        DialogUtil.showExitDialog(
+                (Component) this.getSurface().getNative(),
+                enableEscapeMenu,
+                (dropboxClient != null),
+                this::saveFileAndExit,
+                selectedFile -> {
+                    saveFile(selectedFile);
+                    uploadToDropbox(selectedFile);
+                },
+                () -> ApplicationUtil.exitApplication(this)
         );
-
-        int quitOption = 1;
-        if (dropboxClient != null) {
-            quitOption = 2;
-        }
-        int dropboxSaveOption = 2;
-        if (dropboxClient != null) {
-            dropboxSaveOption = 1;
-        }
-        if (option == 0) {
-            saveFileAndExit();
-        } else if (option == quitOption) {
-            ApplicationUtil.exitApplication(this);
-        } else if (option == dropboxSaveOption && dropboxClient != null) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Select a file to upload to Dropbox");
-            int result = fileChooser.showOpenDialog(null);
-            if (result == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-                saveFile(selectedFile);
-                uploadToDropbox(selectedFile);
-            } else {
-                JOptionPane.showMessageDialog(null, "No file selected.");
-            }
-        } else {
-            isDialogOpen = false;
-        }
-
     }
 
     private void saveFileAndExit() {
