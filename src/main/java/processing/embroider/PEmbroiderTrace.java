@@ -331,11 +331,10 @@ public class PEmbroiderTrace {
 
 					contours.get(contours.size()-1).add(new PVector(j4,i4));
 
-					if (F[i3*w+j3+1] == 0){
-						F[i3*w+j3] = -nbd;
-
-					}else if (F[i3*w+j3] == 1){
-						F[i3*w+j3] = nbd;
+					if (j3 + 1 < w && F[i3 * w + j3 + 1] == 0) {
+						F[i3 * w + j3] = -nbd;
+					} else if (F[i3 * w + j3] == 1) {
+						F[i3 * w + j3] = nbd;
 					}
 
 					if (i4 == i && j4 == j && i3 == i1 && j3 == j1){
