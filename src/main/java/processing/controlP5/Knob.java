@@ -268,11 +268,13 @@ public class Knob extends Controller< Knob > {
 		return this;
 	}
 
-	protected void onEnter( ) {
+	@Override
+    protected void onEnter( ) {
 		isActive = true;
 	}
 
-	protected void onLeave( ) {
+	@Override
+    protected void onLeave( ) {
 		isActive = false;
 	}
 

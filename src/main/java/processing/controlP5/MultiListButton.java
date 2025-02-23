@@ -114,7 +114,8 @@ public class MultiListButton extends Button implements MultiListInterface {
 	 * 
 	 * @param theWidth int
 	 */
-	public MultiListButton setWidth( int theWidth ) {
+	@Override
+    public MultiListButton setWidth(int theWidth ) {
 		// negative direction
 		int dif = ( _myDirection == LEFT ) ? theWidth - getWidth( ) : 0;
 		super.setWidth( theWidth );
@@ -127,7 +128,8 @@ public class MultiListButton extends Button implements MultiListInterface {
 	 * 
 	 * @param theHeight int
 	 */
-	public MultiListButton setHeight( int theHeight ) {
+	@Override
+    public MultiListButton setHeight(int theHeight ) {
 		int difHeight = getHeight( );
 		super.setHeight( theHeight );
 		difHeight = getHeight( ) - difHeight;
@@ -171,7 +173,8 @@ public class MultiListButton extends Button implements MultiListInterface {
 		return b;
 	}
 
-	protected void onEnter( ) {
+	@Override
+    protected void onEnter( ) {
 		if ( !root.isUpdateLocation ) {
 			isActive = true;
 			root.occupied( true );
@@ -183,7 +186,8 @@ public class MultiListButton extends Button implements MultiListInterface {
 		}
 	}
 
-	protected void onLeave( ) {
+	@Override
+    protected void onLeave( ) {
 		if ( parent instanceof MultiListInterface ) {
 			if ( ! ( ( MultiListInterface ) parent ).observe( ) && !root.isUpdateLocation && root.mostRecent == this ) {
 				isActive = false;
@@ -192,7 +196,8 @@ public class MultiListButton extends Button implements MultiListInterface {
 		}
 	}
 
-	public void mouseReleasedOutside( ) {
+	@Override
+    public void mouseReleasedOutside( ) {
 		// !!! other than in the Button class, calling mouseReleased here
 		// conflicts with mouseReleased();
 	}

@@ -65,25 +65,29 @@ public class Toggle extends Controller< Toggle > {
 	 * 
 	 * @param theApplet PApplet
 	 */
-	@ControlP5.Invisible public void draw( PGraphics theGraphics ) {
+	@Override
+    @ControlP5.Invisible public void draw(PGraphics theGraphics ) {
 		theGraphics.pushMatrix( );
 		theGraphics.translate( x( position ) , y( position ) );
 		_myControllerView.display( theGraphics , this );
 		theGraphics.popMatrix( );
 	}
 
-	protected void onEnter( ) {
+	@Override
+    protected void onEnter( ) {
 		isActive = true;
 	}
 
-	protected void onLeave( ) {
+	@Override
+    protected void onLeave( ) {
 		isActive = false;
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	@ControlP5.Invisible public void mousePressed( ) {
+	@Override
+    @ControlP5.Invisible public void mousePressed( ) {
 		setState( !isOn );
 		isActive = false;
 	}

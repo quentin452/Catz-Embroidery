@@ -200,7 +200,8 @@ public class Icon extends Controller< Icon > {
 		return this;
 	}
 
-	public Icon setFont( PFont thePFont ) {
+	@Override
+    public Icon setFont(PFont thePFont ) {
 		_myCaptionLabel.setFont( thePFont );
 		return this;
 	}

@@ -448,7 +448,8 @@ public class ListBox extends Controller< ListBox > implements ControlListener {
 
 	}
 
-	public void keyEvent( KeyEvent theKeyEvent ) {
+	@Override
+    public void keyEvent(KeyEvent theKeyEvent ) {
 		if ( isInside && theKeyEvent.getAction( ) == KeyEvent.PRESS ) {
 			switch ( theKeyEvent.getKeyCode( ) ) {
 			case ( ControlP5.UP ):

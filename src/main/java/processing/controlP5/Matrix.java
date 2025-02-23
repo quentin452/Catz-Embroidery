@@ -117,7 +117,8 @@ public class Matrix extends Controller< Matrix > {
 		return _myInterval;
 	}
 
-	@ControlP5.Invisible public Matrix updateInternalEvents( PApplet theApplet ) {
+	@Override
+    @ControlP5.Invisible public Matrix updateInternalEvents(PApplet theApplet ) {
 		setIsInside( inside( ) );
 
 		if ( getIsInside( ) ) {
@@ -155,26 +156,31 @@ public class Matrix extends Controller< Matrix > {
 		return this;
 	}
 
-	protected void onEnter( ) {
+	@Override
+    protected void onEnter( ) {
 		isActive = true;
 	}
 
-	protected void onLeave( ) {
+	@Override
+    protected void onLeave( ) {
 		isActive = false;
 	}
 
-	@ControlP5.Invisible public void mousePressed( ) {
+	@Override
+    @ControlP5.Invisible public void mousePressed( ) {
 		isActive = getIsInside( );
 		if ( getIsInside( ) ) {
 			isPressed = true;
 		}
 	}
 
-	protected void mouseReleasedOutside( ) {
+	@Override
+    protected void mouseReleasedOutside( ) {
 		mouseReleased( );
 	}
 
-	@ControlP5.Invisible public void mouseReleased( ) {
+	@Override
+    @ControlP5.Invisible public void mouseReleased( ) {
 		if ( isActive ) {
 			isActive = false;
 		}
@@ -251,12 +257,14 @@ public class Matrix extends Controller< Matrix > {
 		return this;
 	}
 
-	public Matrix plugTo( Object theObject ) {
+	@Override
+    public Matrix plugTo(Object theObject ) {
 		_myPlug = theObject;
 		return this;
 	}
 
-	public Matrix plugTo( Object theObject , String thePlugName ) {
+	@Override
+    public Matrix plugTo(Object theObject , String thePlugName ) {
 		_myPlug = theObject;
 		_myPlugName = thePlugName;
 		return this;

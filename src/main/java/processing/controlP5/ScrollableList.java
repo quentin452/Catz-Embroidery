@@ -165,7 +165,8 @@ public class ScrollableList extends Controller< ScrollableList > implements Cont
 
 	}
 
-	public ScrollableList setValue( float theValue ) {
+	@Override
+    public ScrollableList setValue(float theValue ) {
 		updateIndex( ( int ) ( theValue ) );
 		return this;
 	}
@@ -458,7 +459,8 @@ public class ScrollableList extends Controller< ScrollableList > implements Cont
 
 	}
 
-	public void keyEvent( KeyEvent theKeyEvent ) {
+	@Override
+    public void keyEvent(KeyEvent theKeyEvent ) {
 		if ( isInside && theKeyEvent.getAction( ) == KeyEvent.PRESS ) {
 			switch ( theKeyEvent.getKeyCode( ) ) {
 			case ( ControlP5.UP ):

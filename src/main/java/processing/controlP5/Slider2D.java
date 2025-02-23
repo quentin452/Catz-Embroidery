@@ -73,7 +73,8 @@ public class Slider2D extends Controller< Slider2D > {
 	/* (non-Javadoc)
 	 * 
 	 * @see controlP5.Controller#updateInternalEvents(processing.core.PApplet) */
-	@ControlP5.Invisible public Slider2D updateInternalEvents( PApplet theApplet ) {
+	@Override
+    @ControlP5.Invisible public Slider2D updateInternalEvents(PApplet theApplet ) {
 		if ( isInside( ) ) {
 			if ( !cp5.isAltDown( ) ) {
 				float tX = PApplet.constrain( _myControlWindow.mouseX - ( x( _myParent.getAbsolutePosition( ) ) + x( position ) ) , 0 , getWidth( ) - cursorWidth );
@@ -198,7 +199,8 @@ public class Slider2D extends Controller< Slider2D > {
 		return updateValue( );
 	}
 
-	public float[] getArrayValue( ) {
+	@Override
+    public float[] getArrayValue( ) {
 		return _myArrayValue;
 	}
 
@@ -213,7 +215,8 @@ public class Slider2D extends Controller< Slider2D > {
 	/* (non-Javadoc)
 	 * 
 	 * @see controlP5.Controller#setValue(float) */
-	public Slider2D setValue( float theValue ) {
+	@Override
+    public Slider2D setValue(float theValue ) {
 		_myArrayValue[ 0 ] = cursorX / ( ( float ) ( getWidth( ) - cursorWidth ) / ( float ) getWidth( ) );
 		_myArrayValue[ 1 ] = cursorY / ( ( float ) ( getHeight( ) - cursorHeight ) / ( float ) getHeight( ) );
 		_myArrayValue[ 0 ] = PApplet.map( _myArrayValue[ 0 ] , 0 , getWidth( ) , _myMinX , _myMaxX );

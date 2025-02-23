@@ -98,7 +98,7 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	protected boolean isMoveable = true;
 	protected boolean isBroadcast = true;
 	protected boolean isVisible = true;
-	protected boolean isActive = false;
+	public boolean isActive = false;
 	protected boolean isLock = false;
 	protected boolean isUserInteraction = true;
 	protected boolean isInit = false;
@@ -191,7 +191,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * {@inheritDoc}
 	 */
-	@ControlP5.Layout public String getAddress( ) {
+	@Override
+    @ControlP5.Layout public String getAddress( ) {
 		return _myAddress;
 	}
 
@@ -211,7 +212,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 		set( position , theX , theY );
 	}
 
-	@ControlP5.Invisible public void init( ) {
+	@Override
+    @ControlP5.Invisible public void init( ) {
 
 		_myDefaultValue = _myValue;
 
@@ -392,7 +394,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * get the position of a controller. e.g. Controller.getPosition().x; {@inheritDoc}
 	 */
-	@ControlP5.Layout public float[] getPosition( ) {
+	@Override
+    @ControlP5.Layout public float[] getPosition( ) {
 		return position;
 	}
 
@@ -418,7 +421,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 		return me;
 	}
 
-	public float[] getAbsolutePosition( ) {
+	@Override
+    public float[] getAbsolutePosition( ) {
 		return absolutePosition;
 	}
 
@@ -437,7 +441,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * {@inheritDoc}
 	 */
-	@ControlP5.Invisible public T updateAbsolutePosition( ) {
+	@Override
+    @ControlP5.Invisible public T updateAbsolutePosition( ) {
 		return me;
 	}
 
@@ -447,7 +452,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @exclude
 	 */
-	@ControlP5.Invisible public final void continuousUpdateEvents( ) {
+	@Override
+    @ControlP5.Invisible public final void continuousUpdateEvents( ) {
 		if ( isBehavior ) {
 			if ( _myBehavior.isActive( ) && !isMousePressed ) {
 				_myBehavior.update( );
@@ -458,7 +464,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * updateEvents is used for internal updates of a controller. this method is final and can't be overwritten.
 	 */
-	@ControlP5.Invisible public final T updateEvents( ) {
+	@Override
+    @ControlP5.Invisible public final T updateEvents( ) {
 		if ( isInside ) {
 			boolean moved = ( ( _myControlWindow.mouseX - _myControlWindow.pmouseX ) != 0 || ( _myControlWindow.mouseY - _myControlWindow.pmouseY ) != 0 );
 			if ( isMousePressed ) {
@@ -536,49 +543,60 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	public Pointer getPointer( ) {
 		return new Pointer( ) {
 
-			public int x( ) {
+			@Override
+            public int x( ) {
 				return ( int ) ( _myControlWindow.mouseX - Controller.x( _myParent.getAbsolutePosition( ) ) - Controller.x( position ) );
 			}
 
-			public int y( ) {
+			@Override
+            public int y( ) {
 				return ( int ) ( _myControlWindow.mouseY - Controller.y( _myParent.getAbsolutePosition( ) ) - Controller.y( position ) );
 			}
 
-			public int px( ) {
+			@Override
+            public int px( ) {
 				return ( int ) ( _myControlWindow.pmouseX - Controller.x( _myParent.getAbsolutePosition( ) ) - Controller.x( position ) );
 			}
 
-			public int py( ) {
+			@Override
+            public int py( ) {
 				return ( int ) ( _myControlWindow.pmouseY - Controller.y( _myParent.getAbsolutePosition( ) ) - Controller.y( position ) );
 			}
 
-			public int dx( ) {
+			@Override
+            public int dx( ) {
 				return x( ) - px( );
 			}
 
-			public int dy( ) {
+			@Override
+            public int dy( ) {
 				return y( ) - py( );
 			}
 
-			public long pt( ) {
+			@Override
+            public long pt( ) {
 				return _myControlWindow.pmousePressedTime;
 			}
 
-			public long dt( ) {
+			@Override
+            public long dt( ) {
 				return _myControlWindow.mousePressedTime - _myControlWindow.pmousePressedTime;
 			}
 
-			public long t( ) {
+			@Override
+            public long t( ) {
 				return _myControlWindow.mousePressedTime;
 			}
 
-			public String toString( ) {
+			@Override
+            public String toString( ) {
 				return String.format( "{ x: %d y: %d px: %d py: %d dx: %d dy: %d}" , x( ) , y( ) , px( ) , py( ) , dx( ) , dy( ) );
 			}
 		};
 	}
 
-	@ControlP5.Invisible public final boolean setMousePressed( final boolean theStatus ) {
+	@Override
+    @ControlP5.Invisible public final boolean setMousePressed(final boolean theStatus ) {
 		if ( !isVisible && !isUserInteraction ) {
 			return false;
 		}
@@ -675,11 +693,13 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return boolean
 	 */
-	public boolean isMouseOver( ) {
+	@Override
+    public boolean isMouseOver( ) {
 		return mouseover;
 	}
 
-	public T setMouseOver( boolean theFlag ) {
+	@Override
+    public T setMouseOver(boolean theFlag ) {
 		if ( mouseover == theFlag ) {
 			return me;
 		}
@@ -700,7 +720,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * @see ControllerInterface.updateInternalEvents
 	 */
-	@ControlP5.Invisible public T updateInternalEvents( final PApplet theApplet ) {
+	@Override
+    @ControlP5.Invisible public T updateInternalEvents(final PApplet theApplet ) {
 		return me;
 	}
 
@@ -729,7 +750,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theElement ControllerInterface
 	 * @return Controller
 	 */
-	@ControlP5.Invisible public T add( final ControllerInterface< ? > theElement ) {
+	@Override
+    @ControlP5.Invisible public T add(final ControllerInterface< ? > theElement ) {
 		ControlP5.logger( ).warning( " add() not supported." );
 		return me;
 	}
@@ -738,7 +760,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theElement ControllerInterface
 	 * @return Controller
 	 */
-	@ControlP5.Invisible public T remove( final ControllerInterface< ? > theElement ) {
+	@Override
+    @ControlP5.Invisible public T remove(final ControllerInterface< ? > theElement ) {
 		ControlP5.logger( ).warning( "remove() not supported." );
 		return me;
 	}
@@ -746,7 +769,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * removes a controller from controlP5.
 	 */
-	public void remove( ) {
+	@Override
+    public void remove( ) {
 		_myControlWindow.removeMouseOverFor( this );
 		if ( _myParent != null ) {
 			_myParent.remove( this );
@@ -782,7 +806,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return String
 	 */
-	public String getName( ) {
+	@Override
+    public String getName( ) {
 		return _myName;
 	}
 
@@ -873,7 +898,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * {@inheritDoc}
 	 */
-	public final T moveTo( final ControllerGroup< ? > theGroup , final Tab theTab , ControlWindow theControlWindow ) {
+	@Override
+    public final T moveTo(final ControllerGroup< ? > theGroup , final Tab theTab , ControlWindow theControlWindow ) {
 		for ( Controller< ? > c : getSubelements( ) ) {
 			c.moveTo( theGroup , theTab , theControlWindow );
 		}
@@ -906,7 +932,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * {@inheritDoc}
 	 */
-	public final T moveTo( final ControllerGroup< ? > theGroup ) {
+	@Override
+    public final T moveTo(final ControllerGroup< ? > theGroup ) {
 		if ( theGroup != null ) {
 			setGroup( theGroup );
 		}
@@ -965,7 +992,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return Tab
 	 */
-	public Tab getTab( ) {
+	@Override
+    public Tab getTab( ) {
 		if ( _myParent instanceof Tab ) {
 			return ( Tab ) _myParent;
 		}
@@ -1009,7 +1037,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return ControlWindow
 	 */
-	public ControlWindow getWindow( ) {
+	@Override
+    public ControlWindow getWindow( ) {
 		return _myControlWindow;
 	}
 
@@ -1216,7 +1245,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @param KeyEvent theEvent
 	 */
-	@ControlP5.Invisible public void keyEvent( final KeyEvent theEvent ) {
+	@Override
+    @ControlP5.Invisible public void keyEvent(final KeyEvent theEvent ) {
 	}
 
 	/**
@@ -1225,7 +1255,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param int theId
 	 * @return Controller
 	 */
-	@ControlP5.Layout public T setId( final int theId ) {
+	@Override
+    @ControlP5.Layout public T setId(final int theId ) {
 		_myId = theId;
 		return me;
 	}
@@ -1236,7 +1267,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return int
 	 */
-	@ControlP5.Layout public int getId( ) {
+	@Override
+    @ControlP5.Layout public int getId( ) {
 		return _myId;
 	}
 
@@ -1347,7 +1379,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * @param theValue float
 	 */
-	@ControlP5.Layout public T setValue( float theValue ) {
+	@Override
+    @ControlP5.Layout public T setValue(float theValue ) {
 		_myValue = theValue;
 		broadcast( FLOAT );
 		return me;
@@ -1367,7 +1400,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @see Controller#getArrayValue()
 	 * @return float
 	 */
-	@ControlP5.Layout public float getValue( ) {
+	@Override
+    @ControlP5.Layout public float getValue( ) {
 		return _myValue;
 	}
 
@@ -1375,7 +1409,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theValue
 	 * @return Controller
 	 */
-	@ControlP5.Layout public T setStringValue( String theValue ) {
+	@Override
+    @ControlP5.Layout public T setStringValue(String theValue ) {
 		_myStringValue = theValue;
 		return me;
 	}
@@ -1386,7 +1421,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return String
 	 */
-	@ControlP5.Layout public String getStringValue( ) {
+	@Override
+    @ControlP5.Layout public String getStringValue( ) {
 		return _myStringValue;
 	}
 
@@ -1398,7 +1434,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return float[]
 	 */
-	@ControlP5.Layout public float[] getArrayValue( ) {
+	@Override
+    @ControlP5.Layout public float[] getArrayValue( ) {
 		return _myArrayValue;
 	}
 
@@ -1406,7 +1443,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theIndex
 	 * @return float
 	 */
-	public float getArrayValue( int theIndex ) {
+	@Override
+    public float getArrayValue(int theIndex ) {
 		if ( theIndex >= 0 && theIndex < _myArrayValue.length ) {
 			return _myArrayValue[ theIndex ];
 		} else {
@@ -1419,7 +1457,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theArray
 	 * @return Controller
 	 */
-	@ControlP5.Layout public T setArrayValue( float[] theArray ) {
+	@Override
+    @ControlP5.Layout public T setArrayValue(float[] theArray ) {
 		_myArrayValue = theArray;
 		return me;
 	}
@@ -1430,7 +1469,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theValue
 	 * @return Controller
 	 */
-	public T setArrayValue( int theIndex , float theValue ) {
+	@Override
+    public T setArrayValue(int theIndex , float theValue ) {
 		if ( theIndex >= 0 && theIndex < _myArrayValue.length ) {
 			_myArrayValue[ theIndex ] = theValue;
 		}
@@ -1459,7 +1499,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @see Controller#isUpdate()
 	 * @return Controller
 	 */
-	public T update( ) {
+	@Override
+    public T update( ) {
 		return me;
 	}
 
@@ -1485,11 +1526,13 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * 
 	 * @return boolean
 	 */
-	public boolean isUpdate( ) {
+	@Override
+    public boolean isUpdate( ) {
 		return isUpdate;
 	}
 
-	@ControlP5.Invisible public int getPickingColor( ) {
+	@Override
+    @ControlP5.Invisible public int getPickingColor( ) {
 		return _myPickingColor;
 	}
 
@@ -1506,7 +1549,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theLabel
 	 * @return Controller
 	 */
-	@ControlP5.Layout public T setCaptionLabel( final String theLabel ) {
+	@Override
+    @ControlP5.Layout public T setCaptionLabel(final String theLabel ) {
 		_myCaptionLabel.set( theLabel );
 		return me;
 	}
@@ -1536,7 +1580,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	 * @param theListener ControlListener
 	 * @return Controller
 	 */
-	public T addListener( final ControlListener theListener ) {
+	@Override
+    public T addListener(final ControlListener theListener ) {
 		_myControlListener.add( theListener );
 		return me;
 	}
@@ -1896,14 +1941,16 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 	/**
 	 * @return int
 	 */
-	@ControlP5.Layout public int getWidth( ) {
+	@Override
+    @ControlP5.Layout public int getWidth( ) {
 		return width;
 	}
 
 	/**
 	 * @return int
 	 */
-	@ControlP5.Layout public int getHeight( ) {
+	@Override
+    @ControlP5.Layout public int getHeight( ) {
 		return height;
 	}
 
@@ -2087,7 +2134,8 @@ public abstract class Controller< T > implements ControllerInterface< T > , CDra
 
 	class DebugView implements ControllerView< T > {
 
-		public void display( PGraphics theGraphics , T theController ) {
+		@Override
+        public void display(PGraphics theGraphics , T theController ) {
 			if ( inside( ) ) {
 				theGraphics.fill( 255 , 0 , 0 , 50 );
 				theGraphics.stroke( 255 , 0 , 0 );

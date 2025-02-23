@@ -104,7 +104,8 @@ public class ColorWheel extends Controller< ColorWheel > {
 		}
 	}
 
-	public void onEndDrag( ) {
+	@Override
+    public void onEndDrag( ) {
 		drag = NONE;
 	}
 

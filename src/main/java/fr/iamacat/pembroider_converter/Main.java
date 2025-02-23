@@ -14,6 +14,7 @@ import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
 import processing.controlP5.*;
+import processing.controlP5.Button;
 import processing.core.PApplet;
 import processing.core.PFont;
 import processing.core.PImage;
@@ -339,8 +340,9 @@ public class Main extends PApplet implements Translatable {
         exportHeightField.onLeave(event -> {
             showTooltip = false;
         });
+        int centerX = width / 2 - 150;
         progressBar = cp5.addSlider("progressBar")
-                .setPosition(20, 240)
+                .setPosition(centerX, 240) // Centré horizontalement
                 .setSize(300, 20)
                 .setRange(0, 100)
                 .setValue(0)
@@ -378,6 +380,14 @@ public class Main extends PApplet implements Translatable {
             }
         }
     }
+    public void setButtonsEnabled(boolean enabled) {
+        cp5.getAll().forEach(controller -> {
+            if (controller instanceof Button) {
+                ((Button) controller).isActive = enabled;
+            }
+        });
+    }
+
 
     public void imageSelected(File selection) {
         isDialogOpen = false;
@@ -448,6 +458,7 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void processImageWithProgress() {
+        setButtonsEnabled(false);
         showPreview = false;
         if (embroidery == null) {
             embroidery = new PEmbroiderGraphics(this, img.width, img.height);
@@ -532,6 +543,7 @@ public class Main extends PApplet implements Translatable {
         embroidery.image(img, 860, 70);
         embroidery.endCull();
         showPreview = true;
+        setButtonsEnabled(true);
     }
 
     @Override

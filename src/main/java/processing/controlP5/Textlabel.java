@@ -113,7 +113,8 @@ public class Textlabel extends Controller< Textlabel > {
 		return this;
 	}
 
-	public Textlabel setHeight( int theValue ) {
+	@Override
+    public Textlabel setHeight(int theValue ) {
 		_myValueLabel.setHeight( theValue );
 		return this;
 	}
@@ -142,7 +143,8 @@ public class Textlabel extends Controller< Textlabel > {
 		cp5.papplet.popMatrix( );
 	}
 
-	public Textlabel setValue( float theValue ) {
+	@Override
+    public Textlabel setValue(float theValue ) {
 		return this;
 	}
 
@@ -213,17 +215,20 @@ public class Textlabel extends Controller< Textlabel > {
 		return this;
 	}
 
-	public Textlabel setFont( ControlFont theControlFont ) {
+	@Override
+    public Textlabel setFont(ControlFont theControlFont ) {
 		getValueLabel( ).setFont( theControlFont );
 		return this;
 	}
 
-	public Textlabel setFont( PFont thePFont ) {
+	@Override
+    public Textlabel setFont(PFont thePFont ) {
 		getValueLabel( ).setFont( thePFont );
 		return this;
 	}
 
-	protected boolean inside( ) {
+	@Override
+    protected boolean inside( ) {
 		return ( _myControlWindow.mouseX > x( position ) + x( _myParent.getAbsolutePosition( ) ) && _myControlWindow.mouseX < x( position ) + x( _myParent.getAbsolutePosition( ) ) + _myValueLabel.getWidth( )
 		    && _myControlWindow.mouseY > y( position ) + y( _myParent.getAbsolutePosition( ) ) && _myControlWindow.mouseY < y( position ) + y( _myParent.getAbsolutePosition( ) ) + _myValueLabel.getHeight( ) );
 	}

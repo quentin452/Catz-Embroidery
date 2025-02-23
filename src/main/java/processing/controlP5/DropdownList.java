@@ -441,7 +441,8 @@ public class DropdownList extends Controller< DropdownList > implements ControlL
 
 	}
 
-	public void keyEvent( KeyEvent theKeyEvent ) {
+	@Override
+    public void keyEvent(KeyEvent theKeyEvent ) {
 		if ( isInside && theKeyEvent.getAction( ) == KeyEvent.PRESS ) {
 			switch ( theKeyEvent.getKeyCode( ) ) {
 			case ( ControlP5.UP ):

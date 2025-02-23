@@ -153,7 +153,8 @@ public class Range extends Controller< Range > {
 		return this;
 	}
 
-	@ControlP5.Invisible public Range updateInternalEvents( PApplet theApplet ) {
+	@Override
+    @ControlP5.Invisible public Range updateInternalEvents(PApplet theApplet ) {
 		if ( isVisible ) {
 			int c = _myControlWindow.mouseX - _myControlWindow.pmouseX;
 			if ( c == 0 ) {
@@ -239,7 +240,8 @@ public class Range extends Controller< Range > {
 		return this;
 	}
 
-	public float[] getArrayValue( ) {
+	@Override
+    public float[] getArrayValue( ) {
 		return _myArrayValue;
 	}
 
