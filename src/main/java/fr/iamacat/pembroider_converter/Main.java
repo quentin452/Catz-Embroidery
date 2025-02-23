@@ -406,7 +406,7 @@ public class Main extends PApplet implements Translatable {
                 println("Colors: " + colors);
 
                 if (polylines != null && colors != null) {
-                    img = createImageFromPolylines(polylines, colors, width, height);
+                    img = PEmbroiderReader.createImageFromPolylines(polylines, colors, width, height,this);
 
                     if (img != null) {
                         refreshPreview();
@@ -423,65 +423,6 @@ public class Main extends PApplet implements Translatable {
             }
         }
     }
-    
-    private PImage createImageFromPolylines(ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height) {
-        PImage image = createImage(width, height, PApplet.RGB);
-        image.loadPixels();
-
-        // Effacer l'image pour obtenir un fond blanc
-        for (int i = 0; i < image.pixels.length; i++) {
-            image.pixels[i] = color(255);
-        }
-
-        // Dessiner les polylines sur l'image
-        for (int i = 0; i < polylines.size(); i++) {
-            ArrayList<PVector> polyline = polylines.get(i);
-            int color = colors.get(i);
-
-            for (int j = 0; j < polyline.size() - 1; j++) {
-                PVector p1 = polyline.get(j);
-                PVector p2 = polyline.get(j + 1);
-                drawLineOnImage(image, p1, p2, color);
-            }
-        }
-
-        image.updatePixels();
-        return image;
-    }
-
-    private void drawLineOnImage(PImage image, PVector p1, PVector p2, int color) {
-        int x1 = (int) PApplet.map(p1.x, 0, width, 0, image.width);
-        int y1 = (int) PApplet.map(p1.y, 0, height, 0, image.height);
-        int x2 = (int) PApplet.map(p2.x, 0, width, 0, image.width);
-        int y2 = (int) PApplet.map(p2.y, 0, height, 0, image.height);
-
-        // Algorithme de tracé de ligne de Bresenham
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
-        int err = dx - dy;
-
-        while (true) {
-            if (x1 >= 0 && x1 < image.width && y1 >= 0 && y1 < image.height) {
-                image.set(x1, y1, color);
-            }
-
-            if (x1 == x2 && y1 == y2) {
-                break;
-            }
-            int e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x1 += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y1 += sy;
-            }
-        }
-    }
-
 
     public void fileSaved(File selection) {
         isDialogOpen = false;

@@ -1005,6 +1005,7 @@ public class PApplet implements PConstants {
       String result = trim(stdout.toString());
       if ("0".equals(result)) {
         EventQueue.invokeLater(new Runnable() {
+          @Override
           public void run() {
             checkLookAndFeel();
             final String msg =
@@ -5680,6 +5681,7 @@ public class PApplet implements PConstants {
     // if the image loading thread pool hasn't been created, create it
     if (requestImagePool == null) {
       ThreadFactory factory = new ThreadFactory() {
+        @Override
         public Thread newThread(Runnable r) {
           return new Thread(r, REQUEST_IMAGE_THREAD_PREFIX);
         }
@@ -6580,6 +6582,7 @@ public class PApplet implements PConstants {
                                    final int mode,
                                    final PApplet sketch) {
     EventQueue.invokeLater(new Runnable() {
+      @Override
       public void run() {
         File selectedFile = null;
 
@@ -6667,6 +6670,7 @@ public class PApplet implements PConstants {
                                   final Frame parentFrame,
                                   final PApplet sketch) {
     EventQueue.invokeLater(new Runnable() {
+      @Override
       public void run() {
         File selectedFile = null;
 
@@ -10671,6 +10675,7 @@ public class PApplet implements PConstants {
     //System.setProperty("com.apple.mrj.application.apple.menu.about.name", "potato");
 
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+      @Override
       public void uncaughtException(Thread t, Throwable e) {
         e.printStackTrace();
         uncaughtThrowable = e;

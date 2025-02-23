@@ -22,6 +22,7 @@ public class Main extends PApplet implements Translatable {
     ArrayList<ArrayList<Layer>> undoStack = new ArrayList<>();
     ArrayList<ArrayList<Layer>> redoStack = new ArrayList<>();
 
+    @Override
     public void settings() {
         size(currentWidth, currentHeight);
     }
@@ -606,6 +607,7 @@ public class Main extends PApplet implements Translatable {
         render.endDraw();
     }
 
+    @Override
     public void setup() {
         Translator.getInstance().registerTranslatable(this);
         surface.setResizable(true);
@@ -629,6 +631,7 @@ public class Main extends PApplet implements Translatable {
         }
         return false;
     }
+    @Override
     public void draw(){
         background(100);
         enableEscapeMenu = hasEmbroideryRendered();
@@ -679,6 +682,7 @@ public class Main extends PApplet implements Translatable {
         }
 
     }
+    @Override
     public void mousePressed(MouseEvent evt){
         if (mouseOnCanvas()){
             if (tool == TOOL_VERTEX){

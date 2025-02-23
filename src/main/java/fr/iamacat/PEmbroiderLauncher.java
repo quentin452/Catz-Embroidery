@@ -25,10 +25,12 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         PApplet.main("fr.iamacat.PEmbroiderLauncher");
     }
 
+    @Override
     public void settings() {
         size(800, 600);
     }
 
+    @Override
     public void setup() {
         Translator.getInstance().registerTranslatable(this);
         background(200);
@@ -74,6 +76,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         text(Translator.getInstance().translate("choose_app"), width / 2, height / 2 - 80);
     }
 
+    @Override
     public void draw() {
         // Affichage des boutons
         buttonEditor.display();
@@ -81,6 +84,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         buttonConverter.display();
     }
 
+    @Override
     public void mousePressed() {
         // Vérifier si les boutons sont cliqués
         if (buttonEditor.isPressed(mouseX, mouseY)) {
@@ -106,6 +110,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         }
     }
 
+    @Override
     public void exit() {
         // Sauvegarder les logs et archiver le fichier log au départ
         Logger.getInstance().log(Logger.Project.Launcher,"Fermeture de l'application");

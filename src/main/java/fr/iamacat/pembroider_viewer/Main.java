@@ -16,16 +16,19 @@ public class Main extends PApplet {
         PApplet.main("fr.iamacat.pembroider_viewer.Main");
     }
 
+    @Override
     public void settings() {
         size(1280, 720);
     }
 
+    @Override
     public void setup() {
         pg = createGraphics(width, height);
         embroidery = new PEmbroiderGraphics(this, width, height);
         //loadEmbroideryFile();    // TODO
     }
 
+    @Override
     public void draw() {
         background(255);
         if (embroideryShape != null) {
@@ -33,6 +36,7 @@ public class Main extends PApplet {
         }
     }
 
+    @Override
     public void mouseClicked(MouseEvent event) {
         if (event.getButton() == LEFT) {
            // loadEmbroideryFile();    // TODO
