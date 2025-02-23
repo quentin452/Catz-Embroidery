@@ -372,10 +372,14 @@ public class Main extends PApplet implements Translatable {
             }
         }
     }
-    public void setButtonsEnabled(boolean enabled) {
+    public void setComponentsEnabled(boolean enabled) {
         cp5.getAll().forEach(controller -> {
             if (controller instanceof Button) {
-                ((Button) controller).isActive = enabled;
+                ((Button) controller).setVisible(enabled);
+            } else if (controller instanceof DropdownList) {
+                ((DropdownList) controller).setVisible(enabled);
+            } else if (controller instanceof Textfield) {
+                ((Textfield) controller).setVisible(enabled);
             }
         });
     }
@@ -453,7 +457,7 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void processImageWithProgress() {
-        setButtonsEnabled(false); 
+        setComponentsEnabled(false);
         showPreview = false;
         progressBar.setValue(0);
         progressBar.setVisible(true);
@@ -534,7 +538,7 @@ public class Main extends PApplet implements Translatable {
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                setButtonsEnabled(true);
+                setComponentsEnabled(true);
                 progressBar.setValue(100);
                 progressBar.setVisible(false);
             }
