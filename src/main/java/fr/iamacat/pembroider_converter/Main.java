@@ -458,93 +458,97 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void processImageWithProgress() {
-        setButtonsEnabled(false);
+        setButtonsEnabled(false); 
         showPreview = false;
-        if (embroidery == null) {
-            embroidery = new PEmbroiderGraphics(this, img.width, img.height);
-        }
-        embroidery.beginDraw();
-        embroidery.clear();
-        img.resize(1000, 1000);
-        if (oldImg != img) {
-            embroidery.extractedColors = embroidery.extractColorsFromImage(img);
-            oldImg = img;
-        }
-        embroidery.beginCull();
-        switch (selectedHatchMode) {
-            case "CROSS":
-                if (embroidery.colorizeEmbroideryFromImage) {
-                    embroidery.hatchMode(PEmbroiderGraphics.CROSS);
-                } else {
-                    embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+        progressBar.setValue(0);
+        progressBar.setVisible(true);
+        new Thread(() -> {
+            try {
+                if (embroidery == null) {
+                    embroidery = new PEmbroiderGraphics(this, img.width, img.height);
                 }
-                break;
-            case "PARALLEL":
-                embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
-                break;
-            case "CONCENTRIC":
-                embroidery.hatchMode(PEmbroiderGraphics.CONCENTRIC);
-                break;
-            case "SPIRAL":
-                embroidery.hatchMode(PEmbroiderGraphics.SPIRAL);
-                break;
-            case "PERLIN":
-                embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
-                break;
-            default:
-                if (embroidery.colorizeEmbroideryFromImage) {
-                    embroidery.hatchMode(PEmbroiderGraphics.CROSS);
-                } else {
-                    embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+                embroidery.beginDraw();
+                embroidery.clear();
+                img.resize(1000, 1000);
+                if (oldImg != img) {
+                    embroidery.extractedColors = embroidery.extractColorsFromImage(img);
+                    oldImg = img;
                 }
-        }
-        embroidery.hatchSpacing(currentSpacing);
-        embroidery.colorizeEmbroideryFromImage = false;
-        embroidery.strokeWeight(currentStrokeWeight);
-
-        if (colorType == ColorType.MonoColor) {
-            if (!FillB) {
-                embroidery.noFill();
-                embroidery.stroke(0,0,0);
-            } else {
-                embroidery.fill(selectedColor.getForeground());
+                progressBar.setValue(10);
+                embroidery.beginCull();
+                switch (selectedHatchMode) {
+                    case "CROSS":
+                        embroidery.hatchMode(embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.CROSS : PEmbroiderGraphics.PARALLEL);
+                        break;
+                    case "PARALLEL":
+                        embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+                        break;
+                    case "CONCENTRIC":
+                        embroidery.hatchMode(PEmbroiderGraphics.CONCENTRIC);
+                        break;
+                    case "SPIRAL":
+                        embroidery.hatchMode(PEmbroiderGraphics.SPIRAL);
+                        break;
+                    case "PERLIN":
+                        embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
+                        break;
+                    default:
+                        embroidery.hatchMode(embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.CROSS : PEmbroiderGraphics.PARALLEL);
+                }
+                embroidery.hatchSpacing(currentSpacing);
+                embroidery.colorizeEmbroideryFromImage = false;
+                embroidery.strokeWeight(currentStrokeWeight);
+                progressBar.setValue(40);
+                if (colorType == ColorType.MonoColor) {
+                    if (!FillB) {
+                        embroidery.noFill();
+                        embroidery.stroke(0, 0, 0);
+                    } else {
+                        embroidery.fill(selectedColor.getForeground());
+                    }
+                    embroidery.popyLineMulticolor = false;
+                } else if (colorType == ColorType.MultiColor) {
+                    if (!FillB) {
+                        embroidery.noFill();
+                    } else {
+                        embroidery.fill(0, 0, 0);
+                    }
+                    embroidery.stroke(0, 0, 0);
+                    embroidery.popyLineMulticolor = true;
+                    embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
+                    embroidery.strokeSpacing(currentSpacing);
+                } else if (colorType == ColorType.BlackAndWhite) {
+                    if (!FillB) {
+                        embroidery.noFill();
+                        embroidery.stroke(0, 0, 0);
+                    } else {
+                        embroidery.fill(0, 0, 0);
+                    }
+                    embroidery.popyLineMulticolor = false;
+                } else if (colorType == ColorType.Realistic) {
+                    embroidery.popyLineMulticolor = false;
+                    embroidery.colorizeEmbroideryFromImage = true;
+                    if (!FillB) {
+                        embroidery.noFill();
+                    } else {
+                        embroidery.fill(0, 0, 0);
+                    }
+                    embroidery.stroke(0, 0, 0);
+                }
+                embroidery.image(img, 860, 70);
+                embroidery.endCull();
+                progressBar.setValue(80);
+                showPreview = true;
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                setButtonsEnabled(true);
+                progressBar.setValue(100);
+                progressBar.setVisible(false);
             }
-            embroidery.popyLineMulticolor = false;
-        }
-        else if (colorType == ColorType.MultiColor) {
-            if (!FillB) {
-                embroidery.noFill();
-            } else {
-                embroidery.fill(0,0,0);
-            }
-            embroidery.stroke(0,0,0);
-            embroidery.popyLineMulticolor = true;
-            embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
-            embroidery.strokeSpacing(currentSpacing);
-        }
-        else if (colorType == ColorType.BlackAndWhite) {
-            if (!FillB) {
-                embroidery.noFill();
-                embroidery.stroke(0,0,0);
-            } else {
-                embroidery.fill(0, 0, 0);
-            }
-            embroidery.popyLineMulticolor = false;
-        } else if (colorType == ColorType.Realistic) {
-            embroidery.popyLineMulticolor = false;
-            embroidery.colorizeEmbroideryFromImage = true;
-            if (!FillB) {
-                embroidery.noFill();
-            } else {
-                embroidery.fill(0,0,0);
-            }
-            embroidery.stroke(0,0,0);
-        }
-        embroidery.image(img, 860, 70);
-        embroidery.endCull();
-        showPreview = true;
-        setButtonsEnabled(true);
+        }).start();
     }
+
 
     @Override
     public void draw() {
