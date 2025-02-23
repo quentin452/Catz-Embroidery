@@ -567,8 +567,6 @@ public class Main extends PApplet implements Translatable {
                 embroidery.visualize(true, false, false, Integer.MAX_VALUE,
                         (float) ((int) exportWidth * 2.71430),
                         (float) ((int) exportHeight * 2.71430), offsetX, offsetY);
-            } else {
-                Logger.getInstance().log(Logger.Project.Converter, "Erreur: embroidery.polylines ou embroidery.colors est vide.");
             }
         }
         if (showTooltip) {

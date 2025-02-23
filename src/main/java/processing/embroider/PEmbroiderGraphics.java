@@ -4486,28 +4486,27 @@ public class PEmbroiderGraphics {
 		float scaleX = targetWidth / width;
 		float scaleY = targetHeight / height;
 		float scale = max(scaleX, scaleY);
-
 		int n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
-			if (color) {
-				app.stroke(app.red(colors.get(i)), app.green(colors.get(i)), app.blue(colors.get(i)));
-			} else if (stitches) {
-				app.stroke(0);
-			} else {
-				app.stroke(app.random(200), app.random(200), app.random(200));
-			}
-			if (polylines.get(i) != null && polylines.get(i).size() > 1) {
-				for (int j = 0; j < polylines.get(i).size() - 1; j++) {
-					PVector p0 = polylines.get(i).get(j);
-					PVector p1 = polylines.get(i).get(j + 1);
-
+			List<PVector> polyline = polylines.get(i);
+			if (polyline != null && polyline.size() > 1) {
+				if (color) {
+					app.stroke(app.red(colors.get(i)), app.green(colors.get(i)), app.blue(colors.get(i)));
+				} else if (stitches) {
+					app.stroke(0);
+				} else {
+					app.stroke(app.random(200), app.random(200), app.random(200));
+				}
+				for (int j = 0; j < polyline.size() - 1; j++) {
+					PVector p0 = polyline.get(j);
+					PVector p1 = polyline.get(j + 1);
 					float scaledP0X = p0.x * scale + offsetX;
 					float scaledP0Y = p0.y * scale + offsetY;
 					float scaledP1X = p1.x * scale + offsetX;
 					float scaledP1Y = p1.y * scale + offsetY;
-
 					app.strokeWeight(1);
 					app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
+
 					n++;
 					if (n >= nStitches) {
 						break;
@@ -4518,6 +4517,7 @@ public class PEmbroiderGraphics {
 				break;
 			}
 		}
+
 
 		n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
