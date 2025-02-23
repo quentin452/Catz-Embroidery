@@ -402,9 +402,6 @@ public class Main extends PApplet implements Translatable {
                 PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(), width, height);
                 ArrayList<ArrayList<PVector>> polylines = data.getPolylines();
                 ArrayList<Integer> colors = data.getColors();
-                println("Polylines: " + polylines);
-                println("Colors: " + colors);
-
                 if (polylines != null && colors != null) {
                     img = PEmbroiderReader.createImageFromPolylines(polylines, colors, width, height,this);
 
