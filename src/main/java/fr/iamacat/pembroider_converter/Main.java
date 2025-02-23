@@ -384,11 +384,11 @@ public class Main extends PApplet implements Translatable {
     public void setComponentsEnabled(boolean enabled) {
         cp5.getAll().forEach(controller -> {
             if (controller instanceof Button) {
-                ((Button) controller).setLock(enabled);
+                ((Button) controller).setVisible(enabled);
             } else if (controller instanceof DropdownList) {
-                ((DropdownList) controller).setLock(enabled);
+                ((DropdownList) controller).setVisible(enabled);
             } else if (controller instanceof Textfield) {
-                ((Textfield) controller).setLock(enabled);
+                ((Textfield) controller).setVisible(enabled);
             }
         });
     }
