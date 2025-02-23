@@ -20,6 +20,7 @@ public class Logger {
         Editor,
         Viewer,
         Embroidery,
+        NONE,
     }
 
     private Logger() {

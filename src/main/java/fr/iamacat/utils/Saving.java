@@ -40,4 +40,29 @@ public class Saving {
         }
         return null;
     }
+
+    public static void saveDropboxToken(String token) {
+        Map<String, String> data = new HashMap<>();
+        data.put("dropboxToken", token);
+
+        try (FileWriter writer = new FileWriter("dropbox_token.json")) {
+            new Gson().toJson(data, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String loadDropboxToken() {
+        try {
+            Path path = Paths.get("dropbox_token.json");
+            if (Files.exists(path)) {
+                String json = new String(Files.readAllBytes(path));
+                Map<String, String> data = new Gson().fromJson(json, Map.class);
+                return data.get("dropboxToken");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

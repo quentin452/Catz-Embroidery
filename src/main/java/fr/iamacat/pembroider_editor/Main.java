@@ -1,5 +1,8 @@
 package fr.iamacat.pembroider_editor;
 
+import com.dropbox.core.DbxException;
+import com.dropbox.core.v2.files.FileMetadata;
+import com.dropbox.core.v2.files.WriteMode;
 import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
@@ -16,7 +19,15 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Objects;
+
+import static fr.iamacat.utils.DropboxUtil.dropboxClient;
+import static fr.iamacat.utils.DropboxUtil.uploadToDropbox;
+
 // TODO FIX , USING THE TOOL_FINELINE set a color and if you use an another tool it set an another color
 public class Main extends PApplet implements Translatable {
     PEmbroiderGraphics E;
@@ -315,13 +326,16 @@ public class Main extends PApplet implements Translatable {
         text("Save", (float) PX / 2, y + (float) PX / 2 - 2);
 
         if (!mouseOnCanvas() && mousePressed && x <= mouseX && mouseX <= x + PX && y <= mouseY && mouseY <= y + PX) {
-            saveFile();
+            if (dropboxClient != null) {
+                showSavingDialog();
+            }else {
+                saveFile();
+            }
             mousePressed = false;
         }
 
         popMatrix();
     }
-
     private void saveFile() {
         javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
         fileChooser.setDialogTitle("Enregistrer le fichier de broderie");
@@ -354,7 +368,32 @@ public class Main extends PApplet implements Translatable {
             javax.swing.JOptionPane.showMessageDialog(null, "Enregistrement annulé par l'utilisateur.");
         }
     }
+    private void saveFile(File selectedFile) {
+        if (selectedFile != null) {
+            String filePath = selectedFile.getAbsolutePath();
+            if (!filePath.contains(".")) {
+                javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+                fileChooser.setDialogTitle("Enregistrer le fichier de broderie");
+                javax.swing.filechooser.FileNameExtensionFilter pesFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers PES (*.pes)", "pes");
+                javax.swing.filechooser.FileNameExtensionFilter svgFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers SVG (*.svg)", "svg");
+                javax.swing.filechooser.FileNameExtensionFilter dstFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers DST (*.dst)", "dst");
+                javax.swing.filechooser.FileFilter fileFilter = fileChooser.getFileFilter();
+                if (Objects.equals(fileFilter, pesFilter)) {
+                    filePath += ".pes";
+                } else if (Objects.equals(fileFilter, svgFilter)) {
+                    filePath += ".svg";
+                } else if (Objects.equals(fileFilter, dstFilter)) {
+                    filePath += ".dst";
+                }
+                selectedFile = new File(filePath);
+            }
 
+            Logger.getInstance().log(Logger.Project.Editor, "Enregistrer le fichier sous : " + selectedFile.getAbsolutePath());
+            JOptionPane.showMessageDialog(null, "Optimisation de l'ordre des points et enregistrement du fichier, cela peut prendre un certain temps...");
+            writeOut(selectedFile.getAbsolutePath());  // Sauvegarde le contenu du fichier
+            JOptionPane.showMessageDialog(null, "Fichier de broderie enregistré avec succès !");
+        }
+    }
     void drawLayersGui(){
         int ww = width-PX-W;
         pushStyle();
@@ -765,13 +804,62 @@ public class Main extends PApplet implements Translatable {
         }
         return copy;
     }
+    private void showSavingDialog() {
+        String[] options = {
+                Translator.getInstance().translate("save_locally"),
+                Translator.getInstance().translate("save_to_dropbox"),
+                Translator.getInstance().translate("cancel")
+        };
+
+        int option = JOptionPane.showOptionDialog(
+                (java.awt.Component) this.getSurface().getNative(),
+                Translator.getInstance().translate("save_sentence_1"),
+                Translator.getInstance().translate("confirm_saving"),
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (option == 0) {
+            saveFile();
+        } else if (option == 1 && dropboxClient != null) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Select a file to upload to Dropbox");
+            int result = fileChooser.showOpenDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                saveFile(selectedFile);
+                uploadToDropbox(selectedFile);
+            } else {
+                JOptionPane.showMessageDialog(null, "No file selected.");
+            }
+        } else {
+            isDialogOpen = false;
+        }
+    }
 
     private void showExitDialog() {
         if (!enableEscapeMenu) {
             ApplicationUtil.exitApplication(this);
             return;
         }
-        String[] options = {Translator.getInstance().translate("save_and_quit"), Translator.getInstance().translate("exit_without_save"),Translator.getInstance().translate("cancel")};
+
+        String[] options = {
+                Translator.getInstance().translate("save_and_quit"),
+                Translator.getInstance().translate("exit_without_save"),
+                Translator.getInstance().translate("cancel")
+        };
+        if (dropboxClient != null) {
+            options = new String[] {
+                    Translator.getInstance().translate("save_and_quit"),
+                    Translator.getInstance().translate("save_to_dropbox"),
+                    Translator.getInstance().translate("exit_without_save"),
+                    Translator.getInstance().translate("cancel")
+            };
+        }
+
         int option = JOptionPane.showOptionDialog(
                 (java.awt.Component) this.getSurface().getNative(),
                 Translator.getInstance().translate("save_sentence_1"),
@@ -780,15 +868,36 @@ public class Main extends PApplet implements Translatable {
                 JOptionPane.WARNING_MESSAGE,
                 null,
                 options,
-                options[0]);
+                options[0]
+        );
 
+        int quitOption = 1;
+        if (dropboxClient != null) {
+            quitOption = 2;
+        }
+        int dropboxSaveOption = 2;
+        if (dropboxClient != null) {
+            dropboxSaveOption = 1;
+        }
         if (option == 0) {
             saveFileAndExit();
-        } else if (option == 1) {
+        } else if (option == quitOption) {
             ApplicationUtil.exitApplication(this);
+        } else if (option == dropboxSaveOption && dropboxClient != null) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Select a file to upload to Dropbox");
+            int result = fileChooser.showOpenDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                saveFile(selectedFile);
+                uploadToDropbox(selectedFile);
+            } else {
+                JOptionPane.showMessageDialog(null, "No file selected.");
+            }
         } else {
             isDialogOpen = false;
         }
+
     }
 
     private void saveFileAndExit() {

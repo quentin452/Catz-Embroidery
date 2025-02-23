@@ -1,26 +1,26 @@
 package fr.iamacat;
 
-import fr.iamacat.utils.Logger;
-import fr.iamacat.utils.Translatable;
-import fr.iamacat.utils.Translator;
-import fr.iamacat.utils.Updater;
-import processing.controlP5.CallbackEvent;
-import processing.controlP5.CallbackListener;
+import fr.iamacat.utils.*;
 import processing.controlP5.ControlP5;
 import processing.controlP5.DropdownList;
 import processing.core.PApplet;
 
+import java.awt.*;
 import java.io.IOException;
 import javax.swing.JOptionPane;
+
+import static fr.iamacat.utils.DropboxUtil.dropboxClient;
+import static fr.iamacat.utils.DropboxUtil.loadTokenFromJson;
 
 public class PEmbroiderLauncher extends PApplet implements Translatable {
 
     private Button buttonEditor;
     private Button buttonConverter;
+    private Button buttonConnectDropbox;
+    ;
     // TODOprivate Button buttonViewer;
     private ControlP5 cp5;
     private DropdownList languageDropdown;
-
     public static void main(String[] args) {
         PApplet.main("fr.iamacat.PEmbroiderLauncher");
     }
@@ -34,7 +34,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
     public void setup() {
         Translator.getInstance().registerTranslatable(this);
         background(200);
-
+        loadTokenFromJson();
         // Initialiser le logger
         Logger.getInstance().log(Logger.Project.Launcher,"Lancement de l'application");
 
@@ -64,12 +64,10 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
 
         // Vérifier les mises à jour
         checkForUpdates();
-
-        // Créer des boutons
-        buttonEditor = new Button(width / 2 - 100, height / 2 - 40, 200, 40, Translator.getInstance().translate("launch_editor"));
+        buttonConnectDropbox = new Button(width / 2 - 390, height - 50, 200, 40,color(255, 0, 0), "Connect to Dropbox");
+        buttonEditor = new Button(width / 2 - 100, height / 2 - 40, 200, 40,color(100, 200, 255), Translator.getInstance().translate("launch_editor"));
         // TODO  buttonViewer = new Button(width / 2 - 100, height / 2 - 60, 200, 40, Translator.getInstance().translate("launch_viewer"));
-        buttonConverter = new Button(width / 2 - 100, height / 2 + 20, 200, 40, Translator.getInstance().translate("launch_converter"));
-
+        buttonConverter = new Button(width / 2 - 100, height / 2 + 20, 200, 40,color(100, 200, 255), Translator.getInstance().translate("launch_converter"));
         fill(0);
         textSize(16);
         textAlign(CENTER, CENTER);
@@ -79,9 +77,15 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
     @Override
     public void draw() {
         // Affichage des boutons
-        buttonEditor.display();
+        buttonEditor.display(this);
         // TODO   buttonViewer.display();
-        buttonConverter.display();
+        buttonConverter.display(this);
+        buttonConnectDropbox.display(this);
+        if (dropboxClient != null) {
+            buttonConnectDropbox.setColor(color(0, 255, 0)); // Couleur verte si connecté
+        } else {
+            buttonConnectDropbox.setColor(color(255, 0, 0)); // Couleur rouge si non connecté
+        }
     }
 
     @Override
@@ -91,8 +95,10 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
             Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderEditor");
             runApplication("fr.iamacat.pembroider_editor.Main");
         } else if (buttonConverter.isPressed(mouseX, mouseY)) {
-            Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderConverter");
+            Logger.getInstance().log(Logger.Project.Launcher, "Lancement de PEmbroiderConverter");
             runApplication("fr.iamacat.pembroider_converter.Main");
+        } else if (buttonConnectDropbox.isPressed(mouseX, mouseY)) {
+            DropboxUtil.connectToDropbox();
             // TODO
        /* } else if (buttonViewer.isPressed(mouseX, mouseY)) {
             Logger.getInstance().log(Logger.Project.Launcher,"Lancement de PEmbroiderViewer");
@@ -159,6 +165,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
         // Mettre à jour les boutons avec les nouvelles traductions
         buttonEditor.label = Translator.getInstance().translate("launch_editor");
         buttonConverter.label = Translator.getInstance().translate("launch_converter");
+        buttonConnectDropbox.label = Translator.getInstance().translate("connect_to_dropbox");
         // TODO    buttonViewer.label = Translator.getInstance().translate("launch_viewer");
 
 
@@ -172,26 +179,33 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
     class Button {
         float x, y, w, h;
         String label;
+        int currentColor;
 
-        Button(float x, float y, float w, float h, String label) {
+        Button(float x, float y, float w, float h, int currentColor, String label) {
             this.x = x;
             this.y = y;
             this.w = w;
             this.h = h;
             this.label = label;
+            this.currentColor = currentColor;
         }
 
-        void display() {
-            fill(100, 200, 255);
-            rect(x, y, w, h, 10);
-            fill(0);
-            textSize(16);
-            textAlign(CENTER, CENTER);
-            text(label, x + w / 2, y + h / 2);
+        void display(PApplet app) {
+            app.fill(currentColor);
+            app.rect(x, y, w, h, 10);
+            app.fill(0);
+            app.textSize(16);
+            app.textAlign(PApplet.CENTER, PApplet.CENTER);
+            app.text(label, x + w / 2, y + h / 2);
         }
 
         boolean isPressed(float mx, float my) {
             return mx > x && mx < x + w && my > y && my < y + h;
         }
+
+        void setColor(int color) {
+            this.currentColor = color;
+        }
     }
+
 }
