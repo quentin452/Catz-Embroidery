@@ -4,6 +4,7 @@ import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
+import processing.awt.PSurfaceAWT;
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PVector;
@@ -11,6 +12,9 @@ import processing.embroider.PEmbroiderGraphics;
 import processing.event.MouseEvent;
 
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.util.ArrayList;
 // TODO FIX , USING THE TOOL_FINELINE set a color and if you use an another tool it set an another color
@@ -609,6 +613,12 @@ public class Main extends PApplet implements Translatable {
 
     @Override
     public void setup() {
+        PSurfaceAWT awtSurface = (PSurfaceAWT) getSurface();
+        PSurfaceAWT.SmoothCanvas canvas = (PSurfaceAWT.SmoothCanvas) awtSurface.getNative();
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(canvas);
+        if (frame != null) {
+            frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        }
         Translator.getInstance().registerTranslatable(this);
         surface.setResizable(true);
         render = createGraphics(W, H);

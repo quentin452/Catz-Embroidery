@@ -5,6 +5,9 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.util.*;
 import java.util.List;
@@ -13,6 +16,7 @@ import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.Translatable;
 import fr.iamacat.utils.Translator;
+import processing.awt.PSurfaceAWT;
 import processing.controlP5.*;
 import processing.controlP5.Button;
 import processing.core.PApplet;
@@ -53,7 +57,6 @@ public class Main extends PApplet implements Translatable {
     boolean showTooltip = false;
     PFont tooltipFont;
 
-
     private enum ColorType {
         MonoColor,
         MultiColor,
@@ -81,6 +84,12 @@ public class Main extends PApplet implements Translatable {
         embroidery = new PEmbroiderGraphics(this, width, height);
         setupGUI();
 
+        PSurfaceAWT awtSurface = (PSurfaceAWT) getSurface();
+        PSurfaceAWT.SmoothCanvas canvas = (PSurfaceAWT.SmoothCanvas) awtSurface.getNative();
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(canvas);
+        if (frame != null) {
+            frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        }
         new DropTarget((Component) this.getSurface().getNative(), new java.awt.dnd.DropTargetAdapter() {
             @Override
             public void drop(DropTargetDropEvent event) {
@@ -633,8 +642,8 @@ public class Main extends PApplet implements Translatable {
         String[] options = {Translator.getInstance().translate("save_and_quit"), Translator.getInstance().translate("exit_without_save"),Translator.getInstance().translate("cancel")};
         int option = JOptionPane.showOptionDialog(
                 (java.awt.Component) this.getSurface().getNative(),
-                "Vous n'avez pas sauvegardé vos données. Voulez-vous sauvegarder avant de quitter ?",
-                "Confirmation de fermeture",
+                Translator.getInstance().translate("save_sentence_1"),
+                Translator.getInstance().translate("confirm_closing"),
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.WARNING_MESSAGE,
                 null,
