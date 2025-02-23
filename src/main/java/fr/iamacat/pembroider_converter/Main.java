@@ -7,7 +7,9 @@ import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import fr.iamacat.utils.ApplicationUtil;
 import fr.iamacat.utils.Logger;
@@ -81,6 +83,7 @@ public class Main extends PApplet implements Translatable {
         setupGUI();
 
         new DropTarget((Component) this.getSurface().getNative(), new java.awt.dnd.DropTargetAdapter() {
+            @Override
             public void drop(DropTargetDropEvent event) {
                 try {
                     event.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
@@ -384,6 +387,7 @@ public class Main extends PApplet implements Translatable {
                 if (img != null) {
                     // New: Edge analysis logging
                     logImageEdges(img, selection.getName());
+                    embroidery.extractedColors = extractColors(img);
                     refreshPreview();
                     enableEscapeMenu = true;
                     showPreview = true;
@@ -393,14 +397,11 @@ public class Main extends PApplet implements Translatable {
                 }
 
             } else if (fileName.endsWith(".pes")) {
-                // [Existing PES handling...]
-
-                PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(),width,height);
+                PEmbroiderReader.EmbroideryData data = PEmbroiderReader.read(selection.getAbsolutePath(), width, height);
                 ArrayList<ArrayList<PVector>> polylines = data.getPolylines();
                 ArrayList<Integer> colors = data.getColors();
-                // Faites quelque chose avec les polylines et les couleurs, par exemple, les afficher, etc.
-                System.out.println("Polylines: " + polylines);
-                System.out.println("Colors: " + colors);
+                println("Polylines: " + polylines);
+                println("Colors: " + colors);
 
                 if (polylines != null && colors != null) {
                     img = createImageFromPolylines(polylines, colors, width, height);
@@ -421,6 +422,15 @@ public class Main extends PApplet implements Translatable {
                         "Le fichier sélectionné n'est pas un fichier image valide.");
             }
         }
+    }
+
+    public Set<Integer> extractColors(PImage img) {
+        Set<Integer> colors = new HashSet<>();
+        img.loadPixels();
+        for (int pixel : img.pixels) {
+            colors.add(pixel);
+        }
+        return colors;
     }
 
     // New edge analysis method
@@ -592,8 +602,9 @@ public class Main extends PApplet implements Translatable {
         }
         embroidery.hatchSpacing(currentSpacing);
         embroidery.colorizeEmbroideryFromImage = false;
+        embroidery.strokeWeight(currentStrokeWeight);
+
         if (colorType == ColorType.MonoColor) {
-            embroidery.noStroke();
             if (!FillB) {
                 embroidery.noFill();
                 embroidery.stroke(0,0,0);
@@ -610,7 +621,6 @@ public class Main extends PApplet implements Translatable {
             }
             embroidery.stroke(0,0,0);
             embroidery.popyLineMulticolor = true;
-            embroidery.strokeWeight(currentStrokeWeight);
             embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
             embroidery.strokeSpacing(currentSpacing);
         }
@@ -620,19 +630,17 @@ public class Main extends PApplet implements Translatable {
                 embroidery.stroke(0,0,0);
             } else {
                 embroidery.fill(0, 0, 0);
-                embroidery.noStroke();
             }
             embroidery.popyLineMulticolor = false;
         } else if (colorType == ColorType.Realistic) {
+            embroidery.colorizeEmbroideryFromImage = true;
             if (!FillB) {
                 embroidery.noFill();
-                embroidery.stroke(0,0,0);
             } else {
-                embroidery.fill(0, 0, 0);
-                embroidery.noStroke();
+                embroidery.fill(0,0,0);
             }
+            embroidery.stroke(0,0,0);
             embroidery.popyLineMulticolor = false;
-            embroidery.colorizeEmbroideryFromImage = true;
         }
         embroidery.image(img, 860, 70);
         embroidery.endCull();

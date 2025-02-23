@@ -6,6 +6,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 //import processing.awt.PGraphicsJava2D;
 import fr.iamacat.utils.Logger;
@@ -145,6 +147,7 @@ public class PEmbroiderGraphics {
 
 	public int maxColors = 10;
 	public boolean colorizeEmbroideryFromImage;
+	public Set<Integer> extractedColors = new HashSet<>();
 
 	public boolean popyLineMulticolor;
 
@@ -1111,8 +1114,26 @@ public class PEmbroiderGraphics {
 			for (int i = generatedColors.size(); i < poly2.size() - 1; i++) {
 				colors.add(generatedColors.get(generatedColors.size() - 1)); // Dernière couleur
 			}
-		} else if(colorizeEmbroideryFromImage) {
-			Logger.getInstance().log(Logger.Project.Embroidery,"the \"colorizeEmbroideryFromImage\" function isn't implemented");
+		} else if (colorizeEmbroideryFromImage) {
+			int i = 0;
+			Integer[] extractedColorsArray = extractedColors.toArray(new Integer[0]);
+			int extractedColorsSize = extractedColorsArray.length;
+
+			if (extractedColorsSize == 0) {
+				// Add the default color for all points if no extracted colors
+				for (PVector point : poly2) {
+					colors.add(color);
+				}
+			} else {
+				for (PVector point : poly2) {
+					if (i < extractedColorsSize) {
+						colors.add(extractedColorsArray[i]);
+					} else {
+						colors.add(color);
+					}
+					i++;
+				}
+			}
 		} else {
 			colors.add(color);
 		}
@@ -4905,7 +4926,8 @@ public class PEmbroiderGraphics {
 			float perlinScale /*0.01f*/, float deltaX /*20*/, int minVertices /*2*/, int maxVertices /*100*/, int maxIter) {
 
 		class PerlinVectorField implements VectorField{
-			public PVector get(float x, float y) {
+			@Override
+            public PVector get(float x, float y) {
 				float a = app.noise(x*perlinScale,y*perlinScale,1f)*2*PApplet.PI-PApplet.PI;
 				float r = app.noise(x*perlinScale,y*perlinScale,2f)*deltaX;
 				float dx = PApplet.cos(a)*r;

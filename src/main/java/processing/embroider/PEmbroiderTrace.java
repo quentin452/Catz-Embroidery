@@ -205,13 +205,19 @@ public class PEmbroiderTrace {
 	}
 
 	// first counter clockwise non-zero element in neighborhood
-	static int[] ccwNon0(int[] F, int w, int h, int i0, int j0, int i, int j, int offset){
-		int id = neighborIndexToID(i0,j0,i,j);
-		for (int k = 0; k < N_PIXEL_NEIGHBOR; k++){
-			int kk = (k+id+offset + N_PIXEL_NEIGHBOR*2) % N_PIXEL_NEIGHBOR;
-			int[] ij = neighborIDToIndex(i0,j0,kk);
-			if (F[ij[0]*w+ij[1]]!=0){
-				return ij;
+	static int[] ccwNon0(int[] F, int w, int h, int i0, int j0, int i, int j, int offset) {
+		int id = neighborIndexToID(i0, j0, i, j);
+
+		for (int k = 0; k < N_PIXEL_NEIGHBOR; k++) {
+			int kk = (k + id + offset + N_PIXEL_NEIGHBOR * 2) % N_PIXEL_NEIGHBOR;
+			int[] ij = neighborIDToIndex(i0, j0, kk);
+
+			// Check if i indices are within bounds before accessing F
+            assert ij != null;
+            if (ij[0] >= 0 && ij[0] < h && ij[1] >= 0 && ij[1] < w) {
+				if (F[ij[0] * w + ij[1]] != 0) {
+					return ij;
+				}
 			}
 		}
 		return null;
@@ -315,9 +321,10 @@ public class PEmbroiderTrace {
 		        	}
 		        	oParent.add(parent);
 		        }
-		        
+
 				while (true){
 					int[] i4j4 = ccwNon0(F,w,h,i3,j3,i2,j2,1);
+
                     assert i4j4 != null;
                     int i4 = i4j4[0];
 					int j4 = i4j4[1];
