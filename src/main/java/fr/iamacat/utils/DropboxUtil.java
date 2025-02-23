@@ -100,7 +100,7 @@ public class DropboxUtil {
 
     private static boolean fileExistsInDropbox(String dropboxPath) {
         try {
-            ListFolderResult result = dropboxClient.files().listFolder("/Apps/Catz-Embroidery");
+            ListFolderResult result = dropboxClient.files().listFolder("/Catz-Embroidery");
             for (Metadata metadata : result.getEntries()) {
                 if (metadata.getPathLower().equals(dropboxPath.toLowerCase())) {
                     return true;
