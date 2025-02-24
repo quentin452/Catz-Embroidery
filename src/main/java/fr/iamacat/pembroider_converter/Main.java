@@ -190,7 +190,7 @@ public class Main extends PApplet implements Translatable {
         }
     }
     public void saveFile() {
-        if (dropboxClient == null && !isDialogOpen && embroidery != null) {
+        if (!isDialogOpen && embroidery != null) {
             isDialogOpen = true;
             selectOutput(Translator.getInstance().translate("save_as"), "fileSaved");
         }
