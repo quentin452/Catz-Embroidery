@@ -274,9 +274,6 @@ public class Main extends PApplet implements Translatable {
         updateProgress(0, true);
         new Thread(() -> {
             try {
-                if (embroidery == null) {
-                    embroidery = new PEmbroiderGraphics(this, img.width, img.height);
-                }
                 embroidery.popyLineMulticolor = colorType == ColorType.MultiColor;
                 embroidery.beginDraw();
                 embroidery.clear();
