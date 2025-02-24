@@ -35,6 +35,8 @@ public class Main extends PApplet implements Translatable {
     private ControlP5 cp5;
     private Slider progressBar;
     private boolean showPreview = false;
+    private float visualizationWidth = 95;
+    private float visualizationHeight = 95;
     private float exportWidth = 95;  // Largeur par défaut en mm
     private float exportHeight = 95; // Hauteur par défaut en mm
     private float currentSpacing = 10;
@@ -140,14 +142,14 @@ public class Main extends PApplet implements Translatable {
                     currentStrokeWeight = value;
                     if (img != null) refreshPreview();
                 });
-        CP5ComponentsUtil.createNumericTextField(cp5, "exportWidth", 20, 160, 100, 30, color(255), color(0),
+        CP5ComponentsUtil.createNumericTextField(cp5, "exportWidthField", 20, 160, 100, 30, color(255), color(0),
                 str(exportWidth), "width_in_mm",
                 value -> {
                     exportWidth = value;
                     Logger.getInstance().log(Logger.Project.Converter, "Largeur mise à jour : " + exportWidth);
                     if (img != null) refreshPreview();
                 });
-        CP5ComponentsUtil.createNumericTextField(cp5, "exportHeight", 20, 200, 100, 30, color(255), color(0),
+        CP5ComponentsUtil.createNumericTextField(cp5, "exportHeightField", 20, 200, 100, 30, color(255), color(0),
                 str(exportHeight), "height_in_mm",
                 value -> {
                     exportHeight = value;
@@ -364,16 +366,16 @@ public class Main extends PApplet implements Translatable {
         }
 
         if (showPreview && embroidery != null) {
-            float scaleX = exportWidth / width;
-            float scaleY = exportHeight / height;
+            float scaleX = visualizationWidth / width;
+            float scaleY = visualizationHeight / height;
             float scale = max(scaleX, scaleY);
-            float offsetX = (exportWidth - width * scale) / 2;
-            float offsetY = (exportHeight - height * scale) / 2;
+            float offsetX = (visualizationWidth - width * scale) / 2;
+            float offsetY = (visualizationHeight - height * scale) / 2;
             offsetX += 600;
             if (img != null && embroidery.polylines != null && embroidery.colors != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
                 embroidery.visualize(true, false, false, Integer.MAX_VALUE,
-                        (float) ((int) exportWidth * 2.71430),
-                        (float) ((int) exportHeight * 2.71430), offsetX, offsetY);
+                        (float) ((int) visualizationWidth * 2.71430),
+                        (float) ((int) visualizationHeight * 2.71430), offsetX, offsetY);
             }
         }
         if (CP5ComponentsUtil.showTooltip) {
