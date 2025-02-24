@@ -4708,7 +4708,7 @@ public class PEmbroiderGraphics {
 		groupColors.add(new ArrayList<Integer>());
 		groupColors.get(groupColors.size()-1).add(colors.get(beginCullIndex));
 
-		for (int i = beginCullIndex+1; i < polylines.size(); i++) {
+		for (int i = beginCullIndex+1; i < polylines.size() && i < cullGroups.size(); i++) {
 
 			if (!cullGroups.get(i).equals(last)) {
 				groups.add(new ArrayList<ArrayList<PVector>>());
