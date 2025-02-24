@@ -168,7 +168,7 @@ public class Main extends PApplet implements Translatable {
             data = new ArrayList<>();
         }
     }
-    class Layer implements Cloneable{
+    class Layer {
         int hatchMode = PEmbroiderGraphics.CONCENTRIC;
         int strokeMode = PEmbroiderGraphics.TANGENT;
         int hatchColor = color(0,0,255);
@@ -193,11 +193,6 @@ public class Main extends PApplet implements Translatable {
 
             elements = new ArrayList<>();
         }
-        @Override
-        protected Layer clone() throws CloneNotSupportedException {
-            return (Layer) super.clone(); // Cast explicite
-        }
-
     }
 
     void rasterizeLayer(Layer lay){
@@ -310,15 +305,15 @@ public class Main extends PApplet implements Translatable {
         Element elt = new Element(((tool == TOOL_PAINT) || (tool == TOOL_FATPAINT) || (tool == TOOL_FINELINE)) ? LIN : PLY);
         elt.data = new ArrayList<>(polyBuff);
         elt.paramF0 = (tool == TOOL_FATPAINT) ? 60 : (tool == TOOL_FINELINE ? 1 : 20);
-        lay.elements.add(elt);
         UndoableCommand command = new AddElementCommand(lay, elt);
         command.execute();
-        undoStack.push(command); // Ajoute la commande à la pile
+        undoStack.push(command);
         redoStack.clear();
 
         polyBuff.clear();
         needsUpdate = true;
     }
+
 
     void removeElementFromPolyBuff() {
         Layer lay = layers.get(currentLayer);
