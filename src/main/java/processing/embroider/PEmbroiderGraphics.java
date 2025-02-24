@@ -3814,7 +3814,11 @@ public class PEmbroiderGraphics {
 		}else if (HATCH_MODE == CROSS) {
 			polys = hatchParallelRaster(im,hatch_angle,HATCH_SPACING,1);
 			polys.addAll(hatchParallelRaster(im,hatch_angle2,HATCH_SPACING,1));
-
+			if (!NO_RESAMPLE) {
+				polys = resampleCrossIntersection(polys,hatch_angle,HATCH_SPACING,STITCH_LENGTH/getCurrentScale(hatch_angle+PApplet.HALF_PI), PARALLEL_RESAMPLING_OFFSET_FACTOR, RESAMPLE_NOISE);
+				NO_RESAMPLE = true;
+				didit = true;
+			}
 		}else if (HATCH_MODE == CONCENTRIC) {
 			polys = isolines(im,HATCH_SPACING);
 		}else if (HATCH_MODE == SPIRAL) {

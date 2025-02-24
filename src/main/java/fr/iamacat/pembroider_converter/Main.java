@@ -285,10 +285,7 @@ public class Main extends PApplet implements Translatable {
                 updateProgress(10);
                 embroidery.beginCull();
                 embroidery.colorizeEmbroideryFromImage = colorType == ColorType.Realistic;
-                if (Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage) {
-                    selectedHatchMode = "PARALLEL";
-                }
-                switch (selectedHatchMode) { // TODO FIX "CROSS" hatchMode Destroy Realistic colors with fill
+                switch (selectedHatchMode) {
                     case "CROSS":
                         embroidery.hatchMode(PEmbroiderGraphics.CROSS);
                         break;
