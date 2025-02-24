@@ -6,6 +6,7 @@ import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
+import processing.event.KeyEvent;
 import processing.event.MouseEvent;
 
 import javax.swing.*;
@@ -13,18 +14,93 @@ import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Stack;
 
 import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.uploadToDropbox;
 
 // TODO FIX , USING THE TOOL_FINELINE set a color and if you use an another tool it set an another color
 public class Main extends PApplet implements Translatable {
+    interface UndoableCommand {
+        void execute();
+        void undo();
+    }
+    // Commande pour Ajouter un Élément
+    class AddElementCommand implements UndoableCommand {
+        private Layer layer;
+        private Element element;
+
+        AddElementCommand(Layer layer, Element element) {
+            this.layer = layer;
+            this.element = element;
+        }
+
+        @Override
+        public void execute() {
+            layer.elements.add(element); // Ajoute l'élément à la fin
+        }
+
+        @Override
+        public void undo() {
+            layer.elements.remove(element); // Supprime l'élément par référence
+        }
+    }
+
+    // Commande pour Supprimer un Élément
+    class RemoveElementCommand implements UndoableCommand {
+        private Layer layer;
+        private Element element;
+        private int originalIndex;
+
+        RemoveElementCommand(Layer layer, Element element) {
+            this.layer = layer;
+            this.element = element;
+            this.originalIndex = layer.elements.indexOf(element); // Capture l'index original
+        }
+
+        @Override
+        public void execute() {
+            layer.elements.remove(element); // Supprime l'élément par référence
+        }
+
+        @Override
+        public void undo() {
+            if (originalIndex >= 0 && originalIndex <= layer.elements.size()) {
+                layer.elements.add(originalIndex, element); // Réinsère à l'index original
+            } else {
+                layer.elements.add(element); // Ajoute à la fin si l'index est invalide
+            }
+        }
+    }
+    class RemovePointCommand implements UndoableCommand {
+        private Layer layer;
+        private int elementIndex;
+        private int pointIndex;
+        private PVector point;
+
+        RemovePointCommand(Layer layer, int elementIndex, int pointIndex) {
+            this.layer = layer;
+            this.elementIndex = elementIndex;
+            this.pointIndex = pointIndex;
+            this.point = layer.elements.get(elementIndex).data.get(pointIndex);
+        }
+
+        @Override
+        public void execute() {
+            layer.elements.get(elementIndex).data.remove(pointIndex);
+        }
+
+        @Override
+        public void undo() {
+            layer.elements.get(elementIndex).data.add(pointIndex, point);
+        }
+    }
     PEmbroiderGraphics E;
     private final int currentWidth = 1280;
     private final int currentHeight = 720;
     private boolean enableEscapeMenu = false , isDialogOpen = false;
-    ArrayList<ArrayList<Layer>> undoStack = new ArrayList<>();
-    ArrayList<ArrayList<Layer>> redoStack = new ArrayList<>();
+    private Stack<UndoableCommand> undoStack = new Stack<>();
+    private Stack<UndoableCommand> redoStack = new Stack<>();
 
     @Override
     public void settings() {
@@ -236,25 +312,26 @@ public class Main extends PApplet implements Translatable {
         elt.data = new ArrayList<>(polyBuff);
         elt.paramF0 = (tool == TOOL_FATPAINT) ? 60 : (tool == TOOL_FINELINE ? 1 : 20);
         lay.elements.add(elt);
+        UndoableCommand command = new AddElementCommand(lay, elt);
+        command.execute();
+        undoStack.push(command); // Ajoute la commande à la pile
+        redoStack.clear();
+
         polyBuff.clear();
-        try {
-            saveState();
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
         needsUpdate = true;
     }
-    void removeElementFromPolyBuff() throws CloneNotSupportedException {
+
+    void removeElementFromPolyBuff() {
         Layer lay = layers.get(currentLayer);
         if (!lay.elements.isEmpty()) {
-            saveState();
-            lay.elements.remove(lay.elements.size() - 1);
+            Element lastElement = lay.elements.get(lay.elements.size() - 1);
+            UndoableCommand command = new RemoveElementCommand(lay, lastElement);
+            command.execute();
+            undoStack.push(command);
+            redoStack.clear(); // Vide la pile redo
             needsUpdate = true;
-        } else {
-            Logger.getInstance().log(Logger.Project.Editor,"No elements to remove from polyBuff.");
         }
     }
-
     void switchTool(int what){
         tool = what;
         polyBuff.clear();
@@ -747,52 +824,34 @@ public class Main extends PApplet implements Translatable {
             }
         }
     }
+
     @Override
-    public void keyPressed() {
+    public void keyPressed(KeyEvent event) {
         if (tool == TOOL_EDIT && key == DELETE) {
-            try {
-                deleteSelectedPoint();
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException(e);
-            }
-        } else if (keyCode == BACKSPACE && (keyEvent.isControlDown() || keyEvent.isMetaDown())) {
-            try {
-                removeElementFromPolyBuff();
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException(e);
-            }
+            deleteSelectedPoint();
+        } else if ((event.isControlDown() || event.isMetaDown()) && event.getKeyCode() == java.awt.event.KeyEvent.VK_Z) {
+            undo();
+        } else if ((event.isControlDown() || event.isMetaDown()) && event.getKeyCode() == java.awt.event.KeyEvent.VK_Y) {
+            redo();
         }
     }
 
-    void deleteSelectedPoint() throws CloneNotSupportedException {
+
+    void deleteSelectedPoint() {
         if (editState == 1) {
             Layer lay = layers.get(currentLayer);
             Element elt = lay.elements.get(editI);
-            if (elt.data.size() > 1) {  // Avoid To Remove the last point
-                saveState();
-                elt.data.remove(editJ);
+            if (elt.data.size() > 1) {
+                UndoableCommand command = new RemovePointCommand(lay, editI, editJ);
+                command.execute();
+                undoStack.push(command);
+                redoStack.clear();
                 editState = 0;
                 needsUpdate = true;
-            } else {
-                Logger.getInstance().log(Logger.Project.Editor,"Cannot delete the last point in the element.");
             }
-        } else {
-            Logger.getInstance().log(Logger.Project.Editor,"Edit state is not 1. No point to delete.");
         }
     }
 
-    void saveState() throws CloneNotSupportedException {
-        redoStack.clear();
-        undoStack.add(copyLayers());
-    }
-
-    ArrayList<Layer> copyLayers() throws CloneNotSupportedException {
-        ArrayList<Layer> copy = new ArrayList<>();
-        for (Layer l : layers) {
-            copy.add(l.clone());
-        }
-        return copy;
-    }
     private void showSavingDialog() {
         DialogUtil.showSavingDialog(
                 (Component) this.getSurface().getNative(), // Composant parent
@@ -804,7 +863,23 @@ public class Main extends PApplet implements Translatable {
                 }
         );
     }
+    public void undo() {
+        if (!undoStack.isEmpty()) {
+            UndoableCommand command = undoStack.pop();
+            command.undo();
+            redoStack.push(command);
+            needsUpdate = true;
+        }
+    }
 
+    public void redo() {
+        if (!redoStack.isEmpty()) {
+            UndoableCommand command = redoStack.pop();
+            command.execute();
+            undoStack.push(command);
+            needsUpdate = true;
+        }
+    }
 
     private void showExitDialog() {
         DialogUtil.showExitDialog(
