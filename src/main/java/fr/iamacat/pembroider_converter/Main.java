@@ -170,11 +170,6 @@ public class Main extends PApplet implements Translatable {
         if (img != null) refreshPreview();
     }
 
-    private void resetProgressBar() {
-        progressBar.setValue(0);
-        progressBar.setVisible(true);
-    }
-
     private void refreshPreview(){
         processImageWithProgress();
     }
@@ -260,17 +255,15 @@ public class Main extends PApplet implements Translatable {
                 path += ".pes";
             }
             try {
-                resetProgressBar();
+                updateProgress(0, true);
                 boolean isSVG = path.contains(".svg");
-                progressBar.setValue(50);
+                updateProgress(50);
                 embroidery.optimize();
                 PEmbroiderWriter.write(this,path, embroidery.polylines, embroidery.colors, (int) exportWidth, (int) exportHeight, isSVG);
-                progressBar.setValue(100);
-                progressBar.setVisible(false);
+                updateProgress(100,false);
             } catch (Exception e) {
                 Logger.getInstance().log(Logger.Project.Converter,"Error during saving file : " + e.getMessage());
             } finally {
-                progressBar.setValue(0);
                 progressBar.setVisible(false);
             }
         }
@@ -279,8 +272,7 @@ public class Main extends PApplet implements Translatable {
     private void processImageWithProgress() {
         setComponentsEnabled(false);
         showPreview = false;
-        progressBar.setValue(0);
-        progressBar.setVisible(true);
+        updateProgress(0, true);
         new Thread(() -> {
             try {
                 if (embroidery == null) {
@@ -290,12 +282,15 @@ public class Main extends PApplet implements Translatable {
                 embroidery.clear();
                 img.resize(1000, 1000);
                 embroidery.extractedColors = embroidery.extractColorsFromImage(img);
-                progressBar.setValue(10);
+                updateProgress(10);
                 embroidery.beginCull();
                 embroidery.colorizeEmbroideryFromImage = colorType == ColorType.Realistic;
+                if (Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage) {
+                    selectedHatchMode = "PARALLEL";
+                }
                 switch (selectedHatchMode) { // TODO FIX "CROSS" hatchMode Destroy Realistic colors with fill
                     case "CROSS":
-                        embroidery.hatchMode(embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.PARALLEL : PEmbroiderGraphics.CROSS);
+                        embroidery.hatchMode(PEmbroiderGraphics.CROSS);
                         break;
                     case "PARALLEL":
                         embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
@@ -310,14 +305,14 @@ public class Main extends PApplet implements Translatable {
                         embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
                         break;
                     default:
-                        embroidery.hatchMode(Objects.equals(selectedHatchMode, "CROSS") && embroidery.colorizeEmbroideryFromImage ? PEmbroiderGraphics.PARALLEL : PEmbroiderGraphics.CROSS);
+                        embroidery.hatchMode(PEmbroiderGraphics.CROSS);
                 }
                 embroidery.hatchSpacing(currentSpacing);
                 embroidery.strokeWeight(currentStrokeWeight);
                 embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
                 embroidery.strokeSpacing(currentSpacing);
                 embroidery.stroke(0, 0, 0);
-                progressBar.setValue(40);
+                updateProgress(40);
                 if (!FillB) {
                     embroidery.noFill();
                 } else {
@@ -326,18 +321,34 @@ public class Main extends PApplet implements Translatable {
                 embroidery.popyLineMulticolor = colorType == ColorType.MultiColor;
                 embroidery.image(img, 860, 70);
                 embroidery.endCull();
-                progressBar.setValue(80);
-                showPreview = true;
+                updateProgress(80);
+                SwingUtilities.invokeLater(() -> {
+                    showPreview = true;
+                    setComponentsEnabled(true);
+                    updateProgress(100, false);
+                });
             } catch (Exception e) {
                 e.printStackTrace();
-            } finally {
-                setComponentsEnabled(true);
-                progressBar.setValue(100);
-                progressBar.setVisible(false);
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setVisible(false);
+                    setComponentsEnabled(true);
+                });
             }
         }).start();
     }
+    private void updateProgress(int value) {
+        SwingUtilities.invokeLater(() -> {
+            progressBar.setValue(value);
+        });
+    }
 
+    // Surcharge pour gérer la visibilité
+    private void updateProgress(int value, boolean visible) {
+        SwingUtilities.invokeLater(() -> {
+            progressBar.setValue(value);
+            progressBar.setVisible(visible);
+        });
+    }
     @Override
     public void draw() {
         background(240);
