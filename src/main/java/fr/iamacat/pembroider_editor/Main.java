@@ -743,7 +743,6 @@ public class Main extends PApplet implements Translatable {
     @Override
     public void draw(){
         background(100);
-        enableEscapeMenu = hasEmbroideryRendered();
         if (tool == TOOL_EDIT){
             drawEditMode();
         }else if (needsUpdate){
@@ -873,6 +872,7 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void showExitDialog() {
+        enableEscapeMenu = hasEmbroideryRendered();
         DialogUtil.showExitDialog(
                 (Component) this.getSurface().getNative(),
                 enableEscapeMenu,
