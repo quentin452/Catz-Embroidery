@@ -145,6 +145,7 @@ public class PEmbroiderGraphics {
 	public int maxColors = 10;
 	public boolean colorizeEmbroideryFromImage;
 	public Set<Integer> extractedColors = new HashSet<>();
+	private ArrayList<Integer> generatedColors = new ArrayList<>();
 
 	public boolean popyLineMulticolor;
 
@@ -1087,7 +1088,7 @@ public class PEmbroiderGraphics {
 		// Étape 2: Trier les couleurs par fréquence décroissante
 		List<Map.Entry<Integer, Integer>> sortedColors = new ArrayList<>(colorFrequency.entrySet());
 		sortedColors.sort((a, b) -> b.getValue().compareTo(a.getValue()));
-		// Étape 3: Sélectionner les 16 couleurs les plus fréquentes
+		// Étape 3: Sélectionner couleurs les plus fréquentes
 		Set<Integer> dominantColors = new LinkedHashSet<>();
 		for (Map.Entry<Integer, Integer> entry : sortedColors) {
 			dominantColors.add(entry.getKey());
@@ -1109,27 +1110,18 @@ public class PEmbroiderGraphics {
 		ArrayList<PVector> poly2 = new ArrayList<PVector>();
 		for (int i = 0; i < poly.size(); i++) {
 			poly2.add(poly.get(i).copy());
-			for (int j = matStack.size()-1; j>= 0; j--) {
+			for (int j = matStack.size() - 1; j >= 0; j--) {
 				poly2.set(i, matStack.get(j).mult(poly2.get(i), null));
 			}
 		}
-		// Liste des couleurs à attribuer
-		if (popyLineMulticolor) {
-			// Créer une liste des couleurs avant la boucle
-			ArrayList<Integer> generatedColors = new ArrayList<>();
+
+		if (popyLineMulticolor && generatedColors.size() > 0) {
 			for (int i = 0; i < Math.min(poly2.size() - 1, maxColors); i++) {
-				int randomColor = (int) app.color(app.random(255), app.random(255), app.random(255));
-				generatedColors.add(randomColor);
+				colors.add(generatedColors.get(i));
 			}
 
-			// Assigner les couleurs générées aux segments de poly2
-			for (int i = 0; i < Math.min(poly2.size() - 1, maxColors); i++) {
-				colors.add(generatedColors.get(i));  // Utiliser la couleur générée pour chaque segment
-			}
-
-			// Si plus de segments, attribuer la dernière couleur générée à ceux-ci
 			for (int i = generatedColors.size(); i < poly2.size() - 1; i++) {
-				colors.add(generatedColors.get(generatedColors.size() - 1)); // Dernière couleur
+				colors.add(generatedColors.get(generatedColors.size() - 1));
 			}
 		} else if (colorizeEmbroideryFromImage && !extractedColors.isEmpty()) {
 			int totalSegments = poly2.size() - 1;
@@ -1141,14 +1133,16 @@ public class PEmbroiderGraphics {
 		} else {
 			colors.add(color);
 		}
+
 		if (!colorizeEmbroideryFromImage || NO_RESAMPLE) {
 			polylines.add(poly2);
-		}else {
-			polylines.add(resample(poly2,MIN_STITCH_LENGTH,STITCH_LENGTH,RESAMPLE_NOISE,resampleRandomizeOffset));
+		} else {
+			polylines.add(resample(poly2, MIN_STITCH_LENGTH, STITCH_LENGTH, RESAMPLE_NOISE, resampleRandomizeOffset));
 		}
 
 		cullGroups.add(currentCullGroup);
 	}
+
 
 	/** Simplified version for pushPolyline(3) where resampleRandomizeOffset is set to false
 	 *  @param poly                   a polyline
@@ -4588,7 +4582,13 @@ public class PEmbroiderGraphics {
 	 * Supposed to initialize something, but as we currently don't need to, this is a NOP
 	 */
 	public void beginDraw() {
-		// future initialization goes here
+		generatedColors.clear();
+		if (popyLineMulticolor) {
+			for (int i = 0; i < maxColors; i++) {
+				int randomColor = app.color(app.random(255), app.random(255), app.random(255));
+				generatedColors.add(randomColor);
+			}
+		}
 	}
 
 	/**

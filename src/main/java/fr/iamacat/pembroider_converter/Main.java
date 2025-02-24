@@ -278,13 +278,17 @@ public class Main extends PApplet implements Translatable {
                 if (embroidery == null) {
                     embroidery = new PEmbroiderGraphics(this, img.width, img.height);
                 }
+                embroidery.popyLineMulticolor = colorType == ColorType.MultiColor;
                 embroidery.beginDraw();
                 embroidery.clear();
                 img.resize(1000, 1000);
-                embroidery.extractedColors = embroidery.extractColorsFromImage(img);
+                embroidery.colorizeEmbroideryFromImage = colorType == ColorType.Realistic;
+                if (embroidery.colorizeEmbroideryFromImage) {
+                    embroidery.extractedColors = embroidery.extractColorsFromImage(img);
+                }
                 updateProgress(10);
                 embroidery.beginCull();
-                embroidery.colorizeEmbroideryFromImage = colorType == ColorType.Realistic;
+
                 switch (selectedHatchMode) {
                     case "CROSS":
                         embroidery.hatchMode(PEmbroiderGraphics.CROSS);
@@ -315,7 +319,6 @@ public class Main extends PApplet implements Translatable {
                 } else {
                     embroidery.fill(0, 0, 0);
                 }
-                embroidery.popyLineMulticolor = colorType == ColorType.MultiColor;
                 embroidery.image(img, 860, 70);
                 embroidery.endCull();
                 updateProgress(80);
