@@ -365,16 +365,10 @@ public class Main extends PApplet implements Translatable {
             }
         }
         if (showPreview && embroidery != null) {
-            float scaleX = visualizationWidth / width;
-            float scaleY = visualizationHeight / height;
-            float scale = max(scaleX, scaleY);
-            float offsetX = (visualizationWidth - width * scale) / 2 + 600;
-            float offsetY = (visualizationHeight - height * scale) / 2;
-
             if (img != null && embroidery.polylines != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
                 embroidery.visualize(true, false, false, Integer.MAX_VALUE,
                         visualizationWidth * 2.71430f,
-                        visualizationHeight * 2.71430f, offsetX, offsetY);
+                        visualizationHeight * 2.71430f, +550, 250);
             }
         }
 
