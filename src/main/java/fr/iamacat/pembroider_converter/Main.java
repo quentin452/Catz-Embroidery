@@ -49,8 +49,6 @@ public class Main extends PApplet implements Translatable {
 
     public boolean FillB= false;
 
-    String hoverText = "";
-    boolean showTooltip = false;
     PFont tooltipFont;
 
     Textfield maxMultiColorTextField;
@@ -109,205 +107,63 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void setupGUI() {
-        cp5.addButton("loadImage")
-                .setPosition(20, 20)
-                .setSize(120, 30)
-                .setLabel(Translator.getInstance().translate("load_image"))
-                .onClick(event -> loadImage());
-
-        cp5.addButton("saveFile")
-                .setPosition(160, 20)
-                .setSize(120, 30)
-                .setLabel(Translator.getInstance().translate("saving"))
-                .onClick(event -> saveOnDropboxOrLocally());
-        cp5.addButton("enableFillMode")
-                .setPosition(20, 320)
-                .setSize(100, 30)
-                .setLabel(Translator.getInstance().translate("enable_fill_mode"))
-                .onClick(event -> updateFillMode());
-        cp5.addDropdownList("hatchModeSelector")
-                .setPosition(580, 22)
-                .setSize(135, 120)
-                .addItems(hatchModes)
-                .setLabel(Translator.getInstance().translate("hatch_mode"))
-                .onChange(event -> {
-                    int index = (int) event.getController().getValue();
-                    if (index >= 0 && index < hatchModes.length) {
-                        selectedHatchMode = hatchModes[index];
-                        if (img != null) refreshPreview();
-                    }
-                });
-
-        maxMultiColorTextField = cp5.addTextfield("maxMultiColorField")
-                .setPosition(20, 280)
-                .setSize(100, 30)
-                .setColor(color(255))
-                .setText(str(embroidery.maxColors))
-                .setAutoClear(false);
-
-        maxMultiColorTextField.onChange(event -> {
-            try {
-                embroidery.maxColors = Integer.parseInt(event.getController().getStringValue());
-                if (embroidery.maxColors < 1) embroidery.maxColors = 1;
-                if (img != null) refreshPreview();
-            } catch (NumberFormatException e) {
-                Logger.getInstance().log(Logger.Project.Converter,"Invalid value for max multi color");
-            }
-        });
-        maxMultiColorTextField.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-40)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText(Translator.getInstance().translate("max_color_multicolor_feature"))
-                .setColor(color(0));
-
-        maxMultiColorTextField.onEnter(event -> {
-            hoverText = Translator.getInstance().translate("max_color_multicolor_feature");
-            showTooltip = true;
-        });
-
-        maxMultiColorTextField.onLeave(event -> {
-            showTooltip = false;
-        });
-        DropdownList colorModeDropdown = cp5.addDropdownList("colorMode")
-                .setPosition(310, 22)
-                .setSize(100, 150)
-                .setBarHeight(20)
-                .setItemHeight(20)
-                .addItems(Arrays.stream(ColorType.values())
-                        .map(Enum::name) // Convert enum to string
-                        .toArray(String[]::new))
-                .onChange(event -> {
-                    colorType = ColorType.values()[(int) event.getController().getValue()];
+        CP5ComponentsUtil.createActionButton(cp5, 20, 20, 120, 30, "load_image", this::loadImage);
+        CP5ComponentsUtil.createActionButton(cp5, 160, 20, 120, 30, "saving", this::saveOnDropboxOrLocally);
+        CP5ComponentsUtil.createActionButton(cp5, 20, 320, 100, 30, "enable_fill_mode", this::updateFillMode);
+        CP5ComponentsUtil.createDropdownList(cp5, "hatchModeSelector", 580, 22, 135, 120, hatchModes, "hatch_mode", true,
+                index -> {
+                    selectedHatchMode = hatchModes[index];
                     if (img != null) refreshPreview();
                 });
-
-
-        colorModeDropdown.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-30)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText(Translator.getInstance().translate("color_mode"))
-                .setColor(color(255));
-        Textfield stitchSpacingField = cp5.addTextfield("stitchSpacing")
-                .setPosition(20, 120)
-                .setSize(100, 30)
-                .setText(str(currentSpacing))
-                .setAutoClear(false)
-                .onChange(event -> {
-                    try {
-                        currentSpacing = Float.parseFloat(event.getController().getStringValue());
-                        if (img != null) refreshPreview();
-                    } catch (NumberFormatException e) {
-                        Logger.getInstance().log(Logger.Project.Converter,"Invalid Value for Spacing");
-                    }
+        CP5ComponentsUtil.createDropdownList(cp5, "colorMode", 310, 22, 100, 150,
+                Arrays.stream(ColorType.values()).map(Enum::name).toArray(String[]::new), "", false,
+                index -> {
+                    colorType = ColorType.values()[index];
+                    if (img != null) refreshPreview();
                 });
-        stitchSpacingField.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-40)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText(Translator.getInstance().translate("space_between_points"))
-                .setColor(color(0));
-        stitchSpacingField.onEnter(event -> {
-            hoverText = Translator.getInstance().translate("space_between_points");
-            showTooltip = true;
-        });
-
-        stitchSpacingField.onLeave(event -> {
-            showTooltip = false;
-        });
-        Textfield strokeWeightField = cp5.addTextfield("strokeWeight")
-                .setPosition(20, 240)
-                .setSize(100, 30)
-                .setText(str(currentStrokeWeight))
-                .setAutoClear(false)
-                .onChange(event -> {
-                    try {
-                        currentStrokeWeight = Float.parseFloat(event.getController().getStringValue());
-                        if (img != null) refreshPreview();
-                    } catch (NumberFormatException e) {
-                        Logger.getInstance().log(Logger.Project.Converter,"Invalid Value for currentStrokeWeight");
-                    }
+        maxMultiColorTextField = CP5ComponentsUtil.createNumericTextField(cp5, "maxMultiColorField", 20, 280, 100, 30,
+                color(255), color(0), str(embroidery.maxColors), "max_color_multicolor_feature",
+                value -> {
+                    embroidery.maxColors = Math.max(1, value.intValue());
+                    if (img != null) refreshPreview();
                 });
-        strokeWeightField.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-40)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText(Translator.getInstance().translate("stroke_weight"))
-                .setColor(color(0));
-        strokeWeightField.onEnter(event -> {
-            hoverText = Translator.getInstance().translate("stroke_weight");
-            showTooltip = true;
-        });
-
-        strokeWeightField.onLeave(event -> {
-            showTooltip = false;
-        });
-        Textfield exportWidthField = cp5.addTextfield("exportWidth")
-                .setPosition(20, 160)
-                .setSize(100, 30)
-                .setText(str(exportWidth))
-                .setAutoClear(false)
-                .onChange(event -> {
-                    try {
-                        exportWidth = Float.parseFloat(event.getController().getStringValue());
-                        Logger.getInstance().log(Logger.Project.Converter,"Largeur mise à jour : " + exportWidth);
-                        if (img != null) refreshPreview();
-                    } catch (NumberFormatException e) {
-                        Logger.getInstance().log(Logger.Project.Converter,"Valeur invalide pour la largeur");
-                    }
+        CP5ComponentsUtil.createNumericTextField(cp5, "stitchSpacing", 20, 120, 100, 30, color(255), color(0),
+                str(currentSpacing), "space_between_points",
+                value -> {
+                    currentSpacing = value;
+                    if (img != null) refreshPreview();
                 });
-        exportWidthField.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-40)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText(Translator.getInstance().translate("width_in_mm"))
-                .setColor(color(0));
-        exportWidthField.onEnter(event -> {
-            hoverText = Translator.getInstance().translate("width_in_mm");
-            showTooltip = true;
-        });
-
-        exportWidthField.onLeave(event -> {
-            showTooltip = false;
-        });
-        Textfield exportHeightField = cp5.addTextfield("exportHeight")
-                .setPosition(20, 200)
-                .setSize(100, 30)
-                .setText(str(exportHeight))
-                .setAutoClear(false)
-                .onChange(event -> {
-                    try {
-                        exportHeight = Float.parseFloat(event.getController().getStringValue());
-                        Logger.getInstance().log(Logger.Project.Converter,"Hauteur mise à jour : " + exportHeight);
-                        if (img != null) refreshPreview();
-                    } catch (NumberFormatException e) {
-                        Logger.getInstance().log(Logger.Project.Converter,"Valeur invalide pour la hauteur");
-                    }
+        CP5ComponentsUtil.createNumericTextField(cp5, "strokeWeight", 20, 240, 100, 30, color(255), color(0),
+                str(currentStrokeWeight), "stroke_weight",
+                value -> {
+                    currentStrokeWeight = value;
+                    if (img != null) refreshPreview();
                 });
-        exportHeightField.getCaptionLabel()
-                .setPaddingX(0)
-                .setPaddingY(-40)
-                .align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE)
-                .setText(Translator.getInstance().translate("height_in_mm"))
-                .setColor(color(0));
-        exportHeightField.onEnter(event -> {
-            hoverText = Translator.getInstance().translate("height_in_mm");
-            showTooltip = true;
-        });
-
-        exportHeightField.onLeave(event -> {
-            showTooltip = false;
-        });
+        CP5ComponentsUtil.createNumericTextField(cp5, "exportWidth", 20, 160, 100, 30, color(255), color(0),
+                str(exportWidth), "width_in_mm",
+                value -> {
+                    exportWidth = value;
+                    Logger.getInstance().log(Logger.Project.Converter, "Largeur mise à jour : " + exportWidth);
+                    if (img != null) refreshPreview();
+                });
+        CP5ComponentsUtil.createNumericTextField(cp5, "exportHeight", 20, 200, 100, 30, color(255), color(0),
+                str(exportHeight), "height_in_mm",
+                value -> {
+                    exportHeight = value;
+                    Logger.getInstance().log(Logger.Project.Converter, "Hauteur mise à jour : " + exportHeight);
+                    if (img != null) refreshPreview();
+                });
         int centerX = width / 2 - 150;
         progressBar = cp5.addSlider("progressBar")
-                .setPosition(centerX, 240) // Centré horizontalement
+                .setPosition(centerX, 240)
                 .setSize(300, 20)
                 .setRange(0, 100)
                 .setValue(0)
-                .setLabel(Translator.getInstance().translate("progess"));
-        progressBar.setVisible(false);
+                .setLabel(Translator.getInstance().translate("progess"))
+                .setVisible(false);
     }
+
+
 
     private void updateFillMode()
     {
@@ -340,11 +196,9 @@ public class Main extends PApplet implements Translatable {
         }
     }
     public void saveFile() {
-        if (dropboxClient == null && !isDialogOpen) {
-            if (embroidery != null) {
-                isDialogOpen = true;
-                selectOutput(Translator.getInstance().translate("save_as"), "fileSaved");
-            }
+        if (dropboxClient == null && !isDialogOpen && embroidery != null) {
+            isDialogOpen = true;
+            selectOutput(Translator.getInstance().translate("save_as"), "fileSaved");
         }
     }
     public void setComponentsEnabled(boolean enabled) {
@@ -517,11 +371,11 @@ public class Main extends PApplet implements Translatable {
                         (float) ((int) exportHeight * 2.71430), offsetX, offsetY);
             }
         }
-        if (showTooltip) {
+        if (CP5ComponentsUtil.showTooltip) {
             textAlign(CENTER, BOTTOM);
             textFont(tooltipFont);
             fill(0);
-            text(hoverText, (float) width / 2, height - 20);
+            text(CP5ComponentsUtil.hoverText, (float) width / 2, height - 20);
         }
     }
 
