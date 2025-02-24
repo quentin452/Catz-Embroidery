@@ -890,7 +890,6 @@ public class Main extends PApplet implements Translatable {
         if (!isDialogOpen) {
             isDialogOpen = true;
             saveFile();
-            ApplicationUtil.exitApplication(this);
         }
     }
 
