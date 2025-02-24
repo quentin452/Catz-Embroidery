@@ -29,6 +29,7 @@ import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.uploadToDropbox;
 
 public class Main extends PApplet implements Translatable {
+    private FPSUtil fpsUtil;
 
     private PImage img;
     private PEmbroiderGraphics embroidery;
@@ -72,6 +73,7 @@ public class Main extends PApplet implements Translatable {
 
     @Override
     public void setup() {
+        fpsUtil = new FPSUtil(this);
         tooltipFont = createFont("Arial", 24);
 
         Translator.getInstance().registerTranslatable(this);
@@ -390,6 +392,7 @@ public class Main extends PApplet implements Translatable {
         } else if (event.getKeyCode() == java.awt.event.KeyEvent.VK_P) {
             showPreview = !showPreview;
         }
+        fpsUtil.keyPressed(key);
     }
 
     private void showSavingDialog() {

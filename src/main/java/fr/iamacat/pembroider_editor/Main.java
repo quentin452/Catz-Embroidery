@@ -20,6 +20,8 @@ import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.uploadToDropbox;
 
 public class Main extends PApplet implements Translatable {
+    private FPSUtil fpsUtil;
+
     interface UndoableCommand {
         void execute();
         void undo();
@@ -712,6 +714,8 @@ public class Main extends PApplet implements Translatable {
 
     @Override
     public void setup() {
+        fpsUtil = new FPSUtil(this);
+
         PSurfaceAWT awtSurface = (PSurfaceAWT) getSurface();
         PSurfaceAWT.SmoothCanvas canvas = (PSurfaceAWT.SmoothCanvas) awtSurface.getNative();
         JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(canvas);
@@ -824,6 +828,7 @@ public class Main extends PApplet implements Translatable {
         } else if ((event.isControlDown() || event.isMetaDown()) && event.getKeyCode() == java.awt.event.KeyEvent.VK_Y) {
             redo();
         }
+        fpsUtil.keyPressed(key);
     }
 
 
