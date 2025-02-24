@@ -19,7 +19,6 @@ import java.util.Stack;
 import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.uploadToDropbox;
 
-// TODO FIX , USING THE TOOL_FINELINE set a color and if you use an another tool it set an another color
 public class Main extends PApplet implements Translatable {
     interface UndoableCommand {
         void execute();
