@@ -348,38 +348,41 @@ public class Main extends PApplet implements Translatable {
     @Override
     public void draw() {
         background(240);
+        float maxDisplayWidth = max((float) width / 2 - 40, 10);
+        float maxDisplayHeight = max(height - 90, 10);
+        float x = 190;
+        float y = 70;
         if (img != null && img.width > 0 && img.height > 0) {
-            float maxDisplayWidth = max((float) width / 2 - 40, 10);
-            float maxDisplayHeight = max(height - 90, 10);
             float displayWidth = min(maxDisplayWidth, img.width);
             float displayHeight = min(maxDisplayHeight, img.height);
-            float x = constrain(190, 0, width - displayWidth);
-            float y = constrain(70, 0, height - displayHeight);
+            x = constrain(x, 0, width - displayWidth);
+            y = constrain(y, 0, height - displayHeight);
+
             try {
                 image(img, x, y, displayWidth, displayHeight);
             } catch (Exception e) {
                 println("Erreur d'affichage : " + e.getMessage());
             }
         }
-
         if (showPreview && embroidery != null) {
             float scaleX = visualizationWidth / width;
             float scaleY = visualizationHeight / height;
             float scale = max(scaleX, scaleY);
-            float offsetX = (visualizationWidth - width * scale) / 2;
+            float offsetX = (visualizationWidth - width * scale) / 2 + 600;
             float offsetY = (visualizationHeight - height * scale) / 2;
-            offsetX += 600;
-            if (img != null && embroidery.polylines != null && embroidery.colors != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
+
+            if (img != null && embroidery.polylines != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
                 embroidery.visualize(true, false, false, Integer.MAX_VALUE,
-                        (float) ((int) visualizationWidth * 2.71430),
-                        (float) ((int) visualizationHeight * 2.71430), offsetX, offsetY);
+                        visualizationWidth * 2.71430f,
+                        visualizationHeight * 2.71430f, offsetX, offsetY);
             }
         }
+
         if (CP5ComponentsUtil.showTooltip) {
             textAlign(CENTER, BOTTOM);
             textFont(tooltipFont);
             fill(0);
-            text(CP5ComponentsUtil.hoverText, (float) width / 2, height - 20);
+            text(CP5ComponentsUtil.hoverText, width / 2f, height - 20);
         }
     }
 
