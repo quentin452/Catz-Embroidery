@@ -777,19 +777,16 @@ public class Main extends PApplet implements Translatable {
 
         drawGui();
 
-        if (mouseOnCanvas()){
-            if (tool == TOOL_FREEHAND || tool == TOOL_PAINT || tool == TOOL_FATPAINT || tool == TOOL_FINELINE){
-                if (mousePressed){
-                    PVector p = new PVector(mouseX-PX,mouseY);
-                    if (polyBuff.isEmpty() || polyBuff.get(polyBuff.size()-1).dist(p) > 10){
-                        polyBuff.add(p);
-                    }
-                }else if (polyBuff.size() > 2){
-                    newElementFromPolyBuff();
+        if (mouseOnCanvas() && (tool == TOOL_FREEHAND || tool == TOOL_PAINT || tool == TOOL_FATPAINT || tool == TOOL_FINELINE)){
+            if (mousePressed){
+                PVector p = new PVector(mouseX-PX,mouseY);
+                if (polyBuff.isEmpty() || polyBuff.get(polyBuff.size()-1).dist(p) > 10){
+                    polyBuff.add(p);
                 }
+            }else if (polyBuff.size() > 2){
+                newElementFromPolyBuff();
             }
         }
-
     }
     @Override
     public void mousePressed(MouseEvent evt){
