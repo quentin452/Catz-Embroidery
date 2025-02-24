@@ -24,6 +24,7 @@ import processing.event.KeyEvent;
 
 import javax.swing.*;
 
+import static fr.iamacat.utils.ApplicationUtil.pasteImageFromClipboard;
 import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.uploadToDropbox;
 
@@ -174,7 +175,7 @@ public class Main extends PApplet implements Translatable {
         progressBar.setVisible(true);
     }
 
-    private void  refreshPreview(){
+    private void refreshPreview(){
         processImageWithProgress();
     }
 
@@ -378,54 +379,15 @@ public class Main extends PApplet implements Translatable {
     @Override
     public void keyPressed(KeyEvent event) {
         if ((event.isControlDown() || event.isMetaDown()) && event.getKeyCode() == java.awt.event.KeyEvent.VK_V) {
-            pasteImageFromClipboard();
+            Image awtImage = pasteImageFromClipboard();
+            img = new PImage(awtImage);
+            refreshPreview();
+            enableEscapeMenu = true;
         } else if (event.getKeyCode() == java.awt.event.KeyEvent.VK_P) {
             showPreview = !showPreview;
         }
     }
 
-    private void pasteImageFromClipboard() {
-        try {
-            java.awt.datatransfer.Clipboard clipboard = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
-            Transferable transferable = clipboard.getContents(null);
-
-            if (transferable != null) {
-                boolean imageProcessed = false;
-
-                // Vérifier si le presse-papiers contient un fichier image
-                if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                    List<File> files = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
-                    if (!files.isEmpty()) {
-                        File file = files.get(0);
-                        java.awt.Image awtImage = javax.imageio.ImageIO.read(file);
-                        img = new PImage(awtImage);
-                        refreshPreview();
-                        imageProcessed = true;
-                        enableEscapeMenu = true;
-                    }
-                }
-
-                // Vérifier si le presse-papiers contient une image directement
-                if (!imageProcessed && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                    java.awt.Image awtImage = (java.awt.Image) transferable.getTransferData(DataFlavor.imageFlavor);
-                    img = new PImage(awtImage);
-                    refreshPreview();
-                    imageProcessed = true;
-                    enableEscapeMenu = true;
-                }
-
-                if (!imageProcessed) {
-                    Logger.getInstance().log(Logger.Project.Converter, "Aucune image trouvée dans le presse-papiers.");
-                }
-
-            } else {
-                Logger.getInstance().log(Logger.Project.Converter, "Le presse-papiers est vide ou inaccessible.");
-            }
-        } catch (Exception e) {
-            Logger.getInstance().log(Logger.Project.Converter, "Erreur lors du collage de l'image : " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
     private void showSavingDialog() {
         DialogUtil.showSavingDialog(
                 (Component) this.getSurface().getNative(), // Composant parent
