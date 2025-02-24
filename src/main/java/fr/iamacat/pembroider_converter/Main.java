@@ -389,14 +389,9 @@ public class Main extends PApplet implements Translatable {
                 if (polylines != null && colors != null) {
                     img = PEmbroiderReader.createImageFromPolylines(polylines, colors, width, height,this);
 
-                    if (img != null) {
-                        refreshPreview();
-                        enableEscapeMenu = true;
-                        showPreview = true;
-                    } else {
-                        Logger.getInstance().log(Logger.Project.Converter,
-                                "Erreur lors de la création de l'image depuis les polylines et couleurs.");
-                    }
+                    refreshPreview();
+                    enableEscapeMenu = true;
+                    showPreview = true;
                 }
             } else {
                 Logger.getInstance().log(Logger.Project.Converter,
@@ -404,16 +399,6 @@ public class Main extends PApplet implements Translatable {
             }
         }
     }
-    private void writeOut(ByteArrayOutputStream outputStream,boolean isSVG) {
-        try {
-            embroidery.optimize();
-            PEmbroiderWriter.write(this, String.valueOf(outputStream), embroidery.polylines, embroidery.colors,
-                    (int) exportWidth, (int) exportHeight,isSVG);
-        } catch (Exception e) {
-            Logger.getInstance().log(Logger.Project.Editor, "Erreur lors de l'écriture : " + e.getMessage());
-        }
-    }
-
 
     public void fileSaved(File selection) {
         isDialogOpen = false;
@@ -539,7 +524,7 @@ public class Main extends PApplet implements Translatable {
             textAlign(CENTER, BOTTOM);
             textFont(tooltipFont);
             fill(0);
-            text(hoverText, width / 2, height - 20);
+            text(hoverText, (float) width / 2, height - 20);
         }
     }
 
