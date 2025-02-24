@@ -122,7 +122,7 @@ public class Main extends PApplet implements Translatable {
                     if (img != null) refreshPreview();
                 });
         maxMultiColorTextField = CP5ComponentsUtil.createNumericTextField(cp5, "maxMultiColorField", 20, 280, 100, 30,
-                color(255), color(0), str(embroidery.maxColors), "max_color_multicolor_feature",
+                color(255), color(0), str(embroidery.maxColors), "max_color",
                 value -> {
                     embroidery.maxColors = Math.max(1, value.intValue());
                     if (img != null) refreshPreview();
@@ -162,8 +162,6 @@ public class Main extends PApplet implements Translatable {
                 .setLabel(Translator.getInstance().translate("progess"))
                 .setVisible(false);
     }
-
-
 
     private void updateFillMode()
     {
@@ -212,7 +210,6 @@ public class Main extends PApplet implements Translatable {
             }
         });
     }
-
 
     public void imageSelected(File selection) {
         isDialogOpen = false;
@@ -339,7 +336,6 @@ public class Main extends PApplet implements Translatable {
             }
         }).start();
     }
-
 
     @Override
     public void draw() {

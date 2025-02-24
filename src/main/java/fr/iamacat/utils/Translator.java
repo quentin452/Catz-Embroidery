@@ -58,6 +58,7 @@ public class Translator {
         translatables.add(translatable);
     }
     public String translate(String key) {
-        return translations.getOrDefault(currentLanguage, translations.get("en")).get(key);
+        Map<String, String> langTranslations = translations.getOrDefault(currentLanguage, translations.get("en"));
+        return langTranslations.getOrDefault(key, key);
     }
 }
