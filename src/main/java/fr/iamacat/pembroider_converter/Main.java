@@ -262,6 +262,7 @@ public class Main extends PApplet implements Translatable {
                 embroidery.optimize();
                 PEmbroiderWriter.write(this,path, embroidery.polylines, embroidery.colors, (int) exportWidth, (int) exportHeight, isSVG);
                 updateProgress(100,false);
+                enableEscapeMenu = false;
             } catch (Exception e) {
                 Logger.getInstance().log(Logger.Project.Converter,"Error during saving file : " + e.getMessage());
             } finally {
@@ -271,6 +272,7 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void processImageWithProgress() {
+        enableEscapeMenu = true;
         setComponentsEnabled(false);
         showPreview = false;
         updateProgress(0, true);

@@ -314,6 +314,7 @@ public class Main extends PApplet implements Translatable {
 
         polyBuff.clear();
         needsUpdate = true;
+        enableEscapeMenu = true;
     }
 
 
@@ -345,6 +346,7 @@ public class Main extends PApplet implements Translatable {
         }
         E.optimize();
         E.endDraw();
+        enableEscapeMenu = false;
     }
 
     void drawToolButton(int index, int toolType, String label) {
@@ -735,15 +737,7 @@ public class Main extends PApplet implements Translatable {
     boolean mouseOnCanvas(){
         return PX < mouseX && mouseX < PX+W && 0 < mouseY && mouseY < H;
     }
-
-    private boolean hasEmbroideryRendered() {
-        for (Layer layer : layers) {
-            if (!layer.elements.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
-    }
+    
     @Override
     public void draw(){
         background(100);
@@ -864,6 +858,7 @@ public class Main extends PApplet implements Translatable {
             command.undo();
             redoStack.push(command);
             needsUpdate = true;
+            enableEscapeMenu = true;
         }
     }
 
@@ -873,11 +868,11 @@ public class Main extends PApplet implements Translatable {
             command.execute();
             undoStack.push(command);
             needsUpdate = true;
+            enableEscapeMenu = true;
         }
     }
 
     private void showExitDialog() {
-        enableEscapeMenu = hasEmbroideryRendered();
         DialogUtil.showExitDialog(
                 (Component) this.getSurface().getNative(),
                 enableEscapeMenu,
