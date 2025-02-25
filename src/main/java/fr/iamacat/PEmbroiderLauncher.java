@@ -121,6 +121,7 @@ public class PEmbroiderLauncher extends Game implements Translatable {
         batch.dispose();
         img.dispose();
         stage.dispose();  // N'oublie pas de libérer la mémoire du stage
+        UIUtils.skin.dispose();
         Logger.getInstance().log(Logger.Project.Launcher,"Fermeture de l'application");
         Logger.getInstance().archiveLogs();
     }
@@ -135,6 +136,9 @@ public class PEmbroiderLauncher extends Game implements Translatable {
     @Override
     public void updateTranslations() {
         dropboxButton.setText(Translator.getInstance().translate("connect_to_dropbox"));
+        editorButton.setText(Translator.getInstance().translate("launch_editor"));
+        converterButton.setText(Translator.getInstance().translate("launch_converter"));
+
     }
     private void runApplication(String mainClassName) {
         try {
