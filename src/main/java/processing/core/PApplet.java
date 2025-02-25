@@ -6501,22 +6501,14 @@ public class PApplet implements PConstants {
 
   public void selectInput(String prompt, String callback,
                           File file, Object callbackObject) {
-    selectInput(prompt, callback, file, callbackObject, null, this);  //selectFrame());
-  }
-
-
-  static public void selectInput(String prompt, String callbackMethod,
-                                 File file, Object callbackObject, Frame parent,
-                                 PApplet sketch) {
-    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.LOAD, sketch);
+    selectInput(prompt, callback, file, callbackObject, null);  //selectFrame());
   }
 
 
   static public void selectInput(String prompt, String callbackMethod,
                                  File file, Object callbackObject, Frame parent) {
-    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.LOAD, null);
+    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.LOAD);
   }
-
 
   /**
    * See selectInput() for details.
@@ -6537,62 +6529,50 @@ public class PApplet implements PConstants {
 
   public void selectOutput(String prompt, String callback,
                            File file, Object callbackObject) {
-    selectOutput(prompt, callback, file, callbackObject, null, this); //selectFrame());
+    selectOutput(prompt, callback, file, callbackObject, null); //selectFrame());
   }
 
 
   static public void selectOutput(String prompt, String callbackMethod,
                                   File file, Object callbackObject, Frame parent) {
-    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.SAVE, null);
+    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.SAVE);
   }
-
-
   static public void selectOutput(String prompt, String callbackMethod,
                                   File file, Object callbackObject, Frame parent,
                                   PApplet sketch) {
-    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.SAVE, sketch);
+    selectImpl(prompt, callbackMethod, file, callbackObject, parent, FileDialog.SAVE);
   }
 
-
-  // Will remove the 'sketch' parameter once we get an upstream JOGL fix
-  // https://github.com/processing/processing/issues/3831
   static protected void selectImpl(final String prompt,
                                    final String callbackMethod,
                                    final File defaultSelection,
                                    final Object callbackObject,
                                    final Frame parentFrame,
-                                   final int mode,
-                                   final PApplet sketch) {
+                                   final int mode) {
     EventQueue.invokeLater(new Runnable() {
       @Override
       public void run() {
         File selectedFile = null;
-
-        boolean hide = (sketch != null) &&
-          (sketch.g instanceof PGraphicsOpenGL) && (platform == WINDOWS);
-        if (hide) sketch.surface.setVisible(false);
-
         if (useNativeSelect) {
+          // Utiliser FileDialog en mode modal
           FileDialog dialog = new FileDialog(parentFrame, prompt, mode);
+          dialog.setModal(true); // Rendre la fenêtre modale
           if (defaultSelection != null) {
             dialog.setDirectory(defaultSelection.getParent());
             dialog.setFile(defaultSelection.getName());
           }
-
           dialog.setVisible(true);
           String directory = dialog.getDirectory();
           String filename = dialog.getFile();
           if (filename != null) {
             selectedFile = new File(directory, filename);
           }
-
         } else {
           JFileChooser chooser = new JFileChooser();
           chooser.setDialogTitle(prompt);
           if (defaultSelection != null) {
             chooser.setSelectedFile(defaultSelection);
           }
-
           int result = -1;
           if (mode == FileDialog.SAVE) {
             result = chooser.showSaveDialog(parentFrame);
@@ -6603,13 +6583,10 @@ public class PApplet implements PConstants {
             selectedFile = chooser.getSelectedFile();
           }
         }
-
-        if (hide) sketch.surface.setVisible(true);
         selectCallback(selectedFile, callbackMethod, callbackObject);
       }
     });
   }
-
 
   /**
    * See selectInput() for details.

@@ -1,16 +1,17 @@
 package fr.iamacat.pembroider_converter;
 
 import java.awt.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.*;
+import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetAdapter;
 import java.awt.dnd.DropTargetDropEvent;
 import java.io.*;
 import java.util.*;
 import java.util.List;
 
+import com.jogamp.newt.opengl.GLWindow;
 import fr.iamacat.utils.*;
-import processing.awt.PSurfaceAWT;
 import processing.controlP5.*;
 import processing.controlP5.Button;
 import processing.core.PApplet;
@@ -21,6 +22,7 @@ import processing.embroider.PEmbroiderGraphics;
 import processing.embroider.PEmbroiderReader;
 import processing.embroider.PEmbroiderWriter;
 import processing.event.KeyEvent;
+import processing.opengl.PSurfaceJOGL;
 
 import javax.swing.*;
 
@@ -68,7 +70,7 @@ public class Main extends PApplet implements Translatable {
 
     @Override
     public void settings() {
-        size(currentWidth, currentHeight);
+        size(currentWidth, currentHeight,P2D);
     }
 
     @Override
@@ -82,33 +84,38 @@ public class Main extends PApplet implements Translatable {
         cp5 = new ControlP5(this);
         embroidery = new PEmbroiderGraphics(this, width, height);
         setupGUI();
-
-        PSurfaceAWT awtSurface = (PSurfaceAWT) getSurface();
-        PSurfaceAWT.SmoothCanvas canvas = (PSurfaceAWT.SmoothCanvas) awtSurface.getNative();
-        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(canvas);
-        if (frame != null) {
-            frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        Object nativeSurface = surface.getNative();
+        // Utilisez les bonnes valeurs pour les paramètres
+        int ops = DnDConstants.ACTION_COPY_OR_MOVE; // Exemple d'opération (copie ou déplacement)
+        if (nativeSurface instanceof GLWindow) {
+            println("nativeSurface instanceof GLWIndow");
+        } else {
+            println("nativeSurface not instanceof GLWIndow");
         }
-        new DropTarget((Component) this.getSurface().getNative(), new java.awt.dnd.DropTargetAdapter() {
+
+        FlavorMap flavorMap = SystemFlavorMap.getDefaultFlavorMap(); // FlavorMap par défaut
+        new DropTargetGLWindow((GLWindow) nativeSurface, ops, new java.awt.dnd.DropTargetAdapter() {
             @Override
-            public void drop(DropTargetDropEvent event) {
-                try {
-                    event.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
-                    Transferable transferable = event.getTransferable();
-                    if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                        List<File> files = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
-                        if (!files.isEmpty()) {
-                            File file = files.get(0);
-                            showPreview = false;
-                            imageSelected(file);
-                            showPreview = true;
-                        }
+            public void drop(DropTargetDropEvent dtde) {
+                println("called drop");
+                dtde.acceptDrop(java.awt.dnd.DnDConstants.ACTION_COPY);
+                Transferable transferable = dtde.getTransferable();
+                if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                    List<File> files;
+                    try {
+                        files = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
+                    } catch (UnsupportedFlavorException | IOException e) {
+                        throw new RuntimeException(e);
                     }
-                } catch (Exception e) {
-                    Logger.getInstance().log(Logger.Project.Converter, "Erreur lors du glisser-déposer : " + e.getMessage());
+                    if (!files.isEmpty()) {
+                        File file = files.get(0);
+                        showPreview = false;
+                        imageSelected(file);
+                        showPreview = true;
+                    }
                 }
             }
-        });
+        }, true, flavorMap);
     }
 
     private void setupGUI() {
@@ -190,6 +197,7 @@ public class Main extends PApplet implements Translatable {
         if (dropboxClient != null) {
             showSavingDialog();
         }else {
+
             saveFile();
         }
     }
@@ -399,7 +407,6 @@ public class Main extends PApplet implements Translatable {
 
     private void showSavingDialog() {
         DialogUtil.showSavingDialog(
-                (Component) this.getSurface().getNative(), // Composant parent
                 (dropboxClient != null), // Vérifier si Dropbox est disponible
                 this::saveFile, // Action de sauvegarde locale
                 selectedFile -> { // Action de sauvegarde sur Dropbox
@@ -411,7 +418,6 @@ public class Main extends PApplet implements Translatable {
 
     private void showExitDialog() {
         DialogUtil.showExitDialog(
-                (Component) this.getSurface().getNative(),
                 enableEscapeMenu,
                 (dropboxClient != null),
                 this::saveFileAndExit,

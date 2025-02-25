@@ -1,7 +1,6 @@
 package fr.iamacat.pembroider_editor;
 
 import fr.iamacat.utils.*;
-import processing.awt.PSurfaceAWT;
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PVector;
@@ -105,7 +104,7 @@ public class Main extends PApplet implements Translatable {
 
     @Override
     public void settings() {
-        size(currentWidth, currentHeight);
+        size(currentWidth, currentHeight,P2D);
     }
 
     public static void main(String[] args) {
@@ -401,29 +400,43 @@ public class Main extends PApplet implements Translatable {
         popMatrix();
     }
     private void saveFile() {
-        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-        fileChooser.setDialogTitle("Enregistrer le fichier de broderie");
-        javax.swing.filechooser.FileNameExtensionFilter pesFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers PES (*.pes)", "pes");
-        javax.swing.filechooser.FileNameExtensionFilter svgFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers SVG (*.svg)", "svg");
-        javax.swing.filechooser.FileNameExtensionFilter dstFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers DST (*.dst)", "dst");
-        fileChooser.addChoosableFileFilter(pesFilter);
-        fileChooser.addChoosableFileFilter(svgFilter);
-        fileChooser.addChoosableFileFilter(dstFilter);
-        fileChooser.setFileFilter(pesFilter);
-        int userSelection = fileChooser.showSaveDialog(null);
-        if (userSelection == javax.swing.JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
+        // Crée un FileDialog pour l'enregistrement du fichier
+        FileDialog fileDialog = new FileDialog((Frame)null, "Enregistrer le fichier de broderie", FileDialog.SAVE);
+
+        // Ajoute un filtre pour les fichiers
+        String[] filters = {"pes", "svg", "dst"};
+        fileDialog.setFilenameFilter((dir, name) -> {
+            // Appliquer les filtres selon l'extension du fichier
+            for (String ext : filters) {
+                if (name.toLowerCase().endsWith("." + ext)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        fileDialog.setVisible(true);
+
+        // Récupère le fichier sélectionné par l'utilisateur
+        String directory = fileDialog.getDirectory();
+        String filename = fileDialog.getFile();
+
+        if (filename != null) {
+            File fileToSave = new File(directory, filename);
             String filePath = fileToSave.getAbsolutePath();
+
+            // Si l'utilisateur n'a pas ajouté d'extension, ajoute celle du filtre sélectionné
             if (!filePath.contains(".")) {
-                if (fileChooser.getFileFilter() == pesFilter) {
+                if (filename.endsWith(".pes")) {
                     filePath += ".pes";
-                } else if (fileChooser.getFileFilter() == svgFilter) {
+                } else if (filename.endsWith(".svg")) {
                     filePath += ".svg";
-                } else if (fileChooser.getFileFilter() == dstFilter) {
+                } else if (filename.endsWith(".dst")) {
                     filePath += ".dst";
                 }
                 fileToSave = new File(filePath);
             }
+
             Logger.getInstance().log(Logger.Project.Editor, "Enregistrer le fichier sous : " + fileToSave.getAbsolutePath());
             javax.swing.JOptionPane.showMessageDialog(null, "Optimisation de l'ordre des points et enregistrement du fichier, cela peut prendre un certain temps...");
             writeOut(fileToSave.getAbsolutePath());
@@ -432,32 +445,54 @@ public class Main extends PApplet implements Translatable {
             javax.swing.JOptionPane.showMessageDialog(null, "Enregistrement annulé par l'utilisateur.");
         }
     }
+
     private void saveFile(File selectedFile) {
         if (selectedFile != null) {
-            String filePath = selectedFile.getAbsolutePath();
-            if (!filePath.contains(".")) {
-                javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
-                fileChooser.setDialogTitle("Enregistrer le fichier de broderie");
-                javax.swing.filechooser.FileNameExtensionFilter pesFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers PES (*.pes)", "pes");
-                javax.swing.filechooser.FileNameExtensionFilter svgFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers SVG (*.svg)", "svg");
-                javax.swing.filechooser.FileNameExtensionFilter dstFilter = new javax.swing.filechooser.FileNameExtensionFilter("Fichiers DST (*.dst)", "dst");
-                javax.swing.filechooser.FileFilter fileFilter = fileChooser.getFileFilter();
-                if (Objects.equals(fileFilter, pesFilter)) {
-                    filePath += ".pes";
-                } else if (Objects.equals(fileFilter, svgFilter)) {
-                    filePath += ".svg";
-                } else if (Objects.equals(fileFilter, dstFilter)) {
-                    filePath += ".dst";
-                }
-                selectedFile = new File(filePath);
-            }
+            // Crée un FileDialog pour l'enregistrement du fichier
+            FileDialog fileDialog = new FileDialog((Frame)null, "Enregistrer le fichier de broderie", FileDialog.SAVE);
 
-            Logger.getInstance().log(Logger.Project.Editor, "Enregistrer le fichier sous : " + selectedFile.getAbsolutePath());
-            JOptionPane.showMessageDialog(null, "Optimisation de l'ordre des points et enregistrement du fichier, cela peut prendre un certain temps...");
-            writeOut(selectedFile.getAbsolutePath());  // Sauvegarde le contenu du fichier
-            JOptionPane.showMessageDialog(null, "Fichier de broderie enregistré avec succès !");
+            // Ajoute un filtre pour les fichiers
+            String[] filters = {"pes", "svg", "dst"};
+            fileDialog.setFilenameFilter((dir, name) -> {
+                // Appliquer les filtres selon l'extension du fichier
+                for (String ext : filters) {
+                    if (name.toLowerCase().endsWith("." + ext)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            fileDialog.setVisible(true);
+
+            // Récupère le fichier sélectionné par l'utilisateur
+            String directory = fileDialog.getDirectory();
+            String filename = fileDialog.getFile();
+
+            if (filename != null) {
+                File fileToSave = new File(directory, filename);
+                String filePath = fileToSave.getAbsolutePath();
+
+                // Si l'utilisateur n'a pas ajouté d'extension, ajoute celle du filtre sélectionné
+                if (!filePath.contains(".")) {
+                    if (filename.endsWith(".pes")) {
+                        filePath += ".pes";
+                    } else if (filename.endsWith(".svg")) {
+                        filePath += ".svg";
+                    } else if (filename.endsWith(".dst")) {
+                        filePath += ".dst";
+                    }
+                    fileToSave = new File(filePath);
+                }
+
+                Logger.getInstance().log(Logger.Project.Editor, "Enregistrer le fichier sous : " + fileToSave.getAbsolutePath());
+                JOptionPane.showMessageDialog(null, "Optimisation de l'ordre des points et enregistrement du fichier, cela peut prendre un certain temps...");
+                writeOut(fileToSave.getAbsolutePath());  // Sauvegarde le contenu du fichier
+                JOptionPane.showMessageDialog(null, "Fichier de broderie enregistré avec succès !");
+            }
         }
     }
+
     void drawLayersGui(){
         int ww = width-PX-W;
         pushStyle();
@@ -718,12 +753,9 @@ public class Main extends PApplet implements Translatable {
     public void setup() {
         fpsUtil = new FPSUtil(this);
 
-        PSurfaceAWT awtSurface = (PSurfaceAWT) getSurface();
-        PSurfaceAWT.SmoothCanvas canvas = (PSurfaceAWT.SmoothCanvas) awtSurface.getNative();
-        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(canvas);
-        if (frame != null) {
-            frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        }
+        /*PSurfaceJOGL joglSurface = (PSurfaceJOGL) getSurface();
+        JFrame frame = (JFrame) joglSurface.getNative();
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);*/
         Translator.getInstance().registerTranslatable(this);
         surface.setResizable(true);
         render = createGraphics(W, H);
@@ -843,7 +875,6 @@ public class Main extends PApplet implements Translatable {
 
     private void showSavingDialog() {
         DialogUtil.showSavingDialog(
-                (Component) this.getSurface().getNative(), // Composant parent
                 (dropboxClient != null), // Vérifier si Dropbox est disponible
                 this::saveFile, // Action de sauvegarde locale
                 selectedFile -> { // Action de sauvegarde sur Dropbox
@@ -874,7 +905,6 @@ public class Main extends PApplet implements Translatable {
 
     private void showExitDialog() {
         DialogUtil.showExitDialog(
-                (Component) this.getSurface().getNative(),
                 enableEscapeMenu,
                 (dropboxClient != null),
                 this::saveFileAndExit,

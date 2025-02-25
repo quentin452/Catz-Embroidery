@@ -58,7 +58,9 @@ public class DropboxUtil {
         Logger.getInstance().log(Logger.Project.Launcher, "3. Copy the authorization code.");
 
         String code = JOptionPane.showInputDialog("Enter the authorization code here:");
-
+        if (code == null) {
+            return;
+        }
         try {
             DbxAuthFinish authFinish = webAuth.finishFromCode(code);
             String accessToken = authFinish.getAccessToken();

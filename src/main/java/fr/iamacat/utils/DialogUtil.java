@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 public class DialogUtil {
 
     public static void showExitDialog(
-            Component parent,
             boolean enableEscapeMenu,
             boolean hasDropbox,
             Runnable saveAndExitHandler,
@@ -39,7 +38,7 @@ public class DialogUtil {
 
         // Affichage de la boîte de dialogue
         int option = JOptionPane.showOptionDialog(
-                parent,
+                null,
                 Translator.getInstance().translate("save_sentence_1"),
                 Translator.getInstance().translate("confirm_closing"),
                 JOptionPane.DEFAULT_OPTION,
@@ -107,7 +106,6 @@ public class DialogUtil {
     }
 
     public static void showSavingDialog(
-            Component parent,
             boolean hasDropbox,
             Runnable saveLocallyHandler, // Action de sauvegarde locale
             Consumer<File> saveToDropboxHandler // Action pour la sauvegarde sur Dropbox
@@ -120,7 +118,7 @@ public class DialogUtil {
 
         // Affichage de la boîte de dialogue
         int option = JOptionPane.showOptionDialog(
-                parent,
+                null,
                 Translator.getInstance().translate("save_sentence_1"),
                 Translator.getInstance().translate("confirm_saving"),
                 JOptionPane.DEFAULT_OPTION,

@@ -12,7 +12,16 @@ public class Main extends PApplet implements Translatable {
         PApplet.main("fr.iamacat.pembroider_infinitedraw.Main");
     }
     @Override
+    public void settings() {
+        size(1280, 720,P2D);
+    }
+    @Override
+    public void draw() {
+        background(255);
+    }
+    @Override
     public void updateTranslations() {
 
     }
+
 }

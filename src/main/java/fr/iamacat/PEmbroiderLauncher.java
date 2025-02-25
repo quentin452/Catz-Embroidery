@@ -27,7 +27,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
 
     @Override
     public void settings() {
-        size(800, 600);
+        size(800, 600,P2D);
     }
 
     @Override
@@ -76,6 +76,7 @@ public class PEmbroiderLauncher extends PApplet implements Translatable {
 
     @Override
     public void draw() {
+        background(200);
         // Affichage des boutons
         buttonEditor.display(this);
         // TODO   buttonViewer.display();
