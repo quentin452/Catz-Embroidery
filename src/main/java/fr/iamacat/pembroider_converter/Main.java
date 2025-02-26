@@ -54,43 +54,17 @@ public class Main implements Screen, Translatable {
     private void createMenu() {
         // Barre de menu
         VisTable menuBar = new VisTable();
-        menuBar.setBackground(VisUI.getSkin().getDrawable("default-pane")); // Style du menu
+        menuBar.setBackground(VisUI.getSkin().getDrawable("default-pane"));
 
-        // Bouton "File" avec un menu déroulant
-        VisTextButton fileButton = new VisTextButton(Translator.getInstance().translate("file"));
+        // Création du menu "File" en une seule ligne
+        PopupMenu fileMenu = UIUtils.createPopupMenu(
+                new String[]{"save_locally", "exit"},
+                this::showSaveDialog, // Action pour "Save Locally"
+                () -> Gdx.app.exit()  // Action pour "Exit"
+        );
 
-        // Création du menu déroulant
-        PopupMenu fileMenu = new PopupMenu();
-
-        // Élément "Save Locally"
-        MenuItem saveItem = new MenuItem(Translator.getInstance().translate("save_locally"));
-        saveItem.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                showSaveDialog();
-            }
-        });
-
-        // Élément "Exit"
-        MenuItem exitItem = new MenuItem(Translator.getInstance().translate("exit"));
-        exitItem.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                Gdx.app.exit();
-            }
-        });
-
-        // Ajouter les éléments au menu
-        fileMenu.addItem(saveItem);
-        fileMenu.addItem(exitItem);
-
-        // Ajouter un écouteur pour ouvrir le menu au clic
-        fileButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                fileMenu.showMenu(stage, fileButton);
-            }
-        });
+        // Création du bouton "File" avec son menu déroulant
+        VisTextButton fileButton = UIUtils.createMenuButton("file", fileMenu, stage);
 
         // Ajouter les boutons à la barre de menu
         menuBar.add(fileButton).pad(5);

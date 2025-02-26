@@ -2,11 +2,16 @@ package fr.iamacat.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
+import com.kotcrab.vis.ui.widget.MenuItem;
+import com.kotcrab.vis.ui.widget.PopupMenu;
+import com.kotcrab.vis.ui.widget.VisTextButton;
+
 import java.util.Arrays;
 
 import static fr.iamacat.utils.Translator.isReloadingLanguage;
@@ -125,7 +130,36 @@ public class UIUtils {
         addCallback(dropdown, callback);
         checkComponentOutsideWindow(x, y, dropdown.getWidth(), dropdown.getHeight(),Arrays.toString(options.items));
         return dropdown;
+    }    public static MenuItem createMenuItem(String text, Runnable action) {
+        MenuItem item = new MenuItem(Translator.getInstance().translate(text));
+        item.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                action.run();
+            }
+        });
+        return item;
     }
+
+    public static PopupMenu createPopupMenu(String[] labels, Runnable... actions) {
+        PopupMenu menu = new PopupMenu();
+        for (int i = 0; i < labels.length; i++) {
+            menu.addItem(createMenuItem(labels[i], actions[i]));
+        }
+        return menu;
+    }
+
+    public static VisTextButton createMenuButton(String text, PopupMenu menu, Stage stage) {
+        VisTextButton button = new VisTextButton(Translator.getInstance().translate(text));
+        button.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                menu.showMenu(stage, button);
+            }
+        });
+        return button;
+    }
+
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {
         int windowWidth = Gdx.graphics.getWidth();
         int windowHeight = Gdx.graphics.getHeight();
