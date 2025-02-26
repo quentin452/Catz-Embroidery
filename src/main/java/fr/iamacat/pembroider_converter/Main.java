@@ -1,36 +1,31 @@
 package fr.iamacat.pembroider_converter;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.DragAndDrop;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
-import com.kotcrab.vis.ui.widget.file.FileChooser;
-import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
-import fr.iamacat.utils.Translatable;
-import fr.iamacat.utils.Translator;
-import fr.iamacat.utils.UIUtils;
+import fr.iamacat.utils.*;
 
-import javax.swing.filechooser.FileFilter;
-import java.io.File;
-
-public class Main implements Screen, Translatable {
-    private Stage stage;
+public class Main implements Screen, Translatable , InputProcessor {
+    public static Stage stage;
     private PopupMenu fileMenu;
     private PopupMenu editMenu;
     private PopupMenu colorModeMenu;
     private ColorType currentColorType = ColorType.MultiColor;
-    private Image displayedImage;
+    public static Image displayedImage;
+    private DragAndDrop dragAndDrop;
+    public boolean FillB = false;
 
     private VisTable rootTable;
     private enum ColorType {
@@ -40,13 +35,14 @@ public class Main implements Screen, Translatable {
     }
     public Main() {
         stage = new Stage();
-        Gdx.input.setInputProcessor(stage);
-
+        InputMultiplexer multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(stage);
+        multiplexer.addProcessor(this);
+        Gdx.input.setInputProcessor(multiplexer);
         // Créer un tableau principal
         rootTable = new VisTable();
         rootTable.setFillParent(true);
         stage.addActor(rootTable);
-
         // Ajouter le menu
         createMenu();
     }
@@ -63,6 +59,7 @@ public class Main implements Screen, Translatable {
 
         // Traductions des éléments du menu "Edit"
         String colorModeStr = Translator.getInstance().translate("color_mode");
+        String fillModeStr = Translator.getInstance().translate("enable_fill_mode");
 
         // Création du menu "File"
         fileMenu = UIUtils.createPopupMenu(
@@ -79,9 +76,14 @@ public class Main implements Screen, Translatable {
 
         // Création du menu "Edit"
         editMenu = UIUtils.createPopupMenu(
-                new String[]{colorModeStr},
-                this::changeColorMode
+                new String[]{colorModeStr,fillModeStr},
+                this::changeColorMode,
+                this::updateFillMode
         );
+        editMenu = new PopupMenu();
+        MenuItem colorModeItem = new MenuItem(colorModeStr);
+        colorModeItem.setSubMenu(colorModeMenu);
+        editMenu.addItem(colorModeItem);
 
         // Création du bouton "File" avec son menu déroulant
         VisTextButton fileButton = UIUtils.createMenuButton("file", true, fileMenu, stage);
@@ -97,6 +99,25 @@ public class Main implements Screen, Translatable {
         rootTable.bottom().top();
         rootTable.add(menuBar).expandX().fillX();
     }
+    private void updateDisplayedImage(Texture texture) {
+        if (displayedImage != null) {
+            displayedImage.remove();  // Remove the old image if it exists
+        }
+
+        // Créer une nouvelle image
+        displayedImage = new Image(texture);
+
+        // Positionner l'image manuellement sans affecter la disposition du VisTable
+        float windowWidth = Gdx.graphics.getWidth();
+        float windowHeight = Gdx.graphics.getHeight();
+        displayedImage.setSize(500, 500);
+        displayedImage.setPosition((windowWidth - displayedImage.getWidth()) / 2, (windowHeight - displayedImage.getHeight()) / 2);
+
+        // Ajouter l'image au stage sans l'ajouter au rootTable
+        stage.addActor(displayedImage);
+    }
+
+
     private MenuItem createColorMenuItem(ColorType type) {
         // Utilisation d'un ChangeListener pour l'action du clic
         MenuItem item = new MenuItem(type.toString(), new ChangeListener() {
@@ -115,7 +136,6 @@ public class Main implements Screen, Translatable {
             case MultiColor:
                 break;
             case BlackAndWhite:
-
                 break;
             case Realistic:
                 break;
@@ -124,15 +144,22 @@ public class Main implements Screen, Translatable {
     }
     private void setColorMode(ColorType type) {
         currentColorType = type;
-        // Mettre à jour l'affichage du menu
-        colorModeMenu.getChildren().forEach(actor -> {
-            MenuItem item = (MenuItem) actor;
+
+        // Créer une liste des éléments avant de les modifier
+        Array<MenuItem> menuItems = new Array<>();
+        for (Actor actor : colorModeMenu.getChildren()) {
+            if (actor instanceof MenuItem) {
+                menuItems.add((MenuItem) actor);
+            }
+        }
+
+        // Appliquer les modifications après l'itération
+        for (MenuItem item : menuItems) {
             item.setChecked(item.getText().equals(type.toString()));
-        });
+        }
     }
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(stage);
     }
 
     @Override
@@ -187,6 +214,84 @@ public class Main implements Screen, Translatable {
     public void dispose() {
         stage.dispose();
     }
+    @Override
+    public boolean keyDown(int keycode) {
+        System.out.println("keyDown triggered, keycode: " + keycode);
+
+        // Listen for Ctrl+V
+        if (keycode == Input.Keys.V && Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
+            System.out.println("Ctrl+V detected!");
+
+            // Paste image from clipboard
+            Image pastedImage = ApplicationUtil.pasteImageFromClipboard();
+            if (pastedImage != null) {
+                System.out.println("Image pasted from clipboard!");
+
+                // Get the texture from the pasted image
+                Drawable drawable = pastedImage.getDrawable();
+                if (drawable instanceof TextureRegionDrawable) {
+                    System.out.println("Drawable is a TextureRegionDrawable.");
+
+                    Texture texture = ((TextureRegionDrawable) drawable).getRegion().getTexture();
+                    updateDisplayedImage(texture);
+                    System.out.println("Texture updated with the pasted image.");
+                } else {
+                    System.out.println("Drawable is not a TextureRegionDrawable.");
+                }
+            } else {
+                System.out.println("No image found in clipboard.");
+            }
+            return true;
+        }
+        return false;
+    }
+
+
+    @Override
+    public boolean keyUp(int i) {
+        return false;
+    }
+
+    @Override
+    public boolean keyTyped(char c) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDown(int i, int i1, int i2, int i3) {
+        return false;
+    }
+
+    @Override
+    public boolean touchUp(int i, int i1, int i2, int i3) {
+        return false;
+    }
+
+    @Override
+    public boolean touchCancelled(int i, int i1, int i2, int i3) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDragged(int i, int i1, int i2) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseMoved(int i, int i1) {
+        return false;
+    }
+
+    @Override
+    public boolean scrolled(float v, float v1) {
+        return false;
+    }
+
+    private void showLoadDialog() {
+        DialogUtil.ImageWrapper imageWrapper = new DialogUtil.ImageWrapper();
+        DialogUtil.showFileChooserDialog(stage, imageWrapper);
+    }
+
     private void showSaveDialog() {
         VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
             @Override
@@ -208,121 +313,16 @@ public class Main implements Screen, Translatable {
     }
 
 
-    private void showLoadDialog() {
-        // Définir le nom des préférences pour les emplacements favoris
-        String userHome = System.getProperty("user.home");
-        FileChooser.setFavoritesPrefsName(userHome + "/.pembroider_converter");
-
-        // Créer l'instance du FileChooser
-        final FileChooser fileChooser = new FileChooser(FileChooser.Mode.OPEN);
-
-        // Configurer le FileChooser pour sélectionner uniquement les fichiers
-        fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
-
-        // Ajouter un filtre pour n'afficher que les fichiers PES et PNG
-        fileChooser.setFileFilter(file -> {
-            FileHandle fileHandle = new FileHandle(file);
-            String ext = fileHandle.extension().toLowerCase();
-            return file.isDirectory() || (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif"));
-        });
-
-        // Définir un fournisseur d'icônes personnalisé
-        fileChooser.setIconProvider(new FileChooser.DefaultFileIconProvider(fileChooser) {
-            @Override
-            public Drawable provideIcon(FileChooser.FileItem item) {
-                float iconSize = 48f;
-
-                // Si l'élément est un répertoire
-                if (item.isDirectory()) {
-                    return getDirIcon(item);
-                }
-
-                // Récupérer le fichier et son extension
-                FileHandle file = item.getFile();
-                String ext = file.extension().toLowerCase();
-
-                // Si c'est un fichier d'image, afficher la miniature
-                if (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif")) {
-                    Drawable thumbnail = getImageThumbnail(file); // Crée la miniature
-                    thumbnail.setMinWidth(iconSize);  // Définir la largeur de l'icône
-                    thumbnail.setMinHeight(iconSize); // Définir la hauteur de l'icône
-                    return thumbnail;
-                }
-
-                // Si c'est un autre type de fichier, afficher l'icône par défaut
-                Drawable defaultIcon = getDefaultIcon(item);
-                defaultIcon.setMinWidth(iconSize);  // Définir la largeur de l'icône
-                defaultIcon.setMinHeight(iconSize); // Définir la hauteur de l'icône
-                return defaultIcon;
-            }
-
-
-            @Override
-            public boolean isThumbnailModesSupported() {
-                return true;
-            }
-
-            @Override
-            public void directoryChanged(FileHandle fileHandle) {
-
-            }
-
-            @Override
-            public void viewModeChanged(FileChooser.ViewMode viewMode) {
-
-            }
-        });
-
-        // Ajouter un écouteur pour gérer la sélection des fichiers
-        fileChooser.setListener(new FileChooserAdapter() {
-            @Override
-            public void selected(Array<FileHandle> files) {
-                // Gérer le fichier sélectionné
-                FileHandle selectedFile = files.first();  // Récupérer le premier fichier sélectionné
-                if (selectedFile != null) {
-                    String filePath = selectedFile.file().getAbsolutePath();
-                    System.out.println("Fichier sélectionné : " + filePath);
-
-                    // Charger l'image sélectionnée et l'afficher au centre de l'écran
-                    if (displayedImage != null) {
-                        displayedImage.remove();  // Supprimer l'image précédente si elle existe
-                    }
-
-                    Texture texture = new Texture(selectedFile);  // Charger l'image en texture
-                    displayedImage = new Image(texture);  // Créer un Image avec cette texture
-
-                    // Redimensionner l'image en fonction de la taille de la fenêtre
-                    float windowWidth = Gdx.graphics.getWidth();
-                    float windowHeight = Gdx.graphics.getHeight();
-
-                    // Redimensionner l'image
-                    displayedImage.setSize(500, 500);
-
-                    // Centrer l'image sur l'écran
-                    float x = (windowWidth - displayedImage.getWidth()) / 2;
-                    float y = (windowHeight - displayedImage.getHeight()) / 2;
-                    displayedImage.setPosition(x, y);
-
-                    stage.addActor(displayedImage);  // Ajouter l'image à la scène
-                }
-            }
-        });
-
-        fileChooser.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);
-
-        // Centrer le FileChooser sur l'écran
-        fileChooser.setPosition(Gdx.graphics.getWidth() * 0.125f, Gdx.graphics.getHeight() * 0.125f);
-
-        // Ajouter le FileChooser à la scène et l'afficher
-        stage.addActor(fileChooser.fadeIn());
+    private void updateFillMode()
+    {
+        FillB = !FillB;
     }
-    private Drawable getImageThumbnail(FileHandle fileHandle) {
-        Texture texture = new Texture(fileHandle);
-        return new TextureRegionDrawable(new TextureRegion(texture));
-    }
-
 
     private void changeColorMode() {
 
+    }
+
+    public static Stage getStage() {
+        return stage;
     }
 }

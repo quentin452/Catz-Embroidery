@@ -112,9 +112,6 @@ public class Main extends PApplet implements Translatable {
     }
 
     private void setupGUI() {
-        CP5ComponentsUtil.createActionButton(cp5, 20, 20, 120, 30, "load_image", this::loadImage);
-        CP5ComponentsUtil.createActionButton(cp5, 160, 20, 120, 30, "saving", this::saveOnDropboxOrLocally);
-        CP5ComponentsUtil.createActionButton(cp5, 20, 320, 100, 30, "enable_fill_mode", this::updateFillMode);
         CP5ComponentsUtil.createDropdownList(cp5, "hatchModeSelector", 580, 22, 135, 120, hatchModes, "hatch_mode", true,
                 index -> {
                     selectedHatchMode = hatchModes[index];
@@ -168,11 +165,6 @@ public class Main extends PApplet implements Translatable {
                 .setVisible(false);
     }
 
-    private void updateFillMode()
-    {
-        FillB = !FillB;
-        if (img != null) refreshPreview();
-    }
 
     private void refreshPreview(){
         processImageWithProgress();
@@ -429,15 +421,4 @@ public class Main extends PApplet implements Translatable {
             selectOutput("Sauvegarder sous", "fileSaved");
         }
     }
-
-    @Override
-    public void exit() {
-        showExitDialog();
-    }
-
-    @Override
-    public void updateTranslations() {
-
-    }
-
 }
