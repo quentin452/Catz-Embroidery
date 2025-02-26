@@ -2,6 +2,7 @@ package fr.iamacat.pembroider_mainmenu;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -15,6 +16,7 @@ import com.badlogic.gdx.utils.Array;
 import fr.iamacat.PEmbroiderLauncher;
 import fr.iamacat.utils.*;
 
+import java.awt.*;
 import java.io.IOException;
 
 import static fr.iamacat.PEmbroiderLauncher.windowHeight;
@@ -47,16 +49,17 @@ public class Main implements Screen, Translatable {
         Gdx.input.setInputProcessor(stage); // Le stage gère les entrées de l'utilisateur
 
         // Créer un Skin pour les éléments de l'UI (comme les boutons)
-        dropboxButton = UIUtils.createButton(stage,"connect_to_dropbox",true, 10,10, 200, 40, this::connectToDropbox);
-        editorButton = UIUtils.createButton(stage,"launch_editor",true, windowWidth / 2 - 100, windowHeight/ 2 - 20, 200, 40, this::launchEditor);
-        converterButton = UIUtils.createButton(stage,"launch_converter",true, windowWidth / 2 - 100, windowHeight/ 2 - 60, 200, 40, this::launchConverter);
+        dropboxButton = UIUtils.createButton(stage,"connect_to_dropbox",true, 10,10, 200, 40,Color.RED, this::connectToDropbox);
+        editorButton = UIUtils.createButton(stage,"launch_editor",true, windowWidth / 2 - 100, windowHeight/ 2 - 20, 200, 40,Color.LIGHT_GRAY, this::launchEditor);
+        converterButton = UIUtils.createButton(stage,"launch_converter",true, windowWidth / 2 - 100, windowHeight/ 2 - 60, 200, 40,Color.LIGHT_GRAY, this::launchConverter);
 
         languages.add("English");
         languages.add("Français");
-        languageDropdown = UIUtils.createDropdown(languages, stage, windowWidth - 155, windowHeight - 35, 150, 30,this::updateLanguage);
-        UIUtils.createLabel(stage, "version", true, windowWidth / 2 - 25, windowHeight - 10, 0,0, Align.top,Align.top,"default");
-        UIUtils.createLabel(stage, Updater.CURRENT_VERSION, false, windowWidth / 2 + 40, windowHeight - 10, 0, 0,Align.left,Align.top, "default");
-        UIUtils.createLabel(stage,"choose_app",true,windowWidth / 2 - 6, windowHeight / 2 + 35 ,15, 15,Align.center, Align.center,"default");
+        languageDropdown = UIUtils.createDropdown(languages, stage, windowWidth - 155, windowHeight - 35, 150, 30,Color.GRAY,this::updateLanguage);
+
+        UIUtils.createLabel(stage, "version", true, windowWidth / 2 - 25, windowHeight - 10, 0,0, Align.top,Align.top,Color.BLACK,"default");
+        UIUtils.createLabel(stage, Updater.CURRENT_VERSION, false, windowWidth / 2 + 40, windowHeight - 10, 0, 0,Align.left,Align.top,Color.BLACK, "default");
+        UIUtils.createLabel(stage,"choose_app",true,windowWidth / 2 - 6, windowHeight / 2 + 35 ,15, 15,Align.center, Align.center,Color.BLACK,"default");
 
         // Ajout à la scène
         Translator.getInstance().registerTranslatable(this);
@@ -78,9 +81,9 @@ public class Main implements Screen, Translatable {
         batch.draw(img, windowWidth - img.getWidth() - 10, 10);
         batch.end();
         if (dropboxClient != null) {
-            dropboxButton.setColor(0f, 1f, 0f,1f); // Couleur verte si connecté
+            dropboxButton.setColor(Color.GREEN);
         } else {
-            dropboxButton.setColor(1f, 0f, 0f,1f); // Couleur rouge si non connecté
+            dropboxButton.setColor(Color.RED);
         }
         // Dessiner le stage (c'est là que le bouton sera rendu)
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));  // Met à jour la scène (stage)

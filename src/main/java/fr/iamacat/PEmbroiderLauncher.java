@@ -5,19 +5,23 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import fr.iamacat.pembroider_mainmenu.Main;
+import fr.iamacat.utils.FontManager;
 import fr.iamacat.utils.UIUtils;
 
 public class PEmbroiderLauncher extends Game {
     public static int windowWidth = 1280;
     public static int windowHeight = 720;
+    public static BitmapFont font;
+
     private boolean showFPS = true;
     private boolean vsyncEnabled = true;
-
     private Stage stage;
     private Label fpsLabel;
 
@@ -29,7 +33,6 @@ public class PEmbroiderLauncher extends Game {
 
         // Création du Label FPS
         fpsLabel = new Label("FPS: 0", UIUtils.skin);
-        fpsLabel.setVisible(false); // Caché par défaut
 
         // Placement du label en haut à gauche avec une Table
         Table table = new Table();
@@ -38,6 +41,8 @@ public class PEmbroiderLauncher extends Game {
         table.add(fpsLabel).pad(10);
 
         stage.addActor(table);
+        fpsLabel.setColor(Color.BLACK);
+        fpsLabel.setSize(15,15);
         fpsLabel.setVisible(showFPS);
         setScreen(new Main(this));
     }

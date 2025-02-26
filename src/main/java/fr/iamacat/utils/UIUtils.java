@@ -1,6 +1,7 @@
 package fr.iamacat.utils;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -9,14 +10,15 @@ import com.badlogic.gdx.utils.Array;
 import java.util.Arrays;
 
 public class UIUtils {
-    public static Skin skin = new Skin(Gdx.files.internal("uiskins/cloud-form/skin/cloud-form-ui.json"));
+    public static Skin skin = FontManager.createCustomSkin("fonts/Microsoft Yahei.ttf", 16);
     // Création de bouton avec callback immédiat
-    public static TextButton createButton(Stage stage,String text,boolean translated, float x, float y, Runnable callback) {
+    public static TextButton createButton(Stage stage,String text,boolean translated, float x, float y, Color color, Runnable callback) {
         if (translated) {
             text = Translator.getInstance().translate(text);
         }
         TextButton button = new TextButton(text, skin);
         button.setPosition(x, y);
+        button.setColor(color);
         addCallback(button, callback);
         checkComponentOutsideWindow(x, y, button.getWidth(), button.getHeight(),text);
         stage.addActor(button);
@@ -25,12 +27,13 @@ public class UIUtils {
 
     // Version avec alignement et taille personnalisée
     public static TextButton createButton(Stage stage,String text,boolean translated, float x, float y,
-                                          float width, float height, Runnable callback) {
+                                          float width, float height, Color color, Runnable callback) {
         if (translated) {
             text = Translator.getInstance().translate(text);
         }
         TextButton button = new TextButton(text, skin);
         button.setPosition(x, y);
+        button.setColor(color);
         button.setSize(width, height);
         button.getLabel().setAlignment(Align.center);
         addCallback(button, callback);
@@ -61,17 +64,18 @@ public class UIUtils {
         });
     }
     // Méthode générique pour créer des tables
-    public static Table createTable(Stage stage, boolean fillParent) {
+    public static Table createTable(Stage stage, boolean fillParent, Color color) {
         Table table = new Table();
         if (fillParent) {
             table.setFillParent(true);
         }
+        table.setColor(color);
         stage.addActor(table);
         return table;
     }
 
     // Création de label avec style configurable
-    public static Label createLabel(Stage stage,String text, boolean translated, float x, float y, float width, float height,int labelAlign, int lineAlign, String styleName) {
+    public static Label createLabel(Stage stage,String text, boolean translated, float x, float y, float width, float height,int labelAlign, int lineAlign, Color color, String styleName) {
         if (translated) {
             text = Translator.getInstance().translate(text);
         }
@@ -79,30 +83,31 @@ public class UIUtils {
         label.setPosition(x, y);
         label.setSize(width, height);
         label.setAlignment(labelAlign | lineAlign);
+        label.setColor(color);
         stage.addActor(label);
         checkComponentOutsideWindow(x, y, label.getWidth(), label.getHeight(),text);
         return label;
     }
 
-    public static <T> SelectBox<T> createDropdown(Array<T> options, Stage stage, float x, float y, float width, float height, ChangeListener callback) {
+    public static <T> SelectBox<T> createDropdown(Array<T> options, Stage stage, float x, float y, float width, float height, Color color, ChangeListener callback) {
         SelectBox<T> dropdown = new SelectBox<>(skin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
         dropdown.setSize(width, height);
-
+        dropdown.setColor(color);
         // Ajout du callback sur changement de sélection
         dropdown.addListener(callback);
-
         // Ajouter le dropdown à la scène
         stage.addActor(dropdown);
         checkComponentOutsideWindow(x, y, dropdown.getWidth(), dropdown.getHeight(),Arrays.toString(options.items));
         return dropdown;
     }
-    public static <T> SelectBox<T> createDropdown(Array<T> options, Stage stage, float x, float y, float width, float height, Runnable callback) {
+    public static <T> SelectBox<T> createDropdown(Array<T> options, Stage stage, float x, float y, float width, float height, Color color, Runnable callback) {
         SelectBox<T> dropdown = new SelectBox<>(skin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
         dropdown.setSize(width, height);
+        dropdown.setColor(color);
         // Ajouter le dropdown à la scène
         stage.addActor(dropdown);
         addCallback(dropdown, callback);

@@ -1,4 +1,4 @@
-info face="Microsoft YaHei" size=16 bold=0 italic=0 charset="" unicode=0 stretchH=100 smooth=1 aa=1 padding=1,1,1,1 spacing=-2,-2
+info face="Microsoft YaHei" size=64 bold=0 italic=0 charset="" unicode=0 stretchH=100 smooth=0 aa=1 padding=1,1,1,1 spacing=-2,-2
 common lineHeight=22 base=17 scaleW=512 scaleH=512 pages=1 packed=0
 page id=0 file="exported-font.png"
 chars count=565
