@@ -18,6 +18,7 @@ public class Translator {
     private Map<String, Map<String, String>> translations;
     private String currentLanguage = "en";
     private final List<Translatable> translatables = new ArrayList<>();
+    public static boolean isReloadingLanguage;
     private Translator() {
         loadTranslations();
         currentLanguage = Saving.loadLanguage();
@@ -34,7 +35,7 @@ public class Translator {
     }
 
     private void loadTranslations() {
-        try (Reader reader = new InputStreamReader(getClass().getResourceAsStream("/translations.json"))) {
+        try (Reader reader = new InputStreamReader(getClass().getResourceAsStream("/translations.json"), "UTF-8")) {
             Type type = new TypeToken<Map<String, Map<String, String>>>(){}.getType();
             translations = new Gson().fromJson(reader, type);
         } catch (IOException e) {
@@ -42,7 +43,9 @@ public class Translator {
         }
     }
 
+
     public void setLanguage(String language) {
+        isReloadingLanguage = true;
         boolean needLanguageUpdate = !Objects.equals(currentLanguage, language);
         currentLanguage = language;
         Saving.saveLanguage(language);
@@ -52,6 +55,7 @@ public class Translator {
                 translatable.updateTranslations();
             }
         }
+        isReloadingLanguage = false;
     }
 
     public void registerTranslatable(Translatable translatable) {

@@ -36,7 +36,9 @@
     "enable_fill_mode": "Enable Fill mode?",
     "save_to_dropbox": "Save To Dropbox",
     "save_locally": "Save locally",
-    "connect_to_dropbox": "Connect to dropbox"
+    "connect_to_dropbox": "Connect to dropbox",
+    "english": "English",
+    "french": "French"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -75,6 +77,8 @@
     "enable_fill_mode": "Active le Fill mode?",
     "save_to_dropbox": "Sauvegarde vers dropbox",
     "save_locally": "Sauvegarde localement",
-    "connect_to_dropbox": "Connection vers dropbox"
+    "connect_to_dropbox": "Connection vers dropbox",
+    "english": "Anglais",
+    "french": "Français"
   }
 }

@@ -27,13 +27,12 @@ import static fr.iamacat.utils.DropboxUtil.loadTokenFromJson;
 public class Main implements Screen, Translatable {
     private TextButton dropboxButton,editorButton,converterButton;
     private SelectBox<String> languageDropdown;
-    Array<String> languages = new Array<>();
-
+    Array<String> languagesOptions = new Array<>();
     private SpriteBatch batch;
     private Texture img;
     private Stage stage;
     private PEmbroiderLauncher game;
-
+    Label versionLabel;
     public Main(PEmbroiderLauncher game) {
         this.game = game;
         stage = new Stage();
@@ -53,11 +52,12 @@ public class Main implements Screen, Translatable {
         editorButton = UIUtils.createButton(stage,"launch_editor",true, windowWidth / 2 - 100, windowHeight/ 2 - 20, 200, 40,Color.LIGHT_GRAY, this::launchEditor);
         converterButton = UIUtils.createButton(stage,"launch_converter",true, windowWidth / 2 - 100, windowHeight/ 2 - 60, 200, 40,Color.LIGHT_GRAY, this::launchConverter);
 
-        languages.add("English");
-        languages.add("Français");
-        languageDropdown = UIUtils.createDropdown(languages, stage, windowWidth - 155, windowHeight - 35, 150, 30,Color.GRAY,this::updateLanguage);
+        languagesOptions.add(Translator.getInstance().translate("english"));
+        languagesOptions.add(Translator.getInstance().translate("french"));
 
-        UIUtils.createLabel(stage, "version", true, windowWidth / 2 - 25, windowHeight - 10, 0,0, Align.top,Align.top,Color.BLACK,"default");
+        languageDropdown = UIUtils.createDropdown(stage,languagesOptions, windowWidth - 155, windowHeight - 35, 150, 30,Color.GRAY,this::updateLanguage);
+
+        versionLabel = UIUtils.createLabel(stage, "version", true, windowWidth / 2 - 25, windowHeight - 10, 0,0, Align.top,Align.top,Color.BLACK,"default");
         UIUtils.createLabel(stage, Updater.CURRENT_VERSION, false, windowWidth / 2 + 40, windowHeight - 10, 0, 0,Align.left,Align.top,Color.BLACK, "default");
         UIUtils.createLabel(stage,"choose_app",true,windowWidth / 2 - 6, windowHeight / 2 + 35 ,15, 15,Align.center, Align.center,Color.BLACK,"default");
 
@@ -118,7 +118,11 @@ public class Main implements Screen, Translatable {
         dropboxButton.setText(Translator.getInstance().translate("connect_to_dropbox"));
         editorButton.setText(Translator.getInstance().translate("launch_editor"));
         converterButton.setText(Translator.getInstance().translate("launch_converter"));
-
+        versionLabel.setText(Translator.getInstance().translate("version"));
+        languagesOptions.clear();
+        languagesOptions.add(Translator.getInstance().translate("english"));
+        languagesOptions.add(Translator.getInstance().translate("french"));
+        languageDropdown.setItems(languagesOptions);
     }
 
     private void launchEditor() {
@@ -128,12 +132,14 @@ public class Main implements Screen, Translatable {
         game.setScreen(new fr.iamacat.pembroider_converter.Main());
     }
     private void updateLanguage() {
-        // Get the selected language from the dropdown
-        String selectedLanguage = languageDropdown.getSelected();
-        // Set language code based on the selection
-        String languageCode = selectedLanguage.equals("English") ? "en" : "fr";
-        // Update the Translator's language
-        Translator.getInstance().setLanguage(languageCode);
+        String selected = languageDropdown.getSelected();
+        System.out.println("Selected language: " + selected + ", Dropdown selected index: " + languageDropdown.getSelectedIndex());
+
+        if (selected.equalsIgnoreCase("English") || selected.equalsIgnoreCase("Anglais")) {
+            Translator.getInstance().setLanguage("en");
+        } else if (selected.equalsIgnoreCase("Français") || selected.equalsIgnoreCase("French")) {
+            Translator.getInstance().setLanguage("fr");
+        }
     }
 
     private void connectToDropbox() {

@@ -9,6 +9,8 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import java.util.Arrays;
 
+import static fr.iamacat.utils.Translator.isReloadingLanguage;
+
 public class UIUtils {
     public static Skin skin = FontManager.createCustomSkin("fonts/Microsoft Yahei.ttf", 16);
     // Création de bouton avec callback immédiat
@@ -47,7 +49,7 @@ public class UIUtils {
         button.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                if (callback != null) {
+                if (!isReloadingLanguage && callback != null) {
                     callback.run();
                 }
             }
@@ -57,7 +59,7 @@ public class UIUtils {
         dropdown.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                if (callback != null) {
+                if (!isReloadingLanguage && callback != null) {
                     callback.run();
                 }
             }
@@ -89,7 +91,7 @@ public class UIUtils {
         return label;
     }
 
-    public static <T> SelectBox<T> createDropdown(Array<T> options, Stage stage, float x, float y, float width, float height, Color color, ChangeListener callback) {
+    public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options, float x, float y, float width, float height, Color color, ChangeListener callback) {
         SelectBox<T> dropdown = new SelectBox<>(skin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
@@ -102,7 +104,7 @@ public class UIUtils {
         checkComponentOutsideWindow(x, y, dropdown.getWidth(), dropdown.getHeight(),Arrays.toString(options.items));
         return dropdown;
     }
-    public static <T> SelectBox<T> createDropdown(Array<T> options, Stage stage, float x, float y, float width, float height, Color color, Runnable callback) {
+    public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options ,float x, float y, float width, float height, Color color, Runnable callback) {
         SelectBox<T> dropdown = new SelectBox<>(skin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
@@ -127,5 +129,4 @@ public class UIUtils {
                     "Window: (" + windowWidth + "x" + windowHeight + "))");
         }
     }
-
 }
