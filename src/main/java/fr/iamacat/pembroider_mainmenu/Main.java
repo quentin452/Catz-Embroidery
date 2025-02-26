@@ -16,7 +16,6 @@ import com.badlogic.gdx.utils.Array;
 import fr.iamacat.PEmbroiderLauncher;
 import fr.iamacat.utils.*;
 
-import java.awt.*;
 import java.io.IOException;
 
 import static fr.iamacat.PEmbroiderLauncher.windowHeight;

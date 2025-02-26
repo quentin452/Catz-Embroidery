@@ -9,43 +9,38 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.kotcrab.vis.ui.VisUI;
 import fr.iamacat.pembroider_mainmenu.Main;
-import fr.iamacat.utils.FontManager;
 import fr.iamacat.utils.UIUtils;
 
 public class PEmbroiderLauncher extends Game {
     public static int windowWidth = 1280;
     public static int windowHeight = 720;
-    public static BitmapFont font;
 
     private boolean showFPS = true;
     private boolean vsyncEnabled = true;
     private Stage stage;
     private Label fpsLabel;
+    Skin skin;
 
     @Override
     public void create() {
-        // Initialisation du Stage et du Skin
+        if (!VisUI.isLoaded()) {
+            VisUI.load();
+        }
+        //VisUI.load(Gdx.files.internal("uiskins/cloud-form/skin/cloud-form-ui.json"));  // TODO
+        skin = VisUI.getSkin();
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
-
-        // Création du Label FPS
-        fpsLabel = new Label("FPS: 0", UIUtils.skin);
-
-        // Placement du label en haut à gauche avec une Table
-        Table table = new Table();
-        table.top().left();
-        table.setFillParent(true);
-        table.add(fpsLabel).pad(10);
-
-        stage.addActor(table);
-        fpsLabel.setColor(Color.BLACK);
-        fpsLabel.setSize(15,15);
+        fpsLabel = UIUtils.createLabel(stage,"FPS: 0",false,35, windowHeight- 55,15,15, Align.top,Align.top,Color.BLACK ,"default");
         fpsLabel.setVisible(showFPS);
         setScreen(new Main(this));
     }
+
 
     @Override
     public void render() {

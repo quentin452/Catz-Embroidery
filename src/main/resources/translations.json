@@ -6,12 +6,13 @@
     "launch_converter": "Launch Converter",
     "launch_viewer": "Launch Viewer",
     "load_image": "Load Image",
+    "load_file": "Load File",
     "saving": "Saving",
     "space_between_points": "Spaces between points",
     "width_in_mm": "Width (mm)",
     "height_in_mm": "Height (mm)",
     "progress": "Progress",
-    "color_mode": "Color Mode ?",
+    "color_mode": "Color Mode",
     "layer": "Layer",
     "tooltip_editor_FREEHAND": "FREEHAND: Drag mouse to draw polygon, lift mouse to finish.",
     "tooltip_editor_VERTEX": "VERTEX: Click to add polygon vertex, double-click to finish.",
@@ -42,8 +43,12 @@
     "english": "English",
     "french": "French",
     "file": "File",
+    "edit": "Edit",
     "ok" : "Ok",
-    "please_select_an_image" : "Please select an image"
+    "exit": "Exit",
+    "please_select_an_image" : "Please select an image",
+    "save_options": "Save Options",
+    "load_options": "Load Options"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -52,12 +57,13 @@
     "launch_converter": "Lancer Convertisseur",
     "launch_viewer": "Lancer Visionneur",
     "load_image": "Charger l'image",
+    "load_file": "Charger un fichier",
     "saving": "Sauvegarder",
     "space_between_points": "Espace entre les points",
     "width_in_mm": "Largeur (mm)",
     "height_in_mm": "Hauteur (mm)",
     "progress": "Progression",
-    "color_mode": "Mode Couleur ?",
+    "color_mode": "Mode de couleur",
     "layer": "Couche",
     "tooltip_editor_FREEHAND": "A MAIN LEVEE : Faites glisser la souris pour dessiner un polygone, soulevez la souris pour terminer.",
     "tooltip_editor_VERTEX": "VERTICE : Cliquez pour ajouter un sommet de polygone, double-cliquez pour terminer.",
@@ -88,6 +94,11 @@
     "english": "Anglais",
     "french": "Français",
     "file": "Fichier",
-    "please_select_an_image" : "S'il vous plait sélectionné une image"
+    "edit": "Edité",
+    "ok" : "D'accord",
+    "exit": "Quitté",
+    "please_select_an_image" : "S'il vous plait sélectionné une image",
+    "save_options": "Options de sauvegarde",
+    "load_options": "Options de chargement"
   }
 }

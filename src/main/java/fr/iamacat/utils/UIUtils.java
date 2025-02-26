@@ -149,8 +149,11 @@ public class UIUtils {
         return menu;
     }
 
-    public static VisTextButton createMenuButton(String text, PopupMenu menu, Stage stage) {
-        VisTextButton button = new VisTextButton(Translator.getInstance().translate(text));
+    public static VisTextButton createMenuButton(String text,boolean translated, PopupMenu menu, Stage stage) {
+        if (translated) {
+            text = Translator.getInstance().translate(text);
+        }
+        VisTextButton button = new VisTextButton(text);
         button.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
