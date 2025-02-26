@@ -22,6 +22,7 @@ import static fr.iamacat.PEmbroiderLauncher.windowHeight;
 import static fr.iamacat.PEmbroiderLauncher.windowWidth;
 import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.loadTokenFromJson;
+import static fr.iamacat.utils.Updater.checkForUpdates;
 
 public class Main extends MainBase {
     private TextButton dropboxButton,editorButton,converterButton;
@@ -33,7 +34,7 @@ public class Main extends MainBase {
     Label versionLabel;
     public Main(PEmbroiderLauncher game) {
         this.game = game;
-        checkForUpdates();
+        checkForUpdates(getStage());
         loadTokenFromJson();
         // Création de la fenêtre et des objets de base
         batch = new SpriteBatch();
@@ -128,51 +129,4 @@ public class Main extends MainBase {
             DropboxUtil.connectToDropbox(getStage(), UIUtils.skin);
         }).start();
     }
-    private void checkForUpdates() {
-        if (Updater.isUpdateChecked) {
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                String latestVersion = Updater.getLatestVersionFromGitHub();
-                if (Updater.isVersionOutdated(Updater.CURRENT_VERSION, latestVersion)) {
-                    Logger.getInstance().log(Logger.Project.Launcher, "Une nouvelle version est disponible : " + latestVersion);
-
-                    // Afficher une boîte de dialogue modale avec deux boutons
-                    Gdx.app.postRunnable(() -> {
-                        // Créer un dialog pour informer l'utilisateur de la nouvelle version
-                        Dialog dialog = new Dialog("Mise à jour disponible", UIUtils.skin) {
-                            @Override
-                            protected void result(Object object) {
-                                // Si l'utilisateur clique sur "Oui"
-                                if ((Boolean) object) {
-                                    try {
-                                        Updater.openBrowserToReleasesPage();
-                                    } catch (IOException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                }
-                            }
-                        };
-
-                        // Ajouter du texte à la fenêtre de dialogue
-                        dialog.text("Une nouvelle version (" + latestVersion + ") est disponible. Voulez-vous ouvrir la page des releases ?");
-                        // Ajouter un bouton "Oui"
-                        dialog.button("Oui", true);
-                        // Ajouter un bouton "Non"
-                        dialog.button("Non", false);
-                        // Afficher le dialogue
-                        dialog.show(getStage());
-                    });
-                } else {
-                    Logger.getInstance().log(Logger.Project.Launcher, "Vous avez la version la plus récente.");
-                }
-            } catch (IOException e) {
-                Logger.getInstance().log(Logger.Project.Launcher, "Erreur lors de la vérification des mises à jour : " + e.getMessage());
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
 }

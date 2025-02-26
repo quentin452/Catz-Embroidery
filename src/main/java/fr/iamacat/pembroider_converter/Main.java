@@ -147,23 +147,7 @@ public class Main extends MainBase {
     }
 
     private void showSaveDialog() {
-        VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
-            @Override
-            protected void result(Object object) {
-                if ("PES".equals(object)) {
-                    System.out.println("Saving as PES...");
-                } else if ("PNG".equals(object)) {
-                    System.out.println("Saving as PNG...");
-                } else if ("CANCEL".equals(object)) {
-                    System.out.println("Cancelled");
-                }
-            }
-        };
-
-        dialog.button(Translator.getInstance().translate("save_as_pes"), "PES");
-        dialog.button(Translator.getInstance().translate("save_as_png"), "PNG");
-        dialog.button(Translator.getInstance().translate("cancel"), "CANCEL");
-        dialog.show(getStage());
+       DialogUtil.showSaveDialog(getStage());
     }
 
 

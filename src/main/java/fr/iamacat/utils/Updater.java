@@ -1,4 +1,8 @@
 package fr.iamacat.utils;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -58,5 +62,52 @@ public class Updater {
         } else {
             throw new RuntimeException("Le bureau n'est pas supporté. Veuillez ouvrir le navigateur manuellement à : " + uri.toString());
         }
+    }
+
+    public static void checkForUpdates(Stage stage) {
+        if (Updater.isUpdateChecked) {
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                String latestVersion = Updater.getLatestVersionFromGitHub();
+                if (Updater.isVersionOutdated(Updater.CURRENT_VERSION, latestVersion)) {
+                    Logger.getInstance().log(Logger.Project.Launcher, "Une nouvelle version est disponible : " + latestVersion);
+
+                    // Afficher une boîte de dialogue modale avec deux boutons
+                    Gdx.app.postRunnable(() -> {
+                        // Créer un dialog pour informer l'utilisateur de la nouvelle version
+                        Dialog dialog = new Dialog("Mise à jour disponible", UIUtils.skin) {
+                            @Override
+                            protected void result(Object object) {
+                                // Si l'utilisateur clique sur "Oui"
+                                if ((Boolean) object) {
+                                    try {
+                                        Updater.openBrowserToReleasesPage();
+                                    } catch (IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                            }
+                        };
+
+                        // Ajouter du texte à la fenêtre de dialogue
+                        dialog.text("Une nouvelle version (" + latestVersion + ") est disponible. Voulez-vous ouvrir la page des releases ?");
+                        // Ajouter un bouton "Oui"
+                        dialog.button("Oui", true);
+                        // Ajouter un bouton "Non"
+                        dialog.button("Non", false);
+                        // Afficher le dialogue
+                        dialog.show(stage);
+                    });
+                } else {
+                    Logger.getInstance().log(Logger.Project.Launcher, "Vous avez la version la plus récente.");
+                }
+            } catch (IOException e) {
+                Logger.getInstance().log(Logger.Project.Launcher, "Erreur lors de la vérification des mises à jour : " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

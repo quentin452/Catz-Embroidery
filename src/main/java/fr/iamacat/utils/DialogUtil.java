@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
+import com.kotcrab.vis.ui.widget.VisDialog;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 
@@ -123,6 +124,27 @@ public class DialogUtil {
         // Ajouter le FileChooser à la scène et l'afficher
         stage.addActor(fileChooser.fadeIn());
     }
+    public static void showSaveDialog(Stage stage) {
+        VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
+            @Override
+            protected void result(Object object) {
+                if ("PES".equals(object)) {
+                    System.out.println("Saving as PES...");
+                } else if ("PNG".equals(object)) {
+                    System.out.println("Saving as PNG...");
+                } else if ("CANCEL".equals(object)) {
+                    System.out.println("Cancelled");
+                }
+            }
+        };
+
+        dialog.button(Translator.getInstance().translate("save_as_pes"), "PES");
+        dialog.button(Translator.getInstance().translate("save_as_png"), "PNG");
+        dialog.button(Translator.getInstance().translate("cancel"), "CANCEL");
+        dialog.show(stage);
+    }
+
+
 
     private static Drawable getImageThumbnail(FileHandle fileHandle) {
         Texture texture = new Texture(fileHandle);
