@@ -98,7 +98,7 @@ public class PEmbroiderLauncher extends Game {
                 for (String path : files) {
                     FileHandle file = Gdx.files.absolute(path);
                     if (isImageFile(file)) {
-                        loadAndDisplayImage(file, fr.iamacat.pembroider_converter.Main.getStage());
+                        loadAndDisplayImage(file, fr.iamacat.pembroider_converter.Main.getInstance().getStage());
                     }
                 }
             }

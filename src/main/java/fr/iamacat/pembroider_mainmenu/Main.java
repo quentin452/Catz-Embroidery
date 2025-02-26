@@ -23,18 +23,16 @@ import static fr.iamacat.PEmbroiderLauncher.windowWidth;
 import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.loadTokenFromJson;
 
-public class Main implements Screen, Translatable {
+public class Main extends MainBase {
     private TextButton dropboxButton,editorButton,converterButton;
     private SelectBox<String> languageDropdown;
     Array<String> languagesOptions = new Array<>();
     private SpriteBatch batch;
     private Texture img;
-    private Stage stage;
     private PEmbroiderLauncher game;
     Label versionLabel;
     public Main(PEmbroiderLauncher game) {
         this.game = game;
-        stage = new Stage();
         checkForUpdates();
         loadTokenFromJson();
         // Création de la fenêtre et des objets de base
@@ -42,32 +40,23 @@ public class Main implements Screen, Translatable {
         img = new Texture("icons/catz-embroidery-logo-2.png");  // Exemple d'image
 
 
-        // Initialiser le Stage (la scène qui va gérer les éléments UI)
-        stage = new Stage();
-        Gdx.input.setInputProcessor(stage); // Le stage gère les entrées de l'utilisateur
-
         // Créer un Skin pour les éléments de l'UI (comme les boutons)
-        dropboxButton = UIUtils.createButton(stage,"connect_to_dropbox",true, 10,10, 200, 40,Color.RED, this::connectToDropbox);
-        editorButton = UIUtils.createButton(stage,"launch_editor",true, windowWidth / 2 - 100, windowHeight/ 2 - 20, 200, 40,Color.LIGHT_GRAY, this::launchEditor);
-        converterButton = UIUtils.createButton(stage,"launch_converter",true, windowWidth / 2 - 100, windowHeight/ 2 - 60, 200, 40,Color.LIGHT_GRAY, this::launchConverter);
+        dropboxButton = UIUtils.createButton(getStage(),"connect_to_dropbox",true, 10,10, 200, 40,Color.RED, this::connectToDropbox);
+        editorButton = UIUtils.createButton(getStage(),"launch_editor",true, windowWidth / 2 - 100, windowHeight/ 2 - 20, 200, 40,Color.LIGHT_GRAY, this::launchEditor);
+        converterButton = UIUtils.createButton(getStage(),"launch_converter",true, windowWidth / 2 - 100, windowHeight/ 2 - 60, 200, 40,Color.LIGHT_GRAY, this::launchConverter);
 
         languagesOptions.add(Translator.getInstance().translate("english"));
         languagesOptions.add(Translator.getInstance().translate("french"));
 
-        languageDropdown = UIUtils.createDropdown(stage,languagesOptions, windowWidth - 155, windowHeight - 35, 150, 30,Color.GRAY,this::updateLanguage);
+        languageDropdown = UIUtils.createDropdown(getStage(),languagesOptions, windowWidth - 155, windowHeight - 35, 150, 30,Color.GRAY,this::updateLanguage);
 
-        versionLabel = UIUtils.createLabel(stage, "version", true, windowWidth / 2 - 25, windowHeight - 10, 0,0, Align.top,Align.top,Color.BLACK,"default");
-        UIUtils.createLabel(stage, Updater.CURRENT_VERSION, false, windowWidth / 2 + 40, windowHeight - 10, 0, 0,Align.left,Align.top,Color.BLACK, "default");
-        UIUtils.createLabel(stage,"choose_app",true,windowWidth / 2 - 6, windowHeight / 2 + 35 ,15, 15,Align.center, Align.center,Color.BLACK,"default");
+        versionLabel = UIUtils.createLabel(getStage(), "version", true, windowWidth / 2 - 25, windowHeight - 10, 0,0, Align.top,Align.top,Color.BLACK,"default");
+        UIUtils.createLabel(getStage(), Updater.CURRENT_VERSION, false, windowWidth / 2 + 40, windowHeight - 10, 0, 0,Align.left,Align.top,Color.BLACK, "default");
+        UIUtils.createLabel(getStage(),"choose_app",true,windowWidth / 2 - 6, windowHeight / 2 + 35 ,15, 15,Align.center, Align.center,Color.BLACK,"default");
 
         // Ajout à la scène
         Translator.getInstance().registerTranslatable(this);
         updateLanguage();
-    }
-
-    @Override
-    public void show() {
-        Gdx.input.setInputProcessor(stage);
     }
 
     @Override
@@ -85,13 +74,8 @@ public class Main implements Screen, Translatable {
             dropboxButton.setColor(Color.RED);
         }
         // Dessiner le stage (c'est là que le bouton sera rendu)
-        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));  // Met à jour la scène (stage)
-        stage.draw();  // Dessine la scène (le bouton et autres UI)
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
+        getStage().act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));  // Met à jour la scène (stage)
+        getStage().draw();  // Dessine la scène (le bouton et autres UI)
     }
 
     @Override
@@ -107,7 +91,7 @@ public class Main implements Screen, Translatable {
     public void dispose() {
         batch.dispose();
         img.dispose();
-        stage.dispose();
+        getStage().dispose();
         UIUtils.skin.dispose();
         Logger.getInstance().log(Logger.Project.Launcher,"Fermeture de l'application");
         Logger.getInstance().archiveLogs();
@@ -141,7 +125,7 @@ public class Main implements Screen, Translatable {
 
     private void connectToDropbox() {
         new Thread(() -> {
-            DropboxUtil.connectToDropbox(stage, UIUtils.skin);
+            DropboxUtil.connectToDropbox(getStage(), UIUtils.skin);
         }).start();
     }
     private void checkForUpdates() {
@@ -179,7 +163,7 @@ public class Main implements Screen, Translatable {
                         // Ajouter un bouton "Non"
                         dialog.button("Non", false);
                         // Afficher le dialogue
-                        dialog.show(stage);
+                        dialog.show(getStage());
                     });
                 } else {
                     Logger.getInstance().log(Logger.Project.Launcher, "Vous avez la version la plus récente.");

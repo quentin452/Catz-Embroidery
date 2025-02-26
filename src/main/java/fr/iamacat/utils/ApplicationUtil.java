@@ -1,8 +1,11 @@
 package fr.iamacat.utils;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.files.FileHandle;
 
@@ -15,6 +18,23 @@ import java.io.IOException;
 import java.util.List;
 
 public class ApplicationUtil {
+
+    public static Texture copyImage(int keycode) {
+        if (keycode == Input.Keys.V && Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
+            Image pastedImage = ApplicationUtil.pasteImageFromClipboard();
+            if (pastedImage != null) {
+                Drawable drawable = pastedImage.getDrawable();
+                if (drawable instanceof TextureRegionDrawable) {
+                    Texture texture = ((TextureRegionDrawable) drawable).getRegion().getTexture();
+                    return texture;
+                } else {
+                    System.out.println("Drawable is not a TextureRegionDrawable.");
+                }
+            }
+            return null;
+        }
+        return null;
+    }
 
     public static Image pasteImageFromClipboard() {
         try {

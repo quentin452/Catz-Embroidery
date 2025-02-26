@@ -13,6 +13,7 @@ import com.kotcrab.vis.ui.widget.PopupMenu;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 import static fr.iamacat.utils.Translator.isReloadingLanguage;
 
@@ -162,7 +163,42 @@ public class UIUtils {
         });
         return button;
     }
+    // Méthode générique pour créer un menu à partir de n'importe quel enum
+    public static <T extends Enum<T>> PopupMenu createEnumMenu(Class<T> enumClass, Consumer<T> onChange) {
+        PopupMenu menu = new PopupMenu();
 
+        // Parcours toutes les valeurs de l'enum
+        for (T type : enumClass.getEnumConstants()) {
+            MenuItem item = createEnumMenuItem(type, onChange);
+            menu.addItem(item);
+        }
+
+        return menu;
+    }
+
+    // Méthode générique pour créer un MenuItem à partir d'un enum
+    private static <T extends Enum<T>> MenuItem createEnumMenuItem(T type, Consumer<T> onChange) {
+        return new MenuItem(type.toString(), new ChangeListener() {
+            @Override
+            public void changed(ChangeListener.ChangeEvent event, Actor actor) {
+                onChange.accept(type);  // Appel de la méthode sur changement de sélection
+            }
+        });
+    }
+    public static void setMenuItemChecked(PopupMenu menu, String typeStr) {
+        // Créer une liste des éléments avant de les modifier
+        Array<MenuItem> menuItems = new Array<>();
+        for (Actor actor : menu.getChildren()) {
+            if (actor instanceof MenuItem) {
+                menuItems.add((MenuItem) actor);
+            }
+        }
+
+        // Appliquer les modifications après l'itération
+        for (MenuItem item : menuItems) {
+            item.setChecked(item.getText().equals(typeStr));
+        }
+    }
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {
         int windowWidth = Gdx.graphics.getWidth();
         int windowHeight = Gdx.graphics.getHeight();
