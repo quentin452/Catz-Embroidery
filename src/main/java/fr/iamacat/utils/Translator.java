@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Objects;
 
 public class Translator {
-    public static String[] languages = {"English", "Français"};
     private static Translator instance;
     private Map<String, Map<String, String>> translations;
     private String currentLanguage = "en";
@@ -63,6 +62,10 @@ public class Translator {
     }
     public String translate(String key) {
         Map<String, String> langTranslations = translations.getOrDefault(currentLanguage, translations.get("en"));
+        if (!langTranslations.containsKey(key)) {
+            System.err.println("Warning: Missing translation for key: " + key);
+        }
         return langTranslations.getOrDefault(key, key);
     }
+
 }

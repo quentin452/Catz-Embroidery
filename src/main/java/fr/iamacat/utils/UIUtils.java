@@ -90,7 +90,17 @@ public class UIUtils {
         checkComponentOutsideWindow(x, y, label.getWidth(), label.getHeight(),text);
         return label;
     }
-
+    public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options, float x, float y, float width, float height, Color color) {
+        SelectBox<T> dropdown = new SelectBox<>(skin);
+        dropdown.setItems(options);
+        dropdown.setPosition(x, y);
+        dropdown.setSize(width, height);
+        dropdown.setColor(color);
+        // Ajouter le dropdown à la scène
+        stage.addActor(dropdown);
+        checkComponentOutsideWindow(x, y, dropdown.getWidth(), dropdown.getHeight(),Arrays.toString(options.items));
+        return dropdown;
+    }
     public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options, float x, float y, float width, float height, Color color, ChangeListener callback) {
         SelectBox<T> dropdown = new SelectBox<>(skin);
         dropdown.setItems(options);

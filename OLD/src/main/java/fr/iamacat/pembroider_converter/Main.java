@@ -164,7 +164,7 @@ public class Main extends PApplet implements Translatable {
                 .setSize(300, 20)
                 .setRange(0, 100)
                 .setValue(0)
-                .setLabel(Translator.getInstance().translate("progess"))
+                .setLabel(Translator.getInstance().translate("progress"))
                 .setVisible(false);
     }
 

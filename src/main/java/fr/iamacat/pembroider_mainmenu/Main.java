@@ -133,11 +133,9 @@ public class Main implements Screen, Translatable {
     }
     private void updateLanguage() {
         String selected = languageDropdown.getSelected();
-        System.out.println("Selected language: " + selected + ", Dropdown selected index: " + languageDropdown.getSelectedIndex());
-
-        if (selected.equalsIgnoreCase("English") || selected.equalsIgnoreCase("Anglais")) {
+        if (selected.equalsIgnoreCase(Translator.getInstance().translate("english"))) {
             Translator.getInstance().setLanguage("en");
-        } else if (selected.equalsIgnoreCase("Français") || selected.equalsIgnoreCase("French")) {
+        } else if (selected.equalsIgnoreCase(Translator.getInstance().translate("french"))) {
             Translator.getInstance().setLanguage("fr");
         }
     }
