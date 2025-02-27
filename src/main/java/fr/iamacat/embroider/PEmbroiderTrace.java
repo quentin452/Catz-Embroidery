@@ -2,6 +2,7 @@ package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.math.Vector2;
 import processing.core.*;
 
 
@@ -88,8 +89,8 @@ public class PEmbroiderTrace {
 		}
 	}
 	
-	public static ArrayList<ArrayList<PVector>> findContours_naive(boolean[] im, int w, int h){
-		ArrayList<PVector> edges = new ArrayList<PVector>();
+	public static ArrayList<ArrayList<Vector2>> findContours_naive(boolean[] im, int w, int h){
+		ArrayList<Vector2> edges = new ArrayList<Vector2>();
 
 		for (int i = 0; i < w * h; i++){
 			int x = (int)(i%w);
@@ -108,20 +109,20 @@ public class PEmbroiderTrace {
 			boolean c8 = im[i+w+1];
 
 			if (c4 && (!c0 || !c1 || !c2 || !c3 || !c5 || !c6 || !c7 || !c8)){
-				edges.add(new PVector(x,y));
+				edges.add(new Vector2(x,y));
 				// im.pixels[i] = color(255,0,0);
 			}
 		}
 		System.out.println(logPrefix+edges.size()+" edge pixels.");
 
 
-		ArrayList<ArrayList<PVector>> contours = new ArrayList<ArrayList<PVector>>();
-		ArrayList<ArrayList<PVector>> wip      = new ArrayList<ArrayList<PVector>>();
+		ArrayList<ArrayList<Vector2>> contours = new ArrayList<ArrayList<Vector2>>();
+		ArrayList<ArrayList<Vector2>> wip      = new ArrayList<ArrayList<Vector2>>();
 		if (edges.size() == 0) {
 			return contours;
 		}
 		
-		wip.add(new ArrayList<PVector>());
+		wip.add(new ArrayList<Vector2>());
 		wip.get(0).add(edges.remove(0));
 
 		int d = 1;
@@ -142,7 +143,7 @@ public class PEmbroiderTrace {
 						PApplet.abs(wip.get(i).get(wip.get(i).size()-1).y - wip.get(i).get(0).y) <=d){
 					ok = true;
 					contours.add(wip.remove(i));
-					wip.add(new ArrayList<PVector>());
+					wip.add(new ArrayList<Vector2>());
 					if (edges.size() > 0){
 						wip.get(wip.size()-1).add(edges.remove(0));
 					}
@@ -156,7 +157,7 @@ public class PEmbroiderTrace {
 						}else{
 							wip.remove(i);
 						}
-						wip.add(new ArrayList<PVector>());
+						wip.add(new ArrayList<Vector2>());
 						if (edges.size() > 0){
 							wip.get(wip.size()-1).add(edges.remove(0));
 						}
@@ -236,17 +237,17 @@ public class PEmbroiderTrace {
 		return null;
 	}
 	
-	public static ArrayList<ArrayList<PVector>> findContours(int[] F, int w, int h) {
+	public static ArrayList<ArrayList<Vector2>> findContours(int[] F, int w, int h) {
 		return findContours(F,w,h,null,null);
 	}
 	
-	public static ArrayList<ArrayList<PVector>> findContours(int[] F, int w, int h, ArrayList<Boolean> oIsHole, ArrayList<Integer> oParent) {
+	public static ArrayList<ArrayList<Vector2>> findContours(int[] F, int w, int h, ArrayList<Boolean> oIsHole, ArrayList<Integer> oParent) {
 		//ported from https://github.com/LingDong-/PContour/blob/master/src/pcontour/PContour.java
 
 		int nbd = 1;
 		int lnbd = 1;
 
-		ArrayList<ArrayList<PVector>> contours = new ArrayList<ArrayList<PVector>>();
+		ArrayList<ArrayList<Vector2>> contours = new ArrayList<ArrayList<Vector2>>();
 
 		/*for (int i = 1; i < h-1; i++){
 			F[i*w] = 0; F[i*w+w-1]=0;
@@ -292,8 +293,8 @@ public class PEmbroiderTrace {
 				int i3 = i;
 				int j3 = j;
 
-				contours.add(new ArrayList<PVector>());
-				contours.get(contours.size()-1).add(new PVector(j,i));
+				contours.add(new ArrayList<Vector2>());
+				contours.get(contours.size()-1).add(new Vector2(j,i));
 
 				
 		        boolean isHole = (j2 == j+1);
@@ -329,7 +330,7 @@ public class PEmbroiderTrace {
                     int i4 = i4j4[0];
 					int j4 = i4j4[1];
 
-					contours.get(contours.size()-1).add(new PVector(j4,i4));
+					contours.get(contours.size()-1).add(new Vector2(j4,i4));
 
 					if (j3 + 1 < w && F[i3 * w + j3 + 1] == 0) {
 						F[i3 * w + j3] = -nbd;
@@ -353,7 +354,7 @@ public class PEmbroiderTrace {
 	}
 
 	
-	public static ArrayList<ArrayList<PVector>> findContours_naive(PImage im){
+	public static ArrayList<ArrayList<Vector2>> findContours_naive(PImage im){
 		boolean[] bim = new boolean[im.width*im.height];
 		im.loadPixels();
 		for (int i = 0; i < im.width * im.height; i++){
@@ -361,10 +362,10 @@ public class PEmbroiderTrace {
 		}
 		return findContours_naive(bim,im.width,im.height);
 	}
-	public static ArrayList<ArrayList<PVector>> findContours(PImage im){
+	public static ArrayList<ArrayList<Vector2>> findContours(PImage im){
 		return findContours(im,null,null);
 	}
-	public static ArrayList<ArrayList<PVector>> findContours(PImage im, ArrayList<Boolean> oIsHole, ArrayList<Integer> oParent){
+	public static ArrayList<ArrayList<Vector2>> findContours(PImage im, ArrayList<Boolean> oIsHole, ArrayList<Integer> oParent){
 		
 		int[] bim = new int[im.width*im.height];
 		im.loadPixels();
@@ -374,7 +375,7 @@ public class PEmbroiderTrace {
 		return findContours(bim,im.width,im.height,oIsHole,oParent);
 	}
 	
-	public static ArrayList<PVector> approxPolyDP(ArrayList<PVector> polyline, float epsilon){
+	public static ArrayList<Vector2> approxPolyDP(ArrayList<Vector2> polyline, float epsilon){
 
 		if (polyline.size() <= 2){
 			return polyline;
@@ -390,10 +391,10 @@ public class PEmbroiderTrace {
 				argmax = i;
 			}  
 		}
-		ArrayList<PVector> ret = new ArrayList<PVector>();
+		ArrayList<Vector2> ret = new ArrayList<Vector2>();
 		if (dmax > epsilon){
-			ArrayList<PVector> L = approxPolyDP(new ArrayList<PVector>(polyline.subList(0,argmax+1)),epsilon);
-			ArrayList<PVector> R = approxPolyDP(new ArrayList<PVector>(polyline.subList(argmax,polyline.size())),epsilon);
+			ArrayList<Vector2> L = approxPolyDP(new ArrayList<Vector2>(polyline.subList(0,argmax+1)),epsilon);
+			ArrayList<Vector2> R = approxPolyDP(new ArrayList<Vector2>(polyline.subList(argmax,polyline.size())),epsilon);
 			ret.addAll(L.subList(0,L.size()-1));
 			ret.addAll(R);
 		}else{
@@ -403,7 +404,7 @@ public class PEmbroiderTrace {
 		return ret;
 	}
 	
-	public static ArrayList<ArrayList<ArrayList<PVector>>> findIsolines(PImage im, int n, float d) {
+	public static ArrayList<ArrayList<ArrayList<Vector2>>> findIsolines(PImage im, int n, float d) {
 		int w = im.width;
 		int h = im.height;
 		im.loadPixels();
@@ -435,9 +436,9 @@ public class PEmbroiderTrace {
 			}
 		}
 	
-		ArrayList<ArrayList<ArrayList<PVector>>> isolines = new ArrayList<ArrayList<ArrayList<PVector>>>();
+		ArrayList<ArrayList<ArrayList<Vector2>>> isolines = new ArrayList<ArrayList<ArrayList<Vector2>>>();
 		for (int j = 0; j < n; j++) {
-			ArrayList<ArrayList<PVector>> c = findContours(iso[j],w,h);
+			ArrayList<ArrayList<Vector2>> c = findContours(iso[j],w,h);
 			for (int i = 0; i < c.size(); i++) {
 				c.set(i,approxPolyDP(c.get(i),1f));
 			}
