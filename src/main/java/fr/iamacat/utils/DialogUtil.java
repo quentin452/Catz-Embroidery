@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
@@ -271,6 +272,12 @@ public class DialogUtil {
             e.printStackTrace();
             return null;
         }
+    }
+    public static void showEmptyDialog(Stage stage,String title, String message) {
+        new Dialog(title, UIUtils.visSkin) {{
+            text(message);
+            button("OK");
+        }}.show(stage);
     }
 
     private static Drawable getImageThumbnail(FileHandle fileHandle) {

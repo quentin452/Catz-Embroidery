@@ -360,6 +360,17 @@ public class UIUtils {
         Texture texture = new Texture(Gdx.files.internal(imagePath));
         return new TextureRegionDrawable(texture);
     }
+    public static  void createSettingsTable(VisTable table ,String labelText, String fieldId, float fieldWidth, Consumer<Integer> onChange) {
+        VisLabel label = new VisLabel(t(labelText));
+        label.setAlignment(Align.left); // Forcer l'alignement à gauche
+
+        VisTextField field = addMenuTextBox(Integer.parseInt(fieldId), onChange);
+        field.setAlignment(Align.left); // Forcer l'alignement à gauche
+
+        table.add(label).width(150).left().padLeft(10).padRight(10); // Ajouter le label à la table et l'aligner à gauche
+        table.add(field).width(fieldWidth).left().padLeft(10).padRight(10);
+        table.row();
+    }
 
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {
         int windowWidth = Gdx.graphics.getWidth();

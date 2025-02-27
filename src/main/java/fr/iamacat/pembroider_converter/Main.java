@@ -67,50 +67,12 @@ public class Main extends MainBase {
         settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
         settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
 
-        // Ajouter un label et un champ de texte pour "Space Between Points"
-        VisLabel label = new VisLabel(t("space_between_points"));
-        label.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(label).width(150).left().padLeft(10).padRight(10); // Ajouter le label à la table et l'aligner à gauche
-        VisTextField textField = addMenuTextBox(spaceBetweenPoints, this::setSpaceBetweenPoints);
-        textField.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(textField).width(50).left().padLeft(10).padRight(10);
-        settingsTable.row();
-
-        // Ajouter un champ de texte pour "WIDTH (MM)"
-        VisLabel widthLabel = new VisLabel(t("width_in_mm"));
-        widthLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(widthLabel).width(150).left().padLeft(10).padRight(10);
-        VisTextField widthField = addMenuTextBox(exportWidth, this::setExportWidth);
-        widthField.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(widthField).width(50).left().padLeft(10).padRight(10);
-        settingsTable.row();
-
-        // Ajouter un champ de texte pour "HEIGHT (MM)"
-        VisLabel heightLabel = new VisLabel(t("height_in_mm"));
-        heightLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(heightLabel).width(150).left().padLeft(10).padRight(10);
-        VisTextField heightField = addMenuTextBox(exportHeight, this::setExportHeight);
-        heightField.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(heightField).width(50).left().padLeft(10).padRight(10);
-        settingsTable.row();
-
-        // Ajouter un champ de texte pour "STROKE WEIGHT"
-        VisLabel strokeLabel = new VisLabel(t("stroke_weight"));
-        strokeLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(strokeLabel).width(150).left().padLeft(10).padRight(10);
-        VisTextField strokeField = addMenuTextBox(strokeWeight, this::setStrokeWeight);
-        strokeField.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(strokeField).width(50).left().padLeft(10).padRight(10);
-        settingsTable.row();
-
-        // Ajouter un champ de texte pour "MAX COLORS"
-        VisLabel maxColorsLabel = new VisLabel(t("max_color"));
-        maxColorsLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(maxColorsLabel).width(150).left().padLeft(10).padRight(10);
-        VisTextField maxColorsField = addMenuTextBox(maxColors, this::setMaxColors);
-        maxColorsField.setAlignment(Align.left); // Forcer l'alignement à gauche
-        settingsTable.add(maxColorsField).width(50).left().padLeft(10).padRight(10);
-        settingsTable.row();
+        // Ajouter les composants de la table
+        createSettingsTable(settingsTable,"Space Between Points", String.valueOf(spaceBetweenPoints), 50,  this::setSpaceBetweenPoints);
+        createSettingsTable(settingsTable,"WIDTH (MM)", String.valueOf(exportWidth), 50,  this::setExportWidth);
+        createSettingsTable(settingsTable,"HEIGHT (MM)", String.valueOf(exportHeight), 50,  this::setExportHeight);
+        createSettingsTable(settingsTable,"STROKE WEIGHT", String.valueOf(strokeWeight), 50,  this::setStrokeWeight);
+        createSettingsTable(settingsTable,"MAX COLORS", String.valueOf(maxColors), 50,  this::setMaxColors);
 
         // Ajouter une checkbox pour "fill_mode"
         VisCheckBox checkBox = new VisCheckBox(t("fill_mode"));
@@ -126,7 +88,6 @@ public class Main extends MainBase {
 
         getStage().addActor(scrollPane); // Ajouter le ScrollPane à l'écran
     }
-
     private void updateDisplayedImage(Texture texture) {
         if (displayedImage != null) {
             displayedImage.remove();
