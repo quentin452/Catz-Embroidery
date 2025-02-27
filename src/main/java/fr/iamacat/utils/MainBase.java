@@ -9,16 +9,9 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import fr.iamacat.pembroider_converter.Main;
 
 public class MainBase implements Screen, Translatable , InputProcessor {
-    private static Main instance;
 
-    private Stage stage;
+    private static Stage stage;
 
-    public static Main getInstance() {
-        if (instance == null) {
-            instance = new Main();
-        }
-        return instance;
-    }
 
     public MainBase() {
         stage = new Stage();
@@ -136,7 +129,7 @@ public class MainBase implements Screen, Translatable , InputProcessor {
         }*/
     }
 
-    public Stage getStage() {
+    public static Stage getStage() {
         return stage;
     }
 }

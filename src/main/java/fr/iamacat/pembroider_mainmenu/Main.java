@@ -57,7 +57,6 @@ public class Main extends MainBase {
 
         // Ajout à la scène
         Translator.getInstance().registerTranslatable(this);
-        updateLanguage();
     }
 
     @Override
@@ -93,7 +92,6 @@ public class Main extends MainBase {
         batch.dispose();
         img.dispose();
         getStage().dispose();
-        UIUtils.skin.dispose();
         Logger.getInstance().log(Logger.Project.Launcher,"Fermeture de l'application");
         Logger.getInstance().archiveLogs();
     }
@@ -126,7 +124,7 @@ public class Main extends MainBase {
 
     private void connectToDropbox() {
         new Thread(() -> {
-            DropboxUtil.connectToDropbox(getStage(), UIUtils.skin);
+            DropboxUtil.connectToDropbox(getStage(), UIUtils.visSkin);
         }).start();
     }
 }

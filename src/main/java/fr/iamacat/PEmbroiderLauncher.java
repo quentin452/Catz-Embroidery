@@ -31,7 +31,6 @@ public class PEmbroiderLauncher extends Game {
     private boolean vsyncEnabled = true;
     private Stage stage;
     private Label fpsLabel;
-    Skin skin;
 
     @Override
     public void create() {
@@ -39,7 +38,7 @@ public class PEmbroiderLauncher extends Game {
             VisUI.load();
         }
         //VisUI.load(Gdx.files.internal("uiskins/cloud-form/skin/cloud-form-ui.json"));  // TODO
-        skin = VisUI.getSkin();
+        UIUtils.visSkin = VisUI.getSkin();
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
         fpsLabel = UIUtils.createLabel(stage,"FPS: 0",false,35, windowHeight- 55,15,15, Align.top,Align.top,Color.BLACK ,"default");
@@ -98,7 +97,7 @@ public class PEmbroiderLauncher extends Game {
                 for (String path : files) {
                     FileHandle file = Gdx.files.absolute(path);
                     if (isImageFile(file)) {
-                        loadAndDisplayImage(file, fr.iamacat.pembroider_converter.Main.getInstance().getStage());
+                        loadAndDisplayImage(file, fr.iamacat.pembroider_converter.Main.getStage());
                     }
                 }
             }
@@ -121,6 +120,6 @@ public class PEmbroiderLauncher extends Game {
                 (Gdx.graphics.getWidth() - displayedImage.getWidth()) / 2,
                 (Gdx.graphics.getHeight() - displayedImage.getHeight()) / 2
         );
-        stage.addActor(displayedImage);  // We now pass stage explicitly
+        stage.addActor(displayedImage);
     }
 }

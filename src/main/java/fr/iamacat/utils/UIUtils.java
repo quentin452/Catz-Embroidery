@@ -3,14 +3,15 @@ package fr.iamacat.utils;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.kotcrab.vis.ui.widget.MenuItem;
-import com.kotcrab.vis.ui.widget.PopupMenu;
-import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.kotcrab.vis.ui.VisUI;
+import com.kotcrab.vis.ui.widget.*;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -18,13 +19,13 @@ import java.util.function.Consumer;
 import static fr.iamacat.utils.Translator.isReloadingLanguage;
 
 public class UIUtils {
-    public static Skin skin = FontManager.createCustomSkin("fonts/Microsoft Yahei.ttf", 16);
+    public static Skin visSkin;
     // Création de bouton avec callback immédiat
     public static TextButton createButton(Stage stage,String text,boolean translated, float x, float y, Color color, Runnable callback) {
         if (translated) {
             text = Translator.getInstance().translate(text);
         }
-        TextButton button = new TextButton(text, skin);
+        TextButton button = new TextButton(text, visSkin);
         button.setPosition(x, y);
         button.setColor(color);
         addCallback(button, callback);
@@ -39,7 +40,7 @@ public class UIUtils {
         if (translated) {
             text = Translator.getInstance().translate(text);
         }
-        TextButton button = new TextButton(text, skin);
+        TextButton button = new TextButton(text, visSkin);
         button.setPosition(x, y);
         button.setColor(color);
         button.setSize(width, height);
@@ -87,7 +88,7 @@ public class UIUtils {
         if (translated) {
             text = Translator.getInstance().translate(text);
         }
-        Label label = new Label(text, UIUtils.skin.get(styleName, Label.LabelStyle.class));
+        Label label = new Label(text, UIUtils.visSkin.get(styleName, Label.LabelStyle.class));
         label.setPosition(x, y);
         label.setSize(width, height);
         label.setAlignment(labelAlign | lineAlign);
@@ -97,7 +98,7 @@ public class UIUtils {
         return label;
     }
     public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options, float x, float y, float width, float height, Color color) {
-        SelectBox<T> dropdown = new SelectBox<>(skin);
+        SelectBox<T> dropdown = new SelectBox<>(visSkin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
         dropdown.setSize(width, height);
@@ -108,7 +109,7 @@ public class UIUtils {
         return dropdown;
     }
     public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options, float x, float y, float width, float height, Color color, ChangeListener callback) {
-        SelectBox<T> dropdown = new SelectBox<>(skin);
+        SelectBox<T> dropdown = new SelectBox<>(visSkin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
         dropdown.setSize(width, height);
@@ -121,7 +122,7 @@ public class UIUtils {
         return dropdown;
     }
     public static <T> SelectBox<T> createDropdown(Stage stage,Array<T> options ,float x, float y, float width, float height, Color color, Runnable callback) {
-        SelectBox<T> dropdown = new SelectBox<>(skin);
+        SelectBox<T> dropdown = new SelectBox<>(visSkin);
         dropdown.setItems(options);
         dropdown.setPosition(x, y);
         dropdown.setSize(width, height);
@@ -131,7 +132,8 @@ public class UIUtils {
         addCallback(dropdown, callback);
         checkComponentOutsideWindow(x, y, dropdown.getWidth(), dropdown.getHeight(),Arrays.toString(options.items));
         return dropdown;
-    }    public static MenuItem createMenuItem(String text, Runnable action) {
+    }
+    public static MenuItem createMenuItem(String text, Runnable action) {
         MenuItem item = new MenuItem(Translator.getInstance().translate(text));
         item.addListener(new ChangeListener() {
             @Override
@@ -141,6 +143,7 @@ public class UIUtils {
         });
         return item;
     }
+
 
     public static PopupMenu createPopupMenu(String[] labels, Runnable... actions) {
         PopupMenu menu = new PopupMenu();
@@ -177,7 +180,8 @@ public class UIUtils {
     }
 
     // Méthode générique pour créer un MenuItem à partir d'un enum
-    private static <T extends Enum<T>> MenuItem createEnumMenuItem(T type, Consumer<T> onChange) {
+    public static <T extends Enum<T>> MenuItem createEnumMenuItem(T type, Consumer<T> onChange) {
+
         return new MenuItem(type.toString(), new ChangeListener() {
             @Override
             public void changed(ChangeListener.ChangeEvent event, Actor actor) {
@@ -199,6 +203,52 @@ public class UIUtils {
             item.setChecked(item.getText().equals(typeStr));
         }
     }
+
+    public static  <T extends Enum<T>> MenuItem addMenuItem(PopupMenu menu, String text, Class<T> enumType, Consumer<T> onChange) {
+        PopupMenu subMenu = UIUtils.createEnumMenu(enumType, onChange);
+        MenuItem menuItem = new MenuItem(text);
+        menuItem.setSubMenu(subMenu);
+        menu.addItem(menuItem);
+        return menuItem;
+    }
+
+    public static void addMenuItem(PopupMenu menu, String text, Runnable action) {
+        MenuItem menuItem = new MenuItem(text);
+        menuItem.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                action.run();
+            }
+        });
+        menu.addItem(menuItem);
+    }
+    public static void addMenuCheckbox(PopupMenu menu, String text, boolean initialState, Consumer<Boolean> onChange) {
+        VisCheckBox checkBox = new VisCheckBox(text, initialState);
+
+        checkBox.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                onChange.accept(checkBox.isChecked());
+            }
+        });
+
+        MenuItem menuItem = new MenuItem("");
+        menuItem.addActor(checkBox); // Ajoute la checkbox au menu
+        menu.addItem(menuItem);
+    }
+
+    public static <T extends Enum<T>> void addSubmenu(PopupMenu menu, String text, Class<T> enumType, Consumer<T> onChange) {
+        PopupMenu subMenu = UIUtils.createEnumMenu(enumType, onChange);
+        MenuItem menuItem = new MenuItem(text);
+        menuItem.setSubMenu(subMenu);
+        menu.addItem(menuItem);
+    }
+
+    public static String t(String key) {
+        return Translator.getInstance().translate(key);
+    }
+
+
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {
         int windowWidth = Gdx.graphics.getWidth();
         int windowHeight = Gdx.graphics.getHeight();

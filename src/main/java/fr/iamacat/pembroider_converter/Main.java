@@ -3,36 +3,28 @@ package fr.iamacat.pembroider_converter;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
 import fr.iamacat.utils.*;
+import fr.iamacat.utils.enums.ColorType;
+import fr.iamacat.utils.enums.HatchModeType;
+import fr.iamacat.utils.enums.SaveDropboxType;
+import fr.iamacat.utils.enums.SaveLocallyType;
 
-import static fr.iamacat.utils.UIUtils.setMenuItemChecked;
+import static fr.iamacat.utils.UIUtils.*;
 
 public class Main extends MainBase {
-    private PopupMenu fileMenu;
-    private PopupMenu editMenu;
-    private PopupMenu colorModeMenu;
-    private PopupMenu hatchModeMenu;
+    private PopupMenu fileMenu,editMenu,colorModeMenu,hatchModeMenu,saveLocallyTypeMenu,saveToDropboxTypeMenu;
     private ColorType currentColorType = ColorType.MultiColor;
     private HatchModeType currentHatchModeType = HatchModeType.Parallel;
+    private SaveLocallyType currentSaveLocallyType = SaveLocallyType.JPG;
+    private SaveDropboxType currentSaveDropboxType = SaveDropboxType.JPG;
     public static Image displayedImage;
+    private MenuItem saveLocallyButton , saveToDropboxButton;
     public boolean FillB = false;
 
     private VisTable rootTable;
-    private enum ColorType {
-        MultiColor,
-        BlackAndWhite,
-        Realistic
-    }
-    private enum HatchModeType {
-        Cross,
-        Parallel,
-        Concentric,
-        Spiral,
-        Perlin
-    }
-
     public Main() {
         rootTable = new VisTable();
         rootTable.setFillParent(true);
@@ -41,80 +33,43 @@ public class Main extends MainBase {
     }
 
     private void createMenu() {
-        // Barre de menu
         VisTable menuBar = new VisTable();
-        menuBar.setBackground(VisUI.getSkin().getDrawable("default-pane"));
-
-        // Traductions des éléments du menu "File"
-        String savelocStr = Translator.getInstance().translate("save_locally");
-        String loadFileStr = Translator.getInstance().translate("load_file");
-        String exitStr = Translator.getInstance().translate("exit");
-
-        // Traductions des éléments du menu "Edit"
-        String colorModeStr = Translator.getInstance().translate("color_mode");
-        String fillModeStr = Translator.getInstance().translate("enable_fill_mode");
-
-        String hatchModeStr = Translator.getInstance().translate("hatch_mode");
-
-        // Création du menu "Edit"
-        editMenu = UIUtils.createPopupMenu(
-                new String[]{colorModeStr, fillModeStr},
-                this::changeColorMode,
-                this::updateFillMode
-        );
-        editMenu = new PopupMenu();
-
-        // Création du menu "File"
-        fileMenu = UIUtils.createPopupMenu(
-                new String[]{savelocStr, loadFileStr, exitStr},
-                this::showSaveDialog, // Action pour "Save Locally"
-                this::showLoadDialog, // Action pour "Load File"
-                () -> Gdx.app.exit()  // Action pour "Exit"
-        );
-
-        // Création des sous-menus pour les modes de couleur
-        colorModeMenu = UIUtils.createEnumMenu(ColorType.class, this::setColorMode);
-
-        MenuItem colorModeItem = new MenuItem(colorModeStr);
-        colorModeItem.setSubMenu(colorModeMenu);
-        editMenu.addItem(colorModeItem);
-
-        // Création des sous-menus pour les modes de hachure
-        hatchModeMenu = UIUtils.createEnumMenu(HatchModeType.class, this::setHatchMode);
-
-        MenuItem hatchModeItem = new MenuItem(hatchModeStr);
-        hatchModeItem.setSubMenu(hatchModeMenu);
-        editMenu.addItem(hatchModeItem);
-
-        // Création du bouton "File" avec son menu déroulant
-        VisTextButton fileButton = UIUtils.createMenuButton("file", true, fileMenu, getStage());
-
-        // Création du bouton "Edit" avec son menu déroulant
-        VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
-
-        // Ajouter les boutons à la barre de menu
-        menuBar.add(fileButton).expandX().fillX().pad(0).left();  // Le bouton "File" prendra toute la largeur disponible et sera aligné à gauche
-        menuBar.add(editButton).expandX().fillX().pad(0).left();  // Le bouton "Edit" prendra toute la largeur disponible et sera aligné à gauche
-
-        // Ajouter la barre de menu en haut de l'interface
         rootTable.bottom().top();
         rootTable.add(menuBar).expandX().fillX();
+        menuBar.setBackground(VisUI.getSkin().getDrawable("default-pane"));
+
+        // FILE MENU
+        fileMenu = new PopupMenu();
+        saveLocallyButton = addMenuItem(fileMenu, t("save_locally"), SaveLocallyType.class, this::showSaveLocallyDialog);
+        if (DropboxUtil.dropboxClient != null) {
+            saveToDropboxButton = addMenuItem(fileMenu, t("save_to_dropbox"), SaveDropboxType.class, this::showDropboxDialog);
+        }
+        addMenuItem(fileMenu, t("load_file"), this::showLoadDialog);
+        addMenuItem(fileMenu, t("exit"), Gdx.app::exit);
+        VisTextButton fileButton = UIUtils.createMenuButton("file", true, fileMenu, getStage());
+        fileButton.getLabel().setAlignment(Align.left);
+        menuBar.add(fileButton).expandX().fillX().pad(0).left();
+
+        // EDIT MENU
+        editMenu = new PopupMenu();
+        addSubmenu(editMenu, t("color_mode"), ColorType.class, this::setColorMode);
+        addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, this::setHatchMode);
+        addMenuCheckbox(editMenu, t("fill_mode"), FillB, checked -> FillB = checked);
+        VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
+        editButton.getLabel().setAlignment(Align.left);
+        menuBar.add(editButton).expandX().fillX().pad(0).left();
     }
+
+
     private void updateDisplayedImage(Texture texture) {
         if (displayedImage != null) {
-            displayedImage.remove();  // Remove the old image if it exists
+            displayedImage.remove();
         }
-
-        // Créer une nouvelle image
         displayedImage = new Image(texture);
-
-        // Positionner l'image manuellement sans affecter la disposition du VisTable
         float windowWidth = Gdx.graphics.getWidth();
         float windowHeight = Gdx.graphics.getHeight();
         displayedImage.setSize(500, 500);
         displayedImage.setPosition((windowWidth - displayedImage.getWidth()) / 2, (windowHeight - displayedImage.getHeight()) / 2);
-
-        // Ajouter l'image au stage sans l'ajouter au rootTable
         getStage().addActor(displayedImage);
     }
 
@@ -129,6 +84,17 @@ public class Main extends MainBase {
     }
 
     @Override
+    public void render(float delta) {
+        super.render(delta);
+        boolean isImageAvailable = (displayedImage != null);
+        if (saveLocallyButton != null) {
+            saveLocallyButton.setDisabled(!isImageAvailable);
+        }
+        if (saveToDropboxButton != null) {
+            saveToDropboxButton.setDisabled(!isImageAvailable);
+        }
+    }
+    @Override
     public void dispose() {
         getStage().dispose();
     }
@@ -140,23 +106,29 @@ public class Main extends MainBase {
         }
         return false;
     }
-
     private void showLoadDialog() {
-        DialogUtil.ImageWrapper imageWrapper = new DialogUtil.ImageWrapper();
-        DialogUtil.showFileChooserDialog(getStage(), imageWrapper);
+        DialogUtil.showFileChooserDialog(getStage(), selectedImage -> {
+            if (selectedImage != null) {
+                // Remove old image if necessary
+                if (displayedImage != null) {
+                    displayedImage.remove();
+                }
+                // Update displayed image
+                displayedImage = selectedImage;
+                getStage().addActor(displayedImage);
+            } else {
+                System.out.println("displayed image = null ❌");
+            }
+        });
     }
 
-    private void showSaveDialog() {
-       DialogUtil.showSaveDialog(getStage());
+
+    private void showSaveLocallyDialog(SaveLocallyType type) {
+        currentSaveLocallyType = type;
+       DialogUtil.showSaveDialog(currentSaveLocallyType,getStage(),displayedImage);
     }
-
-
-    private void updateFillMode()
-    {
-        FillB = !FillB;
-    }
-
-    private void changeColorMode() {
-
+    private void showDropboxDialog(SaveDropboxType type) {
+        currentSaveDropboxType = type;
+        DialogUtil.showUploadDialog(currentSaveDropboxType,getStage(),displayedImage);
     }
 }

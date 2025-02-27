@@ -27,17 +27,43 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import static fr.iamacat.utils.UIUtils.t;
+
 public class DropboxUtil {
     public static DbxClientV2 dropboxClient;
 
     public static void loadTokenFromJson() {
-        String savedToken = Saving.loadDropboxToken();
-        if (savedToken != null) {
-            DbxRequestConfig config = DbxRequestConfig.newBuilder("Catz-Embroidery").build();
-            DropboxUtil.dropboxClient = new DbxClientV2(config, savedToken);
-            Logger.getInstance().log(Logger.Project.NONE, "Connexion Dropbox automatique réussie !");
+        try {
+            String savedToken = Saving.loadDropboxToken();
+            if (savedToken != null) {
+                DbxRequestConfig config = DbxRequestConfig.newBuilder("Catz-Embroidery").build();
+                DropboxUtil.dropboxClient = new DbxClientV2(config, savedToken);
+                // Validate the token (you may need to adjust this part according to Dropbox SDK)
+                if (validateDropboxToken(DropboxUtil.dropboxClient)) {
+                    Logger.getInstance().log(Logger.Project.NONE, "Connexion Dropbox automatique réussie !");
+                } else {
+                    dropboxClient = null;
+                    Logger.getInstance().log(Logger.Project.NONE, "Le token Dropbox est invalide.");
+                }
+            } else {
+                Logger.getInstance().log(Logger.Project.NONE, "Aucun token Dropbox trouvé.");
+            }
+        } catch (Exception e) {
+            Logger.getInstance().log(Logger.Project.NONE, "Erreur lors de la connexion automatique à Dropbox: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+
+    private static boolean validateDropboxToken(DbxClientV2 client) {
+        try {
+            // Perform an API call to validate the token
+            client.users().getCurrentAccount();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 
     public static void connectToDropbox(final Stage stage, final Skin skin) {
         String APP_KEY = "wypcm2tcp2tufdf";
@@ -108,13 +134,13 @@ public class DropboxUtil {
                             Saving.saveDropboxToken(accessToken);
                             Logger.getInstance().log(Logger.Project.Launcher, "Successfully connected to Dropbox.");
                             dialog.hide(); // Hide the dialog when successful
-                            Gdx.app.postRunnable(() -> showMessage(stage, skin, "Successfully connected to Dropbox."));
+                            Gdx.app.postRunnable(() -> showMessage(stage, skin, t("connection_ok_dropbox")));
                         } catch (DbxException e) {
                             Logger.getInstance().log(Logger.Project.Launcher, "Error connecting to Dropbox: " + e.getMessage());
-                            Gdx.app.postRunnable(() -> showMessage(stage, skin, "Error connecting to Dropbox: " + e.getMessage()));
+                            Gdx.app.postRunnable(() -> showMessage(stage, skin, t("error_connecting_dropbox") + e.getMessage()));
                         }
                     } else {
-                        Gdx.app.postRunnable(() -> showMessage(stage, skin, "Please enter a valid authorization code."));
+                        Gdx.app.postRunnable(() -> showMessage(stage, skin, t("pls_valid_auth_code")));
                     }
                 }
             });
@@ -129,23 +155,19 @@ public class DropboxUtil {
 
         } catch (IOException | URISyntaxException e) {
             Logger.getInstance().log(Logger.Project.Launcher, "Error opening browser: " + e.getMessage());
-            Gdx.app.postRunnable(() -> showMessage(stage, skin, "Error opening browser: " + e.getMessage()));
+            Gdx.app.postRunnable(() -> showMessage(stage, skin, t("error_opening_browser") + e.getMessage()));
         }
     }
 
 
-    private static void showMessage(Stage stage, Skin skin, String message) {
+    static void showMessage(Stage stage, Skin skin, String message) {
         final Dialog messageDialog = new Dialog("Message", skin);
         messageDialog.text(message);
-        messageDialog.button("OK", true);
+        messageDialog.button(Translator.getInstance().translate("ok"), true);
         messageDialog.show(stage);
     }
 
-    public static void uploadToDropbox(File localFile) {
-        if (dropboxClient == null) {
-            Gdx.app.postRunnable(() -> showMessage(new Stage(), new Skin(), "Connectez-vous à Dropbox d'abord."));
-            return;
-        }
+    public static void uploadToDropbox(Stage stage,File localFile) {
         String fileName = localFile.getName();
         String dropboxPath = "/Catz-Embroidery/" + fileName;
         try {
@@ -160,11 +182,11 @@ public class DropboxUtil {
                 FileMetadata metadata = dropboxClient.files().uploadBuilder(dropboxPath)
                         .withMode(WriteMode.ADD)
                         .uploadAndFinish(inputStream);
-                Gdx.app.postRunnable(() -> showMessage(new Stage(), new Skin(), "Fichier uploadé sur Dropbox : " + metadata.getPathDisplay()));
+                Gdx.app.postRunnable(() -> showMessage(stage, UIUtils.visSkin, t("file_uploaded_dropbox") + metadata.getPathDisplay()));
             }
         } catch (DbxException | IOException e) {
             Logger.getInstance().log(Logger.Project.Launcher, "Erreur lors de l'upload sur Dropbox : " + e.getMessage());
-            Gdx.app.postRunnable(() -> showMessage(new Stage(), new Skin(), "Erreur lors de l'upload du fichier sur Dropbox."));
+            Gdx.app.postRunnable(() -> showMessage(stage, UIUtils.visSkin, t("error_uploading_dropbox")));
         }
     }
 

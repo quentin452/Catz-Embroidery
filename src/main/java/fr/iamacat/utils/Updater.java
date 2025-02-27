@@ -78,7 +78,7 @@ public class Updater {
                     // Afficher une boîte de dialogue modale avec deux boutons
                     Gdx.app.postRunnable(() -> {
                         // Créer un dialog pour informer l'utilisateur de la nouvelle version
-                        Dialog dialog = new Dialog("Mise à jour disponible", UIUtils.skin) {
+                        Dialog dialog = new Dialog("Mise à jour disponible", UIUtils.visSkin) {
                             @Override
                             protected void result(Object object) {
                                 // Si l'utilisateur clique sur "Oui"
