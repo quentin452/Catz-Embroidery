@@ -1,10 +1,15 @@
 package fr.iamacat.pembroider_editor;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.widget.VisScrollPane;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import fr.iamacat.utils.MainBase;
@@ -14,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-// TODO ADD SCROLLBAR TO LAYERS
 public class Main extends MainBase {
     private final VisTable leftTable;
     private final VisTable rightTable;
@@ -23,6 +27,11 @@ public class Main extends MainBase {
     private int currentLayerCount = 0;
     private VisTextButton addLayerButton;
     private static final float RIGHT_PANEL_WIDTH = 200f;
+    private VisScrollPane scrollPane; 
+    float backgroundWidthLeft = 50;
+    float backgroundWidthRight = 200;
+    float backgroundHeight;
+
     public Main() {
         leftTable = new VisTable();
         leftTable.top().left();
@@ -33,15 +42,13 @@ public class Main extends MainBase {
         rightTable.top().right();
         rightTable.setFillParent(true);
         getStage().addActor(rightTable);
-        float backgroundWidthLeft = 50;
-        float backgroundWidthRight = 200;
-        float backgroundHeight = getStage().getHeight();
-        Image leftBg = UIUtils.createBackground(getStage(),new Color(0.2f, 0.2f, 0.2f, 1f), backgroundWidthLeft, backgroundHeight);
-        Image rightBg = UIUtils.createBackground(getStage(),new Color(0.2f, 0.2f, 0.2f, 1f), backgroundWidthRight, backgroundHeight);
+        backgroundHeight = getStage().getHeight();
+        Image leftBg = UIUtils.createBackground(getStage(), new Color(0.2f, 0.2f, 0.2f, 1f), backgroundWidthLeft, backgroundHeight);
+        Image rightBg = UIUtils.createBackground(getStage(), new Color(0.2f, 0.2f, 0.2f, 1f), backgroundWidthRight, backgroundHeight);
 
-        Image leftBorder = UIUtils.createBorder(getStage(),Color.BLACK, 2, backgroundHeight);
-        Image rightBorder = UIUtils.createBorder(getStage(),Color.BLACK, 2, backgroundHeight);
-        Image topBorder = UIUtils.createBorder(getStage(),Color.BLACK, getStage().getWidth(), 2);
+        Image leftBorder = UIUtils.createBorder(getStage(), Color.BLACK, 2, backgroundHeight);
+        Image rightBorder = UIUtils.createBorder(getStage(), Color.BLACK, 2, backgroundHeight);
+        Image topBorder = UIUtils.createBorder(getStage(), Color.BLACK, getStage().getWidth(), 2);
 
         leftBg.setPosition(0, 0);
         leftBorder.setPosition(backgroundWidthLeft, 0);
@@ -54,15 +61,24 @@ public class Main extends MainBase {
         addRadioButtonsToTable(leftTable);
         setupLayersSystem();
     }
-    private void setupLayersSystem() {
+
+    private void setupLayersSystem() { // TODO ENABLE SCROLLING WITHOUT NEEDING TO CLICK ON THE SCROLLPANE , TODO FIX WE CAN SCROLL EVEN IF WE SCROOL OUTSIDE OF THE SCROLLPANE
         // Configuration de la table de droite
         rightTable.defaults().pad(5).width(RIGHT_PANEL_WIDTH - 20);
         rightTable.top().right();
 
-        // Création du layer initial
+        // Create the container for layers
+        VisTable layersTable = new VisTable();
+        scrollPane = new VisScrollPane(layersTable);
+        // Set the same width and height as the background
+        scrollPane.setOverscroll(false, true);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setForceScroll(false, true);
+
+        // Create the first layer
         addNewLayer("Layer 0");
 
-        // Bouton d'ajout de layer
+        // Button for adding a new layer
         addLayerButton = new VisTextButton("+");
         addLayerButton.addListener(new ChangeListener() {
             @Override
@@ -70,22 +86,25 @@ public class Main extends MainBase {
                 addNewLayer("Layer " + (++currentLayerCount));
             }
         });
+        // Add the layers to the scrollable pane
+        updateLayersTable(layersTable);
 
-        updateRightTableLayout();
+        // Add the scroll pane to the right table
+        rightTable.add(scrollPane).width(RIGHT_PANEL_WIDTH).height(getStage().getHeight() - 80).padBottom(10).row();
+        rightTable.add(addLayerButton).padTop(20);
     }
 
     private void addNewLayer(String name) {
-        Layer newLayer = new Layer(this,getStage(),name);
+        Layer newLayer = new Layer(this, getStage(), name);
         layers.add(newLayer);
-        updateRightTableLayout();
+        updateLayersTable((VisTable) scrollPane.getWidget());
     }
 
-    private void updateRightTableLayout() {
-        rightTable.clear();
-        for(Layer layer : layers) {
-            rightTable.add(layer.table).padBottom(15).row();
+    private void updateLayersTable(VisTable layersTable) {
+        layersTable.clear();
+        for (Layer layer : layers) {
+            layersTable.add(layer.table).padBottom(15).row();
         }
-        rightTable.add(addLayerButton).padTop(20);
     }
 
     private void addRadioButtonsToTable(VisTable table) {
@@ -128,7 +147,6 @@ public class Main extends MainBase {
         for (int i = 0; i < layers.size(); i++) {
             layers.get(i).nameLabel.setText("Layer " + i);
         }
-        updateRightTableLayout();
+        updateLayersTable((VisTable) scrollPane.getWidget());
     }
-
 }
