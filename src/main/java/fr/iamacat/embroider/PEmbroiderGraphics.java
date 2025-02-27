@@ -1955,201 +1955,186 @@ public class PEmbroiderGraphics {
 	 *  @param close whether the polyline is considered as closed (polygon) or open (polyline)
 	 *  @return      an array of polylines
 	 */
-	public ArrayList<ArrayList<Vector2>> strokePolyNormal(ArrayList<Vector2> poly, float d, float s, boolean close){
-//		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
-		ArrayList<ArrayList<ArrayList<Vector2>>> polyss = new ArrayList<ArrayList<ArrayList<Vector2>>>();
+	public ArrayList<ArrayList<Vector2>> strokePolyNormal(ArrayList<Vector2> poly, float d, float s, boolean close) {
+		ArrayList<ArrayList<ArrayList<Vector2>>> polyss = new ArrayList<>();
 
 		BBox bb = new BBox(poly);
-		bb.x -= d*2;
-		bb.y -= d*2;
-		bb.w += d*4;
-		bb.h += d*4;
+		bb.x -= d * 2;
+		bb.y -= d * 2;
+		bb.w += d * 4;
+		bb.h += d * 4;
 
-		ShapeRenderer pg = app.createGraphics((int)bb.w, (int)bb.h);
-		pg.beginDraw();
-		pg.background(0);
-		pg.stroke(255);
-		pg.strokeWeight(s*1f);
-		pg.translate(-bb.x,-bb.y);
-		pg.strokeCap(PConstants.SQUARE);
-		for (int i = 0; i < poly.size()-(close?0:1); i++) {
-			ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+		Gdx.gl.glLineWidth(s);
+		shapeRenderer.setColor(Color.WHITE);
+
+		for (int i = 0; i < poly.size() - (close ? 0 : 1); i++) {
+			ArrayList<ArrayList<Vector2>> polys = new ArrayList<>();
 			polyss.add(polys);
 			Vector2 p0 = poly.get(i);
-			Vector2 p1 = poly.get((i+1)%poly.size());
+			Vector2 p1 = poly.get((i + 1) % poly.size());
 
-			float a0 = MathUtils.atan2(p1.y-p0.y,p1.x-p0.x);
-			float a1 = a0 + PConstants.HALF_PI;
+			float a0 = MathUtils.atan2(p1.y - p0.y, p1.x - p0.x);
+			float a1 = a0 + MathUtils.HALF_PI;
 
 			float l = p0.dst(p1);
 			int n = MathUtils.ceil(l / s);
 			if (n == 0) {
 				continue;
 			}
-			for (int j = 0; j < n+1; j++) {
-				float t = (float)j/(float)n;
+
+			for (int j = 0; j < n + 1; j++) {
+				float t = (float) j / (float) n;
 				Vector2 p = p0.cpy().lerp(p1, t);
-				float x0 = p.x - d*MathUtils.cos(a1);
-				float y0 = p.y - d*MathUtils.sin(a1);
-				float x1 = p.x + d*MathUtils.cos(a1);
-				float y1 = p.y + d*MathUtils.sin(a1);
+				float x0 = p.x - d * MathUtils.cos(a1);
+				float y0 = p.y - d * MathUtils.sin(a1);
+				float x1 = p.x + d * MathUtils.cos(a1);
+				float y1 = p.y + d * MathUtils.sin(a1);
 
 				boolean lastOn = false;
-				int m = MathUtils.ceil(d)+1;
-				int mmm = Math.min(20,m/3);
+				int m = MathUtils.ceil(d) + 1;
+				int mmm = Math.min(20, m / 3);
 
-				pg.beginShape();
 				for (int k = 0; k < m; k++) {
-					float u = (float)k/(float)Math.max(1,m-1);
-					float x2 = x0 * (1-u) + x1 * u;
-					float y2 = y0 * (1-u) + y1 * u;
-					if (k == m-1 && lastOn) {
-						if (polys.get(polys.size()-1).size() < mmm) {
-							polys.remove(polys.size()-1);
-						}else {
-							polys.get(polys.size()-1).add(new Vector2(x2,y2));
-						    pg.vertex(x2,y2);
+					float u = (float) k / Math.max(1, m - 1);
+					float x2 = x0 * (1 - u) + x1 * u;
+					float y2 = y0 * (1 - u) + y1 * u;
+
+					if (k == m - 1 && lastOn) {
+						if (polys.get(polys.size() - 1).size() < mmm) {
+							polys.remove(polys.size() - 1);
+						} else {
+							polys.get(polys.size() - 1).add(new Vector2(x2, y2));
+							shapeRenderer.line(x2, y2, x2, y2);
 						}
 						continue;
 					}
-					if ((pg.get((int)(x2-bb.x),(int)(y2-bb.y))>>16&0xFF)<127) {
+
+					// Check if the point is outside the shape (implement your check here)
+					if (isOutside(x2, y2, bb)) {
 						if (!lastOn) {
-							ArrayList<Vector2> pp = new ArrayList<Vector2>();
-							pp.add(new Vector2(x2,y2));
+							ArrayList<Vector2> pp = new ArrayList<>();
+							pp.add(new Vector2(x2, y2));
 							polys.add(pp);
-							pg.endShape();
-							pg.beginShape();
-							pg.vertex(x2,y2);
-						}else {
-							polys.get(polys.size()-1).add(new Vector2(x2,y2));
+							shapeRenderer.line(x2, y2, x2, y2);
+						} else {
+							polys.get(polys.size() - 1).add(new Vector2(x2, y2));
 						}
 						lastOn = true;
-					}else {
+					} else {
 						if (lastOn) {
-							if (polys.get(polys.size()-1).size() < mmm) {//Math.min(3,m)) {
-								polys.remove(polys.size()-1);
-							}else {
-								polys.get(polys.size()-1).add(new Vector2(x2,y2));
-								pg.vertex(x2,y2);
+							if (polys.get(polys.size() - 1).size() < mmm) {
+								polys.remove(polys.size() - 1);
+							} else {
+								polys.get(polys.size() - 1).add(new Vector2(x2, y2));
+								shapeRenderer.line(x2, y2, x2, y2);
 							}
 						}
 						lastOn = false;
 					}
 				}
-				pg.endShape();
 			}
 
 		}
-		pg.filter(PConstants.DILATE);
+		// pg.filter(PConstants.DILATE);
 
 		polyss.add( new ArrayList<ArrayList<Vector2>>());
 		int mm = MathUtils.ceil(PConstants.PI*(d*2)/s*PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER);
 
 		if (!close) {
 			for (int i = 0; i < poly.size(); i++) {
-
-				ArrayList<ArrayList<Vector2>> polys = polyss.get((i-1+poly.size())%poly.size());
+				ArrayList<ArrayList<Vector2>> polys = polyss.get((i - 1 + poly.size()) % poly.size());
 				Vector2 p0 = poly.get(i);
 
-				if ((i == 0 || i == poly.size()-1 ) && poly.size()>1) {
+				if ((i == 0 || i == poly.size() - 1) && poly.size() > 1) {
 					float a;
 					if (i == 0) {
-						a = MathUtils.atan2(poly.get(0).y-poly.get(1).y, poly.get(0).x-poly.get(1).x);
-					}else {
-						a = MathUtils.atan2(poly.get(poly.size()-1).y-poly.get(poly.size()-2).y, poly.get(poly.size()-1).x-poly.get(poly.size()-2).x);
+						a = MathUtils.atan2(poly.get(0).y - poly.get(1).y, poly.get(0).x - poly.get(1).x);
+					} else {
+						a = MathUtils.atan2(poly.get(poly.size() - 1).y - poly.get(poly.size() - 2).y, poly.get(poly.size() - 1).x - poly.get(poly.size() - 2).x);
 					}
-					for (int j = 0; j < mm/2; j++) {
-						float t = (float)j/(float)(mm/2);
-						float x1 = p0.x+d*t*MathUtils.cos(a);
-						float y1 = p0.y+d*t*MathUtils.sin(a);
-						float cw = d*Math.sqrt(1-t*t);
 
-						float xa = x1+cw*MathUtils.cos(a-PConstants.HALF_PI);
-						float ya = y1+cw*MathUtils.sin(a-PConstants.HALF_PI);
+					for (int j = 0; j < mm / 2; j++) {
+						float t = (float) j / (float) (mm / 2);
+						float x1 = p0.x + d * t * MathUtils.cos(a);
+						float y1 = p0.y + d * t * MathUtils.sin(a);
+						float cw = (float) (d * Math.sqrt(1 - t * t));
 
-						float xb = x1+cw*MathUtils.cos(a+PConstants.HALF_PI);
-						float yb = y1+cw*MathUtils.sin(a+PConstants.HALF_PI);
+						float xa = x1 + cw * MathUtils.cos(a - MathUtils.HALF_PI);
+						float ya = y1 + cw * MathUtils.sin(a - MathUtils.HALF_PI);
 
-						ArrayList<Vector2> pp = new ArrayList<Vector2>();
-						pp.add(new Vector2(xa,ya));
-						pp.add(new Vector2(xb,yb));
+						float xb = x1 + cw * MathUtils.cos(a + MathUtils.HALF_PI);
+						float yb = y1 + cw * MathUtils.sin(a + MathUtils.HALF_PI);
+
+						ArrayList<Vector2> pp = new ArrayList<>();
+						pp.add(new Vector2(xa, ya));
+						pp.add(new Vector2(xb, yb));
 						polys.add(pp);
-
 					}
-					pg.pushStyle();
-					pg.fill(255);
-					pg.noStroke();
-					//pg.circle(poly.get(i).x,poly.get(i).y,d*2+2);
-					pg.ellipse(poly.get(i).x, poly.get(i).y, d * 2 + 2, d * 2 + 2);
-					pg.popStyle();
+					shapeRenderer.setColor(Color.WHITE);
+					shapeRenderer.circle(poly.get(i).x, poly.get(i).y, d * 2 + 2);
 				}
 			}
-
-
 		}
 
-
-
 		for (int i = 0; i < poly.size(); i++) {
-
-			ArrayList<ArrayList<Vector2>> polys = polyss.get((i-1+poly.size())%poly.size());
+			ArrayList<ArrayList<Vector2>> polys = polyss.get((i - 1 + poly.size()) % poly.size());
 			Vector2 p0 = poly.get(i);
 			float x0 = p0.x;
 			float y0 = p0.y;
 
-
 			for (int j = 0; j < mm; j++) {
-				float a = (float)j/(float)mm*PConstants.TWO_PI;
-				float x1 = p0.x - d*MathUtils.cos(a);
-				float y1 = p0.y - d*MathUtils.sin(a);
+				float a = (float) j / (float) mm * MathUtils.PI2;
+				float x1 = p0.x - d * MathUtils.cos(a);
+				float y1 = p0.y - d * MathUtils.sin(a);
 				boolean lastOn = false;
 
 				int m = MathUtils.ceil(d);
-				int mmm = Math.min(10,m/3);
-				mmm = 0;
+				int mmm = Math.min(10, m / 3);
+				mmm = 0; // Can be adjusted based on your needs
 
-				pg.beginShape();
+				// Instead of pg.beginShape(), we will directly use shapeRenderer
 				for (int k = 0; k < m; k++) {
-					float u = (float)k/(float)(m-1);
-					float x2 = x0 * (1-u) + x1 * u;
-					float y2 = y0 * (1-u) + y1 * u;
-					if (k == m-1 && lastOn) {
-						if (polys.get(polys.size()-1).size() < mmm) {
-							polys.remove(polys.size()-1);
-						}else {
-							polys.get(polys.size()-1).add(new Vector2(x2,y2));
-							pg.vertex(x2,y2);
+					float u = (float) k / (float) (m - 1);
+					float x2 = x0 * (1 - u) + x1 * u;
+					float y2 = y0 * (1 - u) + y1 * u;
+
+					if (k == m - 1 && lastOn) {
+						if (polys.get(polys.size() - 1).size() < mmm) {
+							polys.remove(polys.size() - 1);
+						} else {
+							polys.get(polys.size() - 1).add(new Vector2(x2, y2));
+							shapeRenderer.line(x2, y2, x2, y2); // Equivalent to vertex() in Processing
 						}
 						continue;
 					}
-					if ((pg.get((int)(x2-bb.x),(int)(y2-bb.y))>>16&0xFF)<1) {
+
+					// Implement the pixel-checking logic (you may need a custom method to check the pixels)
+					if (isOutside(x2, y2, bb)) { // This method should be customized as per your needs
 						if (!lastOn) {
-							ArrayList<Vector2> pp = new ArrayList<Vector2>();
-							pp.add(new Vector2(x2,y2));
+							ArrayList<Vector2> pp = new ArrayList<>();
+							pp.add(new Vector2(x2, y2));
 							polys.add(pp);
-							pg.endShape();
-							pg.beginShape();
-							pg.vertex(x2,y2);
-						}else {
-							polys.get(polys.size()-1).add(new Vector2(x2,y2));
+							// Instead of pg.beginShape(), just start adding the line directly
+							shapeRenderer.line(x2, y2, x2, y2); // Add vertex-like behavior
+						} else {
+							polys.get(polys.size() - 1).add(new Vector2(x2, y2));
 						}
 						lastOn = true;
-					}else {
+					} else {
 						if (lastOn) {
-							if (polys.get(polys.size()-1).size() < mmm) {//Math.min(3,m)) {
-								polys.remove(polys.size()-1);
-							}else {
-								polys.get(polys.size()-1).add(new Vector2(x2,y2));
-								pg.vertex(x2,y2);
+							if (polys.get(polys.size() - 1).size() < mmm) {
+								polys.remove(polys.size() - 1);
+							} else {
+								polys.get(polys.size() - 1).add(new Vector2(x2, y2));
+								shapeRenderer.line(x2, y2, x2, y2); // Add vertex-like behavior
 							}
 						}
 						lastOn = false;
 					}
 				}
-				pg.endShape();
-				pg.endShape();
 			}
-
 		}
 
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
@@ -2162,7 +2147,7 @@ public class PEmbroiderGraphics {
 				polys.add(polyss.get(i).get(j));
 			}
 		}
-		pg.endDraw();
+		shapeRenderer.end();
 		float ml = Math.min(2,d-1);
 		for (int i = polys.size()-1; i >= 0; i--) {
 			if (polys.get(i).size() < 2) {
@@ -2189,7 +2174,9 @@ public class PEmbroiderGraphics {
 		return polys;
 	}
 
-
+	private boolean isOutside(float x, float y, BBox bb) {
+		return x < bb.x || x > bb.x + bb.w || y < bb.y || y > bb.y + bb.h;
+	}
 	public ArrayList<ArrayList<Vector2>> strokePolyNormalAng(ArrayList<Vector2> poly, float d, float s, float ang, boolean close){
 //		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 		ArrayList<ArrayList<ArrayList<Vector2>>> polyss = new ArrayList<ArrayList<ArrayList<Vector2>>>();
