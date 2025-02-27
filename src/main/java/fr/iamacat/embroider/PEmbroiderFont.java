@@ -1,82 +1,97 @@
 package fr.iamacat.embroider;
 
-import java.util.*;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Align;
 
-import processing.core.*;
+import java.util.*;
 
 public class PEmbroiderFont {
 	// ported from https://github.com/LingDong-/p5-hershey-js
-	
+	public static final int UNION = 1;
+	public static final int OR = 1;
+	public static final int XOR = 2;
+	public static final int SYMMETRIC_DIFFERENCE = 2;
+	public static final int INTERSECTION = 3;
+	public static final int AND = 3;
+	public static final int SUBTRACT = 4;
+	public static final int DIFFERENCE = 4;
+
 	public static int[] parseBound(String entry) {
-		int ordR = (int)'R';
-	    String bound = entry.substring(3,5);
-	    int xmin = (int)bound.charAt(0)-ordR;
-	    int xmax = (int)bound.charAt(1)-ordR;
-	    return new int[] {xmin,xmax};
+		int ordR = (int) 'R';
+		String bound = entry.substring(3, 5);
+		int xmin = bound.charAt(0) - ordR;
+		int xmax = bound.charAt(1) - ordR;
+		return new int[]{xmin, xmax};
 	}
-	public static float putChar(int[] cmap, char c, float ox, float oy, float scl, ArrayList<ArrayList<PVector>> out){
-	    int ordR = (int)'R';
-	    String entry;
-	    try {
-	    	entry = data(cmap[(int)c-32]);
-	    }catch(Exception e){
-	    	System.out.printf("[PEmbroiderFont] Warning: no glyph found for character %c\n",c);
-	    	c = ' ';
-	    	entry = data(cmap[(int)c-32]);
-	    }
-	    if (entry == null){
-	      return 0;
-	    }
-	    int[] bound =parseBound(entry);
-	    float xmin = bound[0]*scl;
-	    float xmax = bound[1]*scl;
-	    String content = entry.substring(5);
-	    
-	    out.add(new ArrayList<PVector>());
-	    for (int i = 0; i < content.length(); i+=2){
-	      String digit = content.substring(i,i+2);
-	      if (digit.equals(" R")){
-	    	  out.add(new ArrayList<PVector>());
-	      }else{
-	        int x = (int)digit.charAt(0)-ordR;
-	        int y = (int)digit.charAt(1)-ordR;
-	        out.get(out.size()-1).add(new PVector(ox+(float)(x)*scl-xmin,oy+(float)y*scl));
-	      }
-	    }
-	    return (xmax-xmin);
+
+	public static float putChar(int[] cmap, char c, float ox, float oy, float scl, ArrayList<ArrayList<Vector2>> out) {
+		int ordR = (int) 'R';
+		String entry;
+		try {
+			entry = data(cmap[(int) c - 32]);
+		} catch (Exception e) {
+			System.out.printf("[EmbroiderFont] Warning: no glyph found for character %c\n", c);
+			c = ' ';
+			entry = data(cmap[(int) c - 32]);
+		}
+		if (entry == null) {
+			return 0;
+		}
+
+		int[] bound = parseBound(entry);
+		float xmin = bound[0] * scl;
+		float xmax = bound[1] * scl;
+		String content = entry.substring(5);
+
+		out.add(new ArrayList<Vector2>());
+		for (int i = 0; i < content.length(); i += 2) {
+			String digit = content.substring(i, i + 2);
+			if (digit.equals(" R")) {
+				out.add(new ArrayList<Vector2>());
+			} else {
+				int x = digit.charAt(0) - ordR;
+				int y = digit.charAt(1) - ordR;
+				out.get(out.size() - 1).add(new Vector2(ox + x * scl - xmin, oy + y * scl));
+			}
+		}
+		return (xmax - xmin);
 	}
+
 	public static int estimateTextWidth(int[] cmap, String s) {
 		int sum = 0;
 		for (int i = 0; i < s.length(); i++) {
 			char c = s.charAt(i);
 			String entry;
-		    try {
-		    	entry = data(cmap[(int)c-32]);
-		    }catch(Exception e){
-		    	System.out.printf("[PEmbroiderFont] Warning: no glyph found for character %c\n",c);
-		    	c = ' ';
-		    	entry = data(cmap[(int)c-32]);
-		    }
+			try {
+				entry = data(cmap[(int) c - 32]);
+			} catch (Exception e) {
+				System.out.printf("[EmbroiderFont] Warning: no glyph found for character %c\n", c);
+				c = ' ';
+				entry = data(cmap[(int) c - 32]);
+			}
 			int[] bound = parseBound(entry);
-			sum += (bound[1]-bound[0]);
+			sum += (bound[1] - bound[0]);
 		}
 		return sum;
 	}
-	public static ArrayList<ArrayList<PVector>> putText(int[] cmap, String s, float ox, float oy, float scl, int align) {
-		ArrayList<ArrayList<PVector>> out = new ArrayList<ArrayList<PVector>>();
-		if (align != PConstants.LEFT) {
-			
-			int w = estimateTextWidth(cmap,s);
-			if (align == PConstants.RIGHT) {
-				ox -= scl*(float)w;
-			}else if (align == PConstants.CENTER) {
-				ox -= scl*(float)w/2;
+
+	public static ArrayList<ArrayList<Vector2>> putText(int[] cmap, String s, float ox, float oy, float scl, int align) {
+		ArrayList<ArrayList<Vector2>> out = new ArrayList<>();
+
+		if (align != Align.left) {
+			int w = estimateTextWidth(cmap, s);
+			if (align == Align.right) {
+				ox -= scl * w;
+			} else if (align == Align.center) {
+				ox -= scl * w / 2;
 			}
 		}
+
 		for (int i = 0; i < s.length(); i++) {
 			char c = s.charAt(i);
-			ox += putChar(cmap,c,ox,oy,scl,out);
+			ox += putChar(cmap, c, ox, oy, scl, out);
 		}
+
 		return out;
 	}
 	
