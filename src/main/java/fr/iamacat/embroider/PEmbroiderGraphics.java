@@ -2563,7 +2563,7 @@ public class PEmbroiderGraphics {
 					if (polys.size() >= 1 && polys2.size() >= 1 && i > 0) {
 						Vector2 a = p0.cpy().sub(polys2.get(i-1).get(Math.max(j-1,0)));
 						Vector2 b = p0.cpy().sub(polys2.get(i-1).get(Math.max(j-1,0)));
-						Vector2 c = a.mul(0.5f).add(b.mul(0.5f));
+						Vector2 c = a.scl(0.5f).add(b.scl(0.5f));
 						p1 = p0.cpy().add(c);
 					}else {
 						p1 = p0.cpy();
@@ -2572,7 +2572,7 @@ public class PEmbroiderGraphics {
 					p1 = polys2.get(i+1).get(j);
 				}
 				float t = (float)j/(float)n;
-				spiral.add(p0.cpy().mul(1-t).add(p1.cpy().mul(t)));
+				spiral.add(p0.cpy().scl(1-t).add(p1.cpy().scl(t)));
 			}
 		}
 
