@@ -9,6 +9,7 @@ import java.util.*;
 //import processing.awt.ShapeRendererJava2D;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -1187,70 +1188,75 @@ public class PEmbroiderGraphics {
 	 *  @param poly   a polyline
 	 *  @param d      offset amount, positive/negative for inward/outward
 	 */
-	public ArrayList<Vector2> offsetPolyline(ArrayList<Vector2> poly, float d){
+	public ArrayList<Vector2> offsetPolyline(ArrayList<Vector2> poly, float d) {
 		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		for (int i = 0; i < poly.size(); i++) {
 			Vector2 p = poly.get(i);
-			Vector2 p0 = poly.get((i-1+poly.size()) % poly.size());
-			Vector2 p1 = poly.get((i+1)%poly.size());
-			float a0 = MathUtils.atan2(p0.y-p.y,p0.x-p.x);
-			float a1 = MathUtils.atan2(p1.y-p.y,p1.x-p.x);
+			Vector2 p0 = poly.get((i - 1 + poly.size()) % poly.size());
+			Vector2 p1 = poly.get((i + 1) % poly.size());
+			float a0 = MathUtils.atan2(p0.y - p.y, p0.x - p.x);
+			float a1 = MathUtils.atan2(p1.y - p.y, p1.x - p.x);
 			if (i == 0) {
-				a0 = a1 - PConstants.PI;
-			}else if (i == poly.size()-1){
-				a1 = a0 + PConstants.PI;
+				a0 = a1 - MathUtils.PI;
+			} else if (i == poly.size() - 1) {
+				a1 = a0 + MathUtils.PI;
 			}
-			float a = (a1+a0)/2;
-			float d2 = d / (MathUtils.sin((a1-a0)/2));
+			float a = (a1 + a0) / 2;
+			float d2 = d / (MathUtils.sin((a1 - a0) / 2));
 
-			float x = p.x + d2*MathUtils.cos(a);
-			float y = p.y + d2*MathUtils.sin(a);
-			poly2.add(new Vector2(x,y));
+			float x = p.x + d2 * MathUtils.cos(a);
+			float y = p.y + d2 * MathUtils.sin(a);
+			poly2.add(new Vector2(x, y));
 		}
-		for (int i = 1; i < poly2.size()-2; i++) {
-			int i0 = (i-1+poly.size()) % poly.size();
+
+		for (int i = 1; i < poly2.size() - 2; i++) {
+			int i0 = (i - 1 + poly.size()) % poly.size();
 			int i1 = i;
-			int i2 = (i+1)%poly2.size();
-			int i3 = (i+2)%poly2.size();
+			int i2 = (i + 1) % poly2.size();
+			int i3 = (i + 2) % poly2.size();
 
 			Vector2 p0 = poly2.get(i0);
 			Vector2 p1 = poly2.get(i1);
 			Vector2 p2 = poly2.get(i2);
 			Vector2 p3 = poly2.get(i3);
-			if (p0 == p3) {
+			if (p0.equals(p3)) {
 				continue;
 			}
-			Vector2 o = segmentIntersect3D(p0,p1,p2,p3);
-			if (o != null){
-				Vector2 x = p0.cpy().mul(1-o.x).add(p1.cpy().mul(o.x));
+
+			Vector2 o = segmentIntersect3D(p0, p1, p2, p3);
+			if (o != null) {
+				// Use scl() for scalar multiplication
+				Vector2 x = p0.cpy().scl(1 - o.x).add(p1.cpy().scl(o.x));
 				poly2.set(i1, x);
 				poly2.set(i2, x);
-
 			}
 		}
+
 		ArrayList<Vector2> poly3 = new ArrayList<Vector2>();
 		for (int i = 0; i < poly2.size(); i++) {
-			if (poly2.get(i) != poly2.get((i-1+poly2.size())%poly2.size())) {
+			// Remove duplicate consecutive points
+			if (!poly2.get(i).equals(poly2.get((i - 1 + poly2.size()) % poly2.size()))) {
 				poly3.add(poly2.get(i));
 			}
 		}
+
 		return poly3;
 	}
 
 	/** Turn a self-intersecting polygon to a list of non-self-intersecting polygons
 	 *  @param poly   a polygon
 	 */
-	public ArrayList<ArrayList<Vector2>> selfIntersectPolygon(ArrayList<Vector2> poly){
+	public ArrayList<ArrayList<Vector2>> selfIntersectPolygon(ArrayList<Vector2> poly) {
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 		if (poly.size() < 3) {
 			return polys;
 		}
 		for (int i = 0; i < poly.size(); i++) {
-			int i1 = (i+1)%poly.size();
+			int i1 = (i + 1) % poly.size();
 
 			for (int j = 2; j < poly.size(); j++) {
-				int i2 = (i+j)%poly.size();
-				int i3 = (i+j+1)%poly.size();
+				int i2 = (i + j) % poly.size();
+				int i3 = (i + j + 1) % poly.size();
 
 				Vector2 p0 = poly.get(i);
 				Vector2 p1 = poly.get(i1);
@@ -1259,28 +1265,27 @@ public class PEmbroiderGraphics {
 				if (p0 == p3) {
 					continue;
 				}
-				Vector2 o = segmentIntersect3D(p0,p1,p2,p3);
-				if (o != null){
+				Vector2 o = segmentIntersect3D(p0, p1, p2, p3);
+				if (o != null) {
 
-					Vector2 x = p0.cpy().mul(1-o.x).add(p1.cpy().mul(o.x));
+					// Fixing the multiplication issue by using scl() instead of mul()
+					Vector2 x = p0.cpy().scl(1 - o.x).add(p1.cpy().scl(o.x));
 					ArrayList<Vector2> poly1 = new ArrayList<Vector2>();
 					ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 					for (int k = 0; k < poly.size(); k++) {
-
-						Vector2 p = poly.get((i+k)%poly.size());
+						Vector2 p = poly.get((i + k) % poly.size());
 						if (1 <= k && k <= j) {
 							poly1.add(p);
-						}else {
+						} else {
 							poly2.add(p);
 						}
 					}
 
-					poly1.add(0,x);
-					poly2.add(1,x);
+					poly1.add(0, x);
+					poly2.add(1, x);
 					ArrayList<ArrayList<Vector2>> polys1 = selfIntersectPolygon(poly1);
 					ArrayList<ArrayList<Vector2>> polys2 = selfIntersectPolygon(poly2);
 					polys1.addAll(polys2);
-					//	    			System.out.println(polys1.size());
 					return polys1;
 				}
 			}
@@ -1362,7 +1367,7 @@ public class PEmbroiderGraphics {
 		float y1 = p0.y;
 		float x2 = p1.x;
 		float y2 = p1.y;
-		return Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
+		return (float) (Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1)));
 	}
 
 	/** Calculate distance between point and a segment (when projection is not on the line, the distance becomes that to one of the endpoints)
@@ -1402,7 +1407,7 @@ public class PEmbroiderGraphics {
 		}
 		float dx = x - xx;
 		float dy = y - yy;
-		return Math.sqrt(dx*dx+dy*dy);
+		return (float) Math.sqrt(dx*dx+dy*dy);
 	}
 
 	/** Inset a polygon (making it slightly smaller fitting in the original polygon)
@@ -1414,50 +1419,57 @@ public class PEmbroiderGraphics {
 	public ArrayList<ArrayList<Vector2>> insetPolygon(ArrayList<Vector2> poly, float d){
 		return offsetPolygon(poly,-d);
 	}
+	public static float angleBetween(Vector2 v1, Vector2 v2) {
+		float dot = v1.dot(v2); // Dot product of the two vectors
+		float len1 = v1.len();  // Length (magnitude) of the first vector
+		float len2 = v2.len();  // Length (magnitude) of the second vector
+		float cosAngle = dot / (len1 * len2);  // Cosine of the angle
+		cosAngle = MathUtils.clamp(cosAngle, -1f, 1f);  // Clamp to avoid rounding errors
+		return MathUtils.acos(cosAngle);  // Return the angle in radians
+	}
 
 	/** Offset a polygon (making it slightly smaller fitting in the original polygon, or slightly bigger wrapping the original polygon)
 	 *  @param poly  the polygon
 	 *  @param d     the amount of offset. Use negative value for insetting
 	 *  @return a list of polygons. When the given polygon is big at both ends and small in the middle, the inset might break into multiple polygons
 	 */
-	public ArrayList<ArrayList<Vector2>> offsetPolygon(ArrayList<Vector2> poly, float d){
+	public ArrayList<ArrayList<Vector2>> offsetPolygon(ArrayList<Vector2> poly, float d) {
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 		if (poly.size() < 3) {
 			return polys;
 		}
+
 		boolean hasSharpAngle = false;
 		for (int i = 0; i < poly.size(); i++) {
 			Vector2 a = poly.get(i);
-			Vector2 b = poly.get((i+1)%poly.size());
-			Vector2 c = poly.get((i+2)%poly.size());
+			Vector2 b = poly.get((i + 1) % poly.size());
+			Vector2 c = poly.get((i + 2) % poly.size());
 			Vector2 u = b.cpy().sub(a);
 			Vector2 v = c.cpy().sub(b);
-			float ang = Math.abs(Vector2.angleBetween(u, v));
-			if (ang > PConstants.PI) {
+			float ang = Math.abs(angleBetween(u, v));
+			if (ang > MathUtils.PI) {
 				ang = PConstants.TWO_PI - ang;
 			}
-			if (ang > PConstants.PI * 0.9f) {
+			if (ang > MathUtils.PI * 0.9f) {
 				hasSharpAngle = true;
 			}
 		}
 
 		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		for (int i = 0; i < poly.size(); i++) {
-
 			Vector2 p = poly.get(i);
-			Vector2 p0 = poly.get((i-1+poly.size()) % poly.size());
-			Vector2 p1 = poly.get((i+1)%poly.size());
+			Vector2 p0 = poly.get((i - 1 + poly.size()) % poly.size());
+			Vector2 p1 = poly.get((i + 1) % poly.size());
 
 			boolean ok = true;
 
-			for (int j = i+1; j < poly.size(); j++) {
+			for (int j = i + 1; j < poly.size(); j++) {
 				Vector2 q = poly.get(j);
 
-				if (Math.abs(p.y-q.y) <= 1 && Math.abs(p.x-q.x) <= 1) {
+				if (Math.abs(p.y - q.y) <= 1 && Math.abs(p.x - q.x) <= 1) {
 					ok = false;
 					break;
 				}
-
 			}
 			if (!ok) {
 				continue;
@@ -1478,29 +1490,29 @@ public class PEmbroiderGraphics {
 //			if (!ok) {
 //				continue;
 //			}
-			float a0 = MathUtils.atan2(p0.y-p.y,p0.x-p.x);
-			float a1 = MathUtils.atan2(p1.y-p.y,p1.x-p.x);
-			float a = (a1+a0)/2;
-			float d2 = d / (MathUtils.sin((a1-a0)/2));
+			float a0 = MathUtils.atan2(p0.y - p.y, p0.x - p.x);
+			float a1 = MathUtils.atan2(p1.y - p.y, p1.x - p.x);
+			float a = (a1 + a0) / 2;
+			float d2 = d / (MathUtils.sin((a1 - a0) / 2));
 
-			float x = p.x + d2*MathUtils.cos(a);
-			float y = p.y + d2*MathUtils.sin(a);
+			float x = p.x + d2 * MathUtils.cos(a);
+			float y = p.y + d2 * MathUtils.sin(a);
 
-			Vector2 pp = new Vector2(x,y);
+			Vector2 pp = new Vector2(x, y);
 
 			if (hasSharpAngle) {
 				if (d < 0) {
-					if (!pointInPolygon(pp,poly)) {
+					if (!pointInPolygon(pp, poly)) {
 						continue;
 					}
-				}else if (d > 0) {
-					if (pointInPolygon(pp,poly)) {
+				} else if (d > 0) {
+					if (pointInPolygon(pp, poly)) {
 						continue;
 					}
 				}
 
 				for (int j = 0; j < poly.size(); j++) {
-					if (pp.dst(poly.get(i))<Math.abs(d)-0.1f) {
+					if (pp.dst(poly.get(i)) < Math.abs(d) - 0.1f) {
 						ok = false;
 						break;
 					}
@@ -1510,15 +1522,14 @@ public class PEmbroiderGraphics {
 				}
 				for (int j = 0; j < poly.size(); j++) {
 					Vector2 q0 = poly.get(j);
-					Vector2 q1 = poly.get((j+1)%poly.size());
-					float dl = pointDistanceToSegment(pp,q0,q1);
-	//				System.out.println(dl);
-					if (dl<Math.abs(d)-0.1f) {
+					Vector2 q1 = poly.get((j + 1) % poly.size());
+					float dl = pointDistanceToSegment(pp, q0, q1);
+					if (dl < Math.abs(d) - 0.1f) {
 						ok = false;
 						break;
 					}
 				}
-				if(!ok) {
+				if (!ok) {
 					continue;
 				}
 			}
@@ -1526,150 +1537,195 @@ public class PEmbroiderGraphics {
 		}
 		polys.add(poly2);
 
-
 		polys = selfIntersectPolygon(poly2);
-		if (polys.size() <= 0) {
-			return polys;
-			// no escape for size==1, shape could be totally "inside-out",
-			// with no intersection, but should still be discarded.
+		if (polys.isEmpty()) {
+			return polys; // no escape for size==1, shape could be totally "inside-out", with no intersection, but should still be discarded.
 		}
-		BBox bb = new BBox(poly);
-		bb.x -= Math.abs(d)*2;
-		bb.y -= Math.abs(d)*2;
-		bb.w += 4*Math.abs(d);
-		bb.h += 4*Math.abs(d);
-		ShapeRenderer pg = app.createGraphics(MathUtils.ceil(bb.w), MathUtils.ceil(bb.h));
-		pg.beginDraw();
-		pg.background(d<0?0:255);
-		pg.translate(-bb.x,-bb.y);
-		pg.fill(255);
-		pg.noStroke();
-		pg.beginShape();
-		for (int i = 0; i < poly.size(); i++) {
-			pg.vertex(poly.get(i).x,poly.get(i).y);
-		}
-		pg.endShape(PConstants.CLOSE);
-		pg.strokeJoin(PConstants.MITER);
-		pg.noFill();
-		pg.stroke(0);
-		pg.strokeWeight(Math.abs(d*2));
-		pg.beginShape();
-		for (int i = 0; i < poly.size(); i++) {
-			pg.vertex(poly.get(i).x,poly.get(i).y);
-		}
-		pg.endShape(PConstants.CLOSE);
-		pg.endDraw();
 
-		for (int i = polys.size()-1; i>=0; i--) {
+		BBox bb = new BBox(poly2);
+		Pixmap pixmap = new Pixmap((int) bb.w, (int) bb.h, Pixmap.Format.RGBA8888);
+		bb.x -= Math.abs(d) * 2;
+		bb.y -= Math.abs(d) * 2;
+		bb.w += 4 * Math.abs(d);
+		bb.h += 4 * Math.abs(d);
+
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled); // Begin with Filled shape type
+		shapeRenderer.setColor(d < 0 ? 0 : 1, d < 0 ? 0 : 1, d < 0 ? 0 : 1, 1);
+		shapeRenderer.translate(-bb.x, -bb.y, 0); // Corrected translate to include z-coordinate
+
+		// Drawing filled shape
+		for (Vector2 point : poly2) {
+			shapeRenderer.circle(point.x, point.y, 1); // Drawing small circles to simulate filled polygon
+		}
+
+		shapeRenderer.end(); // End the shape renderer
+
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Line); // Begin with Line shape type for outline
+		shapeRenderer.setColor(0, 0, 0, 1); // Set color to black for stroke
+		shapeRenderer.rect(bb.x, bb.y, bb.w, bb.h); // Draw bounding box for the shape outline
+
+		shapeRenderer.end(); // End the shape renderer
+
+		shapeRenderer.dispose(); // Dispose of the shape renderer
+
+		// Process polygons
+		for (int i = polys.size() - 1; i >= 0; i--) {
 			int trials = 99;
 			boolean ok = false;
 			for (int j = 0; j < 5; j++) {
-				Vector2 p = randomPointInPolygon(polys.get(i),trials);
-
+				Vector2 p = randomPointInPolygon(polys.get(i), trials);
 				if (p == null) {
 					continue;
 				}
-				int c = pg.get((int)(p.x-bb.x),(int)(p.y-bb.y));
-				int r = c >> 16 & 0xFF;
-			//    			pg.beginDraw();pg.noStroke();pg.fill(0,255*i,255*(1-i));pg.circle(p.x-bb.x,p.y-bb.y,2f);pg.endDraw();
+				int c = pixmap.getPixel((int) (p.x - bb.x), (int) (p.y - bb.y));
+				int r = c >> 24 & 0xFF; // Use the alpha channel as it stores intensity in RGBA8888
+
 				if (r >= 128) {
 					ok = true;
 					break;
-
 				}
-				trials*=10;
+				trials *= 10;
 			}
 			if (!ok) {
 				polys.remove(i);
 			}
 		}
-//		    	app.tint(255,100);
-//		    	app.image(pg,bb.x,bb.y);
+		pixmap.dispose();
 		return polys;
 	}
+
+	private void drawPolygon(ShapeRenderer shapeRenderer, ArrayList<Vector2> polygon) {
+		if (polygon.size() < 2) return;
+
+		shapeRenderer.setColor(Color.WHITE); // Set white color for the polygon
+		Vector2 firstPoint = polygon.get(0);
+		Vector2 prevPoint = firstPoint;
+
+		for (Vector2 point : polygon) {
+			shapeRenderer.line(prevPoint.x, prevPoint.y, point.x, point.y);
+			prevPoint = point;
+		}
+
+		// Connect the last point to the first to close the polygon
+		shapeRenderer.line(prevPoint.x, prevPoint.y, firstPoint.x, firstPoint.y);
+	}
+
 	public ArrayList<ArrayList<Vector2>> insetPolygonsRaster(ArrayList<ArrayList<Vector2>> polys, float d) {
-		if (polys.size()==0) {
+		if (polys.size() == 0) {
 			return new ArrayList<ArrayList<Vector2>>();
 		}
-		BBox bb = new BBox(polys,0);
 
-		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w),(int)MathUtils.ceil(bb.h));
-		pg.beginDraw();
-		pg.background(0);
-		pg.fill(255);
-		pg.stroke(0);
-		pg.strokeWeight(d*2);
-		pg.translate(-bb.x,-bb.y);
-		pg.beginShape();
-		for (int i = 0; i < polys.get(0).size(); i++) {
-			pg.vertex(polys.get(0).get(i).x,polys.get(0).get(i).y);
-		}
+		// Assuming BBox is a class you've defined elsewhere to represent a bounding box.
+		BBox bb = new BBox(polys, 0);
+
+		// Create a Pixmap to draw the polygons into
+		Pixmap pixmap = new Pixmap((int) Math.ceil(bb.w), (int) Math.ceil(bb.h), Pixmap.Format.RGBA8888);
+		pixmap.setColor(Color.BLACK);
+		pixmap.fill(); // Fill the background with black
+
+		// Create a ShapeRenderer for drawing the polygons
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+
+		// Set the color for the polygon
+		shapeRenderer.setColor(Color.WHITE);
+
+		// Draw the polygons
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.translate(-bb.x, -bb.y, 0); // Translate the polygons to the correct position
+
+		// Draw the outer polygon (first in the list)
+		drawPolygon(shapeRenderer, polys.get(0));
+
+		// Draw inner polygons (contours)
 		for (int j = 1; j < polys.size(); j++) {
-			pg.beginContour();
-			for (int i = 0; i < polys.get(j).size(); i++) {
-				pg.vertex(polys.get(j).get(i).x,polys.get(j).get(i).y);
-			}
-			pg.endContour();
+			drawPolygon(shapeRenderer, polys.get(j));
 		}
-		pg.endShape(PConstants.CLOSE);
-		pg.endDraw();
 
-		ArrayList<ArrayList<Vector2>> polys2 = PEmbroiderTrace.findContours(pg);
+		shapeRenderer.end();
 
-		for (int i = polys2.size()-1; i >= 0; i--) {
+		// Convert the drawing to a list of contours
+		ArrayList<ArrayList<Vector2>> polys2 = PEmbroiderTrace.findContours(pixmap);
+
+		for (int i = polys2.size() - 1; i >= 0; i--) {
 			if (polys2.get(i).size() < 2) {
 				polys2.remove(i);
 				continue;
 			}
+
+			// Translate each point back into original coordinates
 			for (int j = 0; j < polys2.get(i).size(); j++) {
-				polys2.get(i).get(j).add(new Vector2(bb.x,bb.y));
+				polys2.get(i).get(j).add(new Vector2(bb.x, bb.y));
 			}
+
+			// Approximate polygon to reduce vertex count
 			polys2.set(i, PEmbroiderTrace.approxPolyDP(polys2.get(i), 1));
 		}
+
+		// Dispose of the Pixmap and ShapeRenderer after use
+		pixmap.dispose();
+		shapeRenderer.dispose();
+
 		return polys2;
 	}
 
-	public ArrayList<ArrayList<Vector2>> outsetPolygonsRaster(ArrayList<ArrayList<Vector2>> polys, float d) {
-		if (polys.size()==0) {
-			return new ArrayList<ArrayList<Vector2>>();
-		}
-		BBox bb = new BBox(polys,0);
-		bb.x -= d*2;
-		bb.y -= d*2;
-		bb.w += d*4;
-		bb.h += d*4;
-		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w),(int)MathUtils.ceil(bb.h));
-		pg.beginDraw();
-		pg.background(0);
-		pg.fill(255);
-		pg.stroke(255);
-		pg.strokeWeight(d*2);
-		pg.translate(-bb.x,-bb.y);
-		pg.beginShape();
-		for (int i = 0; i < polys.get(0).size(); i++) {
-			pg.vertex(polys.get(0).get(i).x,polys.get(0).get(i).y);
-		}
-		for (int j = 1; j < polys.size(); j++) {
-			pg.beginContour();
-			for (int i = 0; i < polys.get(j).size(); i++) {
-				pg.vertex(polys.get(j).get(i).x,polys.get(j).get(i).y);
-			}
-			pg.endContour();
-		}
-		pg.endShape(PConstants.CLOSE);
-		pg.endDraw();
-		ArrayList<ArrayList<Vector2>> polys2 = PEmbroiderTrace.findContours(pg);
 
-		for (int i = polys2.size()-1; i >= 0; i--) {
+	public ArrayList<ArrayList<Vector2>> outsetPolygonsRaster(ArrayList<ArrayList<Vector2>> polys, float d) {
+		if (polys.size() == 0) {
+			return new ArrayList<>();
+		}
+
+		// Assuming BBox is a class you've defined elsewhere to represent a bounding box.
+		BBox bb = new BBox(polys, 0);
+		bb.x -= d * 2;
+		bb.y -= d * 2;
+		bb.w += d * 4;
+		bb.h += d * 4;
+
+		// Create a Pixmap to draw the polygons into
+		Pixmap pixmap = new Pixmap((int) Math.ceil(bb.w), (int) Math.ceil(bb.h), Pixmap.Format.RGBA8888);
+		pixmap.setColor(Color.BLACK);
+		pixmap.fill(); // Fill the background with black
+
+		// Create a ShapeRenderer for drawing the polygons
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.setColor(Color.WHITE);
+		shapeRenderer.translate(-bb.x, -bb.y, 0);
+
+		// Draw the outer polygon (first in the list)
+		drawPolygon(shapeRenderer, polys.get(0));
+
+		// Draw inner polygons (contours)
+		for (int j = 1; j < polys.size(); j++) {
+			drawPolygon(shapeRenderer, polys.get(j));
+		}
+
+		shapeRenderer.end();
+		shapeRenderer.dispose();
+
+		// Convert the drawing to a list of contours
+		ArrayList<ArrayList<Vector2>> polys2 = PEmbroiderTrace.findContours(pixmap);
+
+		for (int i = polys2.size() - 1; i >= 0; i--) {
 			if (polys2.get(i).size() < 2) {
 				polys2.remove(i);
 				continue;
 			}
+
+			// Translate each point back into original coordinates
 			for (int j = 0; j < polys2.get(i).size(); j++) {
-				polys2.get(i).get(j).add(new Vector2(bb.x,bb.y));
+				polys2.get(i).get(j).add(new Vector2(bb.x, bb.y));
 			}
+
+			// Approximate polygon to reduce vertex count
 			polys2.set(i, PEmbroiderTrace.approxPolyDP(polys2.get(i), 1));
 		}
+
+		// Dispose of the Pixmap after use
+		pixmap.dispose();
+
 		return polys2;
 	}
 
