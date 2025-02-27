@@ -2588,170 +2588,161 @@ public class PEmbroiderGraphics {
 		return spirals;
 	}
 
-	public ArrayList<ArrayList<Vector2>> hatchSpiral_v2(ArrayList<Vector2> poly, float d){
+	public ArrayList<ArrayList<Vector2>> hatchSpiral_v2(ArrayList<Vector2> poly, float d) {
+		ArrayList<ArrayList<Vector2>> ret = new ArrayList<>();
+		ArrayList<Vector2> spiral = new ArrayList<>();
 
-		ArrayList<ArrayList<Vector2>> ret = new ArrayList<ArrayList<Vector2>>();
-		ArrayList<Vector2> spiral = new ArrayList<Vector2>();
-
+		// Create bounding box (BBox class needs to be implemented or assumed)
 		BBox bb = new BBox(poly);
-		bb.x-=2;
-		bb.y-=2;
-		bb.w+=4;
-		bb.h+=4;
+		bb.x -= 2;
+		bb.y -= 2;
+		bb.w += 4;
+		bb.h += 4;
 
 		bb.w += bb.x;
 		bb.h += bb.y;
 		bb.x = 0;
 		bb.y = 0;
 
+		Vector2 c = centerpoint(poly); // Assuming this is a method to find the center
+		float r = Math.max(bb.w, bb.h) * 200f;
 
-		Vector2 c = centerpoint(poly);
-		float r = Math.max(bb.w,bb.h)*200f;
-
-		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
+		// Create a Pixmap to simulate the drawing (used for contours)
+		Pixmap pixmap = new Pixmap((int) MathUtils.ceil(bb.w), (int) MathUtils.ceil(bb.h), Pixmap.Format.RGBA8888);
+		pixmap.setColor(0, 0, 0, 1); // Set color to black for drawing the poly
+		pixmap.fill(); // Clear with the background color
 
 		float dd = d;
 		float a = 0;
 		for (int k = 0; k < 9999; k++) {
+			// Reset Pixmap for each loop iteration
+			pixmap.setColor(0, 0, 0, 1); // Set color to black for drawing the poly
+			pixmap.fill(); // Clear previous frame
 
-			pg.beginDraw();
-			pg.pushMatrix();
-			pg.background(0);
-			pg.stroke(0);
-			pg.fill(255);
-			pg.strokeWeight(dd);
-
-			pg.beginShape();
+			// Draw the polygon into Pixmap
 			for (int i = 0; i < poly.size(); i++) {
-				pg.vertex(poly.get(i).x-bb.x,poly.get(i).y-bb.y);
+				Vector2 p1 = poly.get(i);
+				Vector2 p2 = poly.get((i + 1) % poly.size());
+				pixmap.drawLine((int) (p1.x - bb.x), (int) (p1.y - bb.y), (int) (p2.x - bb.x), (int) (p2.y - bb.y));
 			}
-			pg.endShape(PConstants.CLOSE);
-			pg.popMatrix();
-			pg.endDraw();
-//			app.image(pg,k*100,0);
-//			pg.save("/Users/studio/Downloads/hsv2-"+k+".png");
-			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pg);
+
+			// Now that we have the Pixmap, pass it to findContours
+			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pixmap);
+
 			for (int i = 0; i < conts.size(); i++) {
 				conts.set(i, PEmbroiderTrace.approxPolyDP(conts.get(i),2));
 			}
-//			System.out.println(k,conts.size());
+
 			if (conts.size() == 0) {
 				break;
 			} else if (conts.size() > 1) {
 				for (int i = 1; i < conts.size(); i++) {
-//					ret.addAll(hatchSpiral_v2(conts.get(i),d));
+					// You may recurse or handle this part if needed.
 				}
 			}
 
 			ArrayList<Vector2> ppp = conts.get(0);
 
-			ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
+			// Recreate the poly2 (contour)
+			ArrayList<Vector2> poly2 = new ArrayList<>();
 			for (int i = 0; i < ppp.size(); i++) {
-				poly2.add(new Vector2(ppp.get(i).x+bb.x,ppp.get(i).y+bb.y));
+				poly2.add(new Vector2(ppp.get(i).x + bb.x, ppp.get(i).y + bb.y));
 			}
 
+			// Draw the spiral point intersection
+			Vector2 p = new Vector2(c.x + r * MathUtils.cos(a), c.y + r * MathUtils.sin(a));
 
-//			ret.add(poly2);
-
-			Vector2 p = new Vector2(c.x+r*MathUtils.cos(a),c.y+r*MathUtils.sin(a));
-
-			ArrayList<Vector2> qs = segmentIntersectPolygon(c,p,ppp);
-			if (qs.size()>0) {
+			ArrayList<Vector2> qs = segmentIntersectPolygon(c, p, ppp); // Assuming this method exists
+			if (qs.size() > 0) {
 				Vector2 q = qs.get(0);
-
-//				System.out.println(q);
-//				app.rect(qs.get(0).x,qs.get(0).y,20,20);
-				spiral.add(new Vector2(q.x+bb.x,q.y+bb.y));
-			}else {
-//				System.out.println("???",c,p);
+				spiral.add(new Vector2(q.x + bb.x, q.y + bb.y));
 			}
-			c = centerpoint(ppp);
-			a += 0.1;
+
+			c = centerpoint(ppp); // Update centerpoint
+			a += 0.1f;
 			dd += d;
 		}
+
 		ret.add(spiral);
 		return ret;
 	}
-	public ArrayList<ArrayList<Vector2>> hatchSpiral_v3(ArrayList<Vector2> poly, float d, int maxIter, boolean checkOrientation, boolean reverse){
+	public ArrayList<ArrayList<Vector2>> hatchSpiral_v3(ArrayList<Vector2> poly, float d, int maxIter, boolean checkOrientation, boolean reverse) {
 		ArrayList<ArrayList<Vector2>> spirals = new ArrayList<ArrayList<Vector2>>();
 
+		// Check the orientation of the polygon
 		if (!polygonOrientation(poly) && checkOrientation) {
-			poly = new ArrayList<Vector2>(poly);
+			poly = new ArrayList<>(poly);
 			Collections.reverse(poly);
 		}
 
-
+		// Create the bounding box
 		BBox bb = new BBox(poly);
-		bb.x-=2;
-		bb.y-=2;
-		bb.w+=4;
-		bb.h+=4;
+		bb.x -= 2;
+		bb.y -= 2;
+		bb.w += 4;
+		bb.h += 4;
 
 		bb.w += bb.x;
 		bb.h += bb.y;
 		bb.x = 0;
 		bb.y = 0;
 
-		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
+		// Create a Pixmap instead of PGraphics for pixel data
+		Pixmap pixmap = new Pixmap((int) MathUtils.ceil(bb.w), (int) MathUtils.ceil(bb.h), Pixmap.Format.RGBA8888);
+		pixmap.setColor(0, 0, 0, 1); // Set color to black for drawing the polygon
+		pixmap.fill(); // Fill the background with black (empty space)
 
 		float dd = 0;
 
+		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<>();
+		ArrayList<ArrayList<Vector2>> gone = new ArrayList<>();
 
-		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<ArrayList<Vector2>>();
-//		polys2.add(poly);
+		for (int k = 0; k < maxIter; k++) {
+			// Clear the Pixmap before drawing the next iteration
+			pixmap.setColor(0, 0, 0, 1);
+			pixmap.fill();
 
-		ArrayList<ArrayList<Vector2>> gone = new ArrayList<ArrayList<Vector2>>();
-
-		for (int k = 0; k < 9999; k++) {
-
-			pg.beginDraw();
-			pg.pushMatrix();
-			pg.background(0);
-			pg.stroke(0);
-			pg.fill(255);
-			pg.strokeWeight(dd);
-			pg.strokeJoin(PConstants.ROUND);
-
-			pg.beginShape();
+			// Draw the polygon into the Pixmap
 			for (int i = 0; i < poly.size(); i++) {
-				pg.vertex(poly.get(i).x-bb.x,poly.get(i).y-bb.y);
+				Vector2 p1 = poly.get(i);
+				Vector2 p2 = poly.get((i + 1) % poly.size());
+				pixmap.drawLine((int) (p1.x - bb.x), (int) (p1.y - bb.y), (int) (p2.x - bb.x), (int) (p2.y - bb.y));
 			}
-			pg.endShape(PConstants.CLOSE);
 
-			for (int i = 0; i < gone.size(); i++) {
-				pg.noStroke();
-				pg.fill(0);
-				pg.strokeJoin(PConstants.ROUND);
-				pg.beginShape();
-				for (int j = 0; j < gone.get(i).size();j ++) {
-					pg.vertex(gone.get(i).get(j).x,gone.get(i).get(j).y);
+			// Draw the gone polygons (polygons already processed)
+			for (ArrayList<Vector2> gonePoly : gone) {
+				pixmap.setColor(0, 0, 0, 1); // Fill with black
+				for (int i = 0; i < gonePoly.size(); i++) {
+					Vector2 p1 = gonePoly.get(i);
+					Vector2 p2 = gonePoly.get((i + 1) % gonePoly.size());
+					pixmap.drawLine((int) (p1.x), (int) (p1.y), (int) (p2.x), (int) (p2.y));
 				}
-
-				pg.endShape(PConstants.CLOSE);
 			}
 
-			pg.popMatrix();
-			pg.endDraw();
-			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pg);
+			// Pass the Pixmap to find contours
+			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pixmap);
 			for (int i = 0; i < conts.size(); i++) {
 				conts.set(i, PEmbroiderTrace.approxPolyDP(conts.get(i),2f));
 			}
+
 			if (conts.size() == 0) {
 				break;
 			}
 
+			// Handle multiple contours and recursion
 			if (conts.size() > 1) {
 				for (int i = 0; i < conts.size(); i++) {
-					spirals.addAll(hatchSpiral_v3(conts.get(i),d,maxIter,checkOrientation,reverse));
+					spirals.addAll(hatchSpiral_v3(conts.get(i), d, maxIter, checkOrientation, reverse));
 					gone.add(conts.get(i));
 				}
 				break;
 			}
+
 			polys2.add(conts.get(0));
 			if (k == 0) {
 				dd += d;
-			}else {
-				dd += d*2;
+			} else {
+				dd += d * 2;
 			}
 		}
 
@@ -2811,70 +2802,66 @@ public class PEmbroiderGraphics {
 		return spirals;
 	}
 
-	public ArrayList<ArrayList<Vector2>> hatchSpiral_v4(ArrayList<Vector2> poly, float d, int maxIter, boolean checkOrientation, boolean reverse){
+	public ArrayList<ArrayList<Vector2>> hatchSpiral_v4(ArrayList<Vector2> poly, float d, int maxIter, boolean checkOrientation, boolean reverse) {
 		ArrayList<ArrayList<Vector2>> spirals = new ArrayList<ArrayList<Vector2>>();
 
+		// Check the polygon orientation if needed
 		if (!polygonOrientation(poly) && checkOrientation) {
-			poly = new ArrayList<Vector2>(poly);
+			poly = new ArrayList<>(poly);
 			Collections.reverse(poly);
 		}
 
-
+		// Create the bounding box
 		BBox bb = new BBox(poly);
-		bb.x-=2;
-		bb.y-=2;
-		bb.w+=4;
-		bb.h+=4;
+		bb.x -= 2;
+		bb.y -= 2;
+		bb.w += 4;
+		bb.h += 4;
 
 		bb.w += bb.x;
 		bb.h += bb.y;
 		bb.x = 0;
 		bb.y = 0;
 
-		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
+		// Create a Pixmap to draw shapes (simulating the "background" fill)
+		Pixmap pixmap = new Pixmap((int) MathUtils.ceil(bb.w), (int) MathUtils.ceil(bb.h), Pixmap.Format.RGBA8888);
+		pixmap.setColor(0, 0, 0, 1); // Black color for background
+		pixmap.fill(); // Fill the Pixmap with black (background)
 
 		float dd = 0;
+		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<>();
+		ArrayList<ArrayList<Vector2>> gone = new ArrayList<>();
 
+		// Iterative drawing and contour extraction
+		for (int k = 0; k < maxIter; k++) {
+			// Clear the Pixmap and prepare it for new drawing
+			pixmap.setColor(0, 0, 0, 1);
+			pixmap.fill();
 
-		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<ArrayList<Vector2>>();
-//		polys2.add(poly);
-
-		ArrayList<ArrayList<Vector2>> gone = new ArrayList<ArrayList<Vector2>>();
-
-		for (int k = 0; k < 9999; k++) {
-
-			pg.beginDraw();
-			pg.pushMatrix();
-			pg.background(0);
-			pg.stroke(0);
-			pg.fill(255);
-			pg.strokeWeight(dd);
-			pg.strokeJoin(PConstants.ROUND);
-
-			pg.beginShape();
+			// Draw the polygon into the Pixmap
 			for (int i = 0; i < poly.size(); i++) {
-				pg.vertex(poly.get(i).x-bb.x,poly.get(i).y-bb.y);
+				Vector2 p1 = poly.get(i);
+				Vector2 p2 = poly.get((i + 1) % poly.size());
+				pixmap.drawLine((int) (p1.x - bb.x), (int) (p1.y - bb.y), (int) (p2.x - bb.x), (int) (p2.y - bb.y));
 			}
-			pg.endShape(PConstants.CLOSE);
 
-			for (int i = 0; i < gone.size(); i++) {
-				pg.noStroke();
-				pg.fill(0);
-				pg.strokeJoin(PConstants.ROUND);
-				pg.beginShape();
-				for (int j = 0; j < gone.get(i).size();j ++) {
-					pg.vertex(gone.get(i).get(j).x,gone.get(i).get(j).y);
+			// Draw the "gone" polygons (already processed ones)
+			for (ArrayList<Vector2> gonePoly : gone) {
+				pixmap.setColor(0, 0, 0, 1);
+				for (int i = 0; i < gonePoly.size(); i++) {
+					Vector2 p1 = gonePoly.get(i);
+					Vector2 p2 = gonePoly.get((i + 1) % gonePoly.size());
+					pixmap.drawLine((int) (p1.x), (int) (p1.y), (int) (p2.x), (int) (p2.y));
 				}
-
-				pg.endShape(PConstants.CLOSE);
 			}
 
-			pg.popMatrix();
-			pg.endDraw();
-			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pg);
+			// Get the contours from the Pixmap (binary image processing)
+			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pixmap);
 			for (int i = 0; i < conts.size(); i++) {
 				conts.set(i, PEmbroiderTrace.approxPolyDP(conts.get(i),2f));
 			}
+
+			// If no contours were found, break out of the loop
 			if (conts.size() == 0) {
 				break;
 			}
