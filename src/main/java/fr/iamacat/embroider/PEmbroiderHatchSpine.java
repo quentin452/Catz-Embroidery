@@ -1,4 +1,4 @@
-package processing.embroider;
+package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 

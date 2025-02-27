@@ -2,7 +2,7 @@
 // https://github.com/EmbroidePy/EmbroideryIO/blob/master/core/src/main/java/org/embroideryio/embroideryio/
 // non-embroidery formats by Lingdong
 
-package processing.embroider;
+package fr.iamacat.embroider;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;

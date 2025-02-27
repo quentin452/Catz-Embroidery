@@ -2,7 +2,7 @@
 // https://en.wikipedia.org/wiki/Travelling_salesman_problem
 // https://en.wikipedia.org/wiki/2-opt
 
-package processing.embroider;
+package fr.iamacat.embroider;
 import processing.core.*;
 import java.util.*; 
 

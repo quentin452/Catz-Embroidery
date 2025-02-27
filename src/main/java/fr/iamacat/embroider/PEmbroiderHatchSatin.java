@@ -1,4 +1,4 @@
-package processing.embroider;
+package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 import processing.core.*;
@@ -20,7 +20,8 @@ public class PEmbroiderHatchSatin {
 			x = p.x;
 			y = p.y;
 		}
-		public String toString(){
+		@Override
+        public String toString(){
 			return "("+x+","+y+")";
 		}
 	}
