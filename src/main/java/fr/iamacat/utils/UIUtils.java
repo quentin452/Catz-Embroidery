@@ -2,15 +2,13 @@ package fr.iamacat.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.badlogic.gdx.scenes.scene2d.utils.FocusListener;
+import com.badlogic.gdx.scenes.scene2d.utils.*;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.VisUI;
@@ -357,6 +355,10 @@ public class UIUtils {
         stage.addActor(border);
         border.setZIndex(1);
         return border;
+    }
+    public static Drawable createImageDrawable(String imagePath) {
+        Texture texture = new Texture(Gdx.files.internal(imagePath));
+        return new TextureRegionDrawable(texture);
     }
 
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {

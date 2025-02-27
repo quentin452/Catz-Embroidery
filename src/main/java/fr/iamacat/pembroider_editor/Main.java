@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -16,12 +17,12 @@ import fr.iamacat.utils.UIUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
+// TODO ADD SCROLLBAR TO LAYERS
 public class Main extends MainBase {
     private final VisTable leftTable;
     private final VisTable rightTable;
     private final HashMap<String, Boolean> buttonStates = new HashMap<>();
-    private List<VisTable> layers = new ArrayList<>();
+    private List<Layer> layers = new ArrayList<>();
     private int currentLayerCount = 0;
     private VisTextButton addLayerButton;
     private static final float RIGHT_PANEL_WIDTH = 200f;
@@ -75,45 +76,34 @@ public class Main extends MainBase {
 
         updateRightTableLayout();
     }
-    private void addNewLayer(String layerName) {
-        VisTable layerTable = new VisTable();
-        //layerTable.setBackground(UIUtils.createDebugDrawable(Color.DARK_GRAY));
-
-        // Header du layer
-        VisTable header = new VisTable();
-        header.add(new VisLabel(layerName)).left().row();
-        header.addSeparator();
-
-        // Boutons du layer
-        VisTable buttonsTable = new VisTable();
-        for(int i = 1; i <= 5; i++) {
-            VisTextButton btn = new VisTextButton(String.valueOf(i));
-            btn.setColor(Color.LIGHT_GRAY);
-            buttonsTable.add(btn).width(30).height(30).pad(2);
+    private void reorganizeLayers() {
+        for(int i = 0; i < layers.size(); i++) {
+            layers.get(i).nameLabel.setText("Layer " + i);
         }
-        buttonsTable.center();
-
-        layerTable.add(header).growX().row();
-        layerTable.add(buttonsTable).padTop(10).row();
-        layers.add(layerTable);
-
         updateRightTableLayout();
+    }
+
+    private void addNewLayer(String name) {
+        Layer newLayer = new Layer(name);
+        layers.add(newLayer);
+        updateRightTableLayout();
+    }
+
+    private void showDialog(String title, String message) {
+        new Dialog(title, UIUtils.visSkin) {{
+            text(message);
+            button("OK");
+        }}.show(getStage());
     }
 
     private void updateRightTableLayout() {
         rightTable.clear();
-
-        // Ajout des layers existants
-        for(VisTable layer : layers) {
-            rightTable.add(layer).padBottom(15).row();
+        for(Layer layer : layers) {
+            rightTable.add(layer.table).padBottom(15).row();
         }
-
-        // Ajout du bouton "+" en bas
-        rightTable.add(addLayerButton)
-                .width(40)
-                .height(40)
-                .padTop(20);
+        rightTable.add(addLayerButton).padTop(20);
     }
+
     private void addRadioButtonsToTable(VisTable table) {
         ButtonGroup<VisTextButton> buttonGroup = new ButtonGroup<>();
         String[] buttonNames = {"S", "Z", "o", "O", "FL", "T", "E"};
@@ -139,5 +129,108 @@ public class Main extends MainBase {
         buttonGroup.setMaxCheckCount(1);
         buttonGroup.setMinCheckCount(0);
         buttonGroup.setUncheckLast(true);
+    }
+    class Layer {
+        VisTable table;
+        VisLabel nameLabel;
+        VisLabel label1, label2, label3;
+        boolean visible = true;
+
+        public Layer(String name) {
+            table = new VisTable();
+            nameLabel = new VisLabel(name);
+
+            // Création des labels
+            label1 = new VisLabel("o");
+            label2 = new VisLabel("<");
+            label3 = new VisLabel(">");
+
+            VisTable labelsTable = new VisTable();
+            labelsTable.add(label2).padRight(5); // < à gauche avec espacement
+            labelsTable.add(label1);             // o au centre
+            labelsTable.add(label3).padLeft(5);  // > à droite avec espacement
+
+            // Configuration du header
+            VisTable header = new VisTable();
+            header.add(nameLabel).left().padLeft(10); // Alignement à gauche avec marge
+            header.add(labelsTable).expandX().right().padRight(10); // Alignement à droite avec marge
+            header.addSeparator().fillX();
+
+
+            // Boutons
+            VisTable buttonsTable = new VisTable();
+            for(int i = 1; i <= 5; i++) {
+                VisTextButton btn = new VisTextButton(String.valueOf(i));
+                setupButton(btn, i);
+                buttonsTable.add(btn).width(30).height(30).pad(2);
+            }
+
+            table.add(header).growX().row();
+            table.add(buttonsTable).padTop(10).row();
+        }
+
+        private void setupButton(VisTextButton btn, int index) {
+            btn.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    handleButtonClick(index);
+                }
+            });
+        }
+        private void handleButtonClick(int index) {
+            switch(index) {
+                case 1: case 2:
+                    showDialog("Layer Action", "Button " + index + " clicked!");
+                    break;
+                case 4:
+                    toggleVisibility();
+                    break;
+                case 5:
+                    if (layers.size() > 1) {
+                        deleteLayer();
+                    } else {
+                        showDialog("Warning", "You cannot delete the last layer.");
+                    }
+                    break;
+            }
+        }
+
+        private void toggleVisibility() {
+            visible = !visible;
+            updateLabels();
+        }
+
+        private void updateLabels() {
+            if(visible) {
+                label1.setText("o");
+                label2.setText("<");
+                label3.setText(">");
+            } else {
+                label1.setText("=");
+                label2.setText("-");
+                label3.setText("-");
+            }
+        }
+        private void deleteLayer() {
+            // Création de la boîte de dialogue de confirmation
+            Dialog dialog = new Dialog("Confirmation", UIUtils.visSkin) {
+                @Override
+                protected void result(Object r) {
+                    boolean isConfirmed = (Boolean) r;
+                    if (isConfirmed) {
+                        // Suppression du layer si confirmé
+                        layers.remove(Layer.this);
+                        reorganizeLayers();
+                    }
+                }
+            };
+
+            dialog.text("Delete this layer?");
+            dialog.button("Yes", true);
+            dialog.button("No", false);
+
+            // Afficher la boîte de dialogue
+            dialog.show(getStage());
+        }
     }
 }
