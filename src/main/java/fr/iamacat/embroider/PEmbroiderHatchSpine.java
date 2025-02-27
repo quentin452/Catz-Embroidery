@@ -2,27 +2,24 @@ package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 
-import processing.core.PApplet;
-import processing.core.PConstants;
-import processing.core.PGraphics;
-import processing.core.PImage;
-import processing.core.PVector;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 public class PEmbroiderHatchSpine{
 	public static PEmbroiderGraphics G;
 	 public static void setGraphics(PEmbroiderGraphics _G) {
 		 G = _G;
 	 }
-	 public static void hatchSpine(PImage mask) {
+	 public static void hatchSpine(Image mask) {
 		 hatchSpine(mask,G.HATCH_SPACING);
 	 }
-	 public static void hatchSpineSmooth(PImage mask) {
+	 public static void hatchSpineSmooth(Image mask) {
 		 hatchSpineSmooth(mask,G.HATCH_SPACING);
 	 }
-	 public static void hatchSpineVF(PImage mask) {
+	 public static void hatchSpineVF(Image mask) {
 		 hatchSpineVF(mask,G.HATCH_SPACING);
 	 }
-	 public static void hatchSpine(PImage mask, float d) {
+	 public static void hatchSpine(Image mask, float d) {
 		 int w = mask.width;
 		 int h = mask.height;
 		 boolean[] im = new boolean[w*h];
@@ -36,7 +33,7 @@ public class PEmbroiderHatchSpine{
 		 for (int i = 0; i < iim.length; i++) {
 			 iim[i] = im[i]?1:0;
 		 }
-		 ArrayList<ArrayList<PVector>> contours0 = PEmbroiderTrace.findContours(iim,w,h);
+		 ArrayList<ArrayList<Vector2>> contours0 = PEmbroiderTrace.findContours(iim,w,h);
 		 for (int i = 0; i < contours0.size(); i++) {
 			 contours0.set(i,PEmbroiderTrace.approxPolyDP(contours0.get(i),2));
 			 //pushPolyline(contours.get(i),currentStroke,0);
@@ -50,7 +47,7 @@ public class PEmbroiderHatchSpine{
 		 for (int i = 0; i < iim.length; i++) {
 			 iim[i] = im[i]?1:0;
 		 }
-		 ArrayList<ArrayList<PVector>> contours = PEmbroiderTrace.findContours(iim,w,h);
+		 ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(iim,w,h);
 		 for (int i = 0; i < contours.size(); i++) {
 			 contours.set(i,PEmbroiderTrace.approxPolyDP(contours.get(i),1));
 //			 pushPolyline(contours.get(i),currentStroke,0);
@@ -80,18 +77,18 @@ public class PEmbroiderHatchSpine{
 		 pg.noFill();
 		 pg.strokeWeight(d*1.2f);
 
-		 ArrayList<PVector> P = new ArrayList<PVector>();
-		 ArrayList<PVector> Q = new ArrayList<PVector>();
-		 ArrayList<PVector> V = new ArrayList<PVector>();
+		 ArrayList<Vector2> P = new ArrayList<Vector2>();
+		 ArrayList<Vector2> Q = new ArrayList<Vector2>();
+		 ArrayList<Vector2> V = new ArrayList<Vector2>();
 
-		 ArrayList<ArrayList<PVector>> hatches = new ArrayList<ArrayList<PVector>>();
+		 ArrayList<ArrayList<Vector2>> hatches = new ArrayList<ArrayList<Vector2>>();
 		 for (int i = 0; i < contours0.size(); i++) {
-			 ArrayList<PVector> poly = contours0.get(i);
+			 ArrayList<Vector2> poly = contours0.get(i);
 
 			 for (int j = 0; j < poly.size(); j++) {
 
-				 PVector p  = poly.get(j);
-				 PVector p1 = poly.get((j+1)%poly.size());
+				 Vector2 p  = poly.get(j);
+				 Vector2 p1 = poly.get((j+1)%poly.size());
 
 				 float a0 = PApplet.atan2(p1.y-p.y,p1.x-p.x);
 				 float a1 = a0 - PApplet.HALF_PI;
@@ -101,7 +98,7 @@ public class PEmbroiderHatchSpine{
 				 float y = p.y;
 
 
-				 float l = p.dist(p1);
+				 float l = p.dst(p1);
 				 int n = PApplet.ceil(l / d);
 
 				 float dd = l/(float)n;
@@ -115,9 +112,9 @@ public class PEmbroiderHatchSpine{
 				 for (int k = 0; k < n; k++) {
 					x += dx;
 					y += dy;
-					P.add(new PVector(x,y));
-					Q.add(new PVector(x,y));
-					V.add(new PVector(vx,vy));
+					P.add(new Vector2(x,y));
+					Q.add(new Vector2(x,y));
+					V.add(new Vector2(vx,vy));
 				 }
 			 }
 		 }
@@ -130,9 +127,9 @@ public class PEmbroiderHatchSpine{
 				 P.get(j).add(V.get(j).copy().mult(i==0?1:1));
 				 if((pg.get((int)P.get(j).x, (int)P.get(j).y)>>16&0xFF)>127) {
 					 if (i > 0) {
-						 ArrayList<PVector> H = new ArrayList<PVector>();
+						 ArrayList<Vector2> H = new ArrayList<Vector2>();
 						 H.add(Q.get(j));
-						 H.add(new PVector(x,y));
+						 H.add(new Vector2(x,y));
 						 hatches.add(H);
 					 }
 
@@ -161,12 +158,12 @@ public class PEmbroiderHatchSpine{
 //		 pg.filter(PConstants.INVERT);
 
 		 for (int i = 0; i < contours.size(); i++) {
-			 ArrayList<PVector> poly = contours.get(i);
+			 ArrayList<Vector2> poly = contours.get(i);
 
 			 for (int j = 0; j < poly.size(); j++) {
 
-				 PVector p  = poly.get(j);
-				 PVector p1 = poly.get((j+1)%poly.size());
+				 Vector2 p  = poly.get(j);
+				 Vector2 p1 = poly.get((j+1)%poly.size());
 
 				 float a0 = PApplet.atan2(p1.y-p.y,p1.x-p.x);
 				 float a1 = a0 + PApplet.HALF_PI;
@@ -176,7 +173,7 @@ public class PEmbroiderHatchSpine{
 				 float y = p.y;
 
 
-				 float l = p.dist(p1);
+				 float l = p.dst(p1);
 				 int n = PApplet.ceil(l / d);
 
 				 float dd = l/(float)n;
@@ -190,9 +187,9 @@ public class PEmbroiderHatchSpine{
 				 for (int k = 0; k < n; k++) {
 					x += dx;
 					y += dy;
-					P.add(new PVector(x,y));
-					Q.add(new PVector(x,y));
-					V.add(new PVector(vx,vy));
+					P.add(new Vector2(x,y));
+					Q.add(new Vector2(x,y));
+					V.add(new Vector2(vx,vy));
 				 }
 			 }
 		 }
@@ -203,10 +200,10 @@ public class PEmbroiderHatchSpine{
 				 float y = P.get(j).y;
 				 P.get(j).add(V.get(j));
 				 if((pg.get((int)P.get(j).x, (int)P.get(j).y)>>16&0xFF)>127) {
-					 if (i > 0 /*&& P.get(j).dist(Q.get(j))>0*/) {
-						 ArrayList<PVector> H = new ArrayList<PVector>();
+					 if (i > 0 /*&& P.get(j).dst(Q.get(j))>0*/) {
+						 ArrayList<Vector2> H = new ArrayList<Vector2>();
 						 H.add(Q.get(j));
-						 H.add(new PVector(x,y));
+						 H.add(new Vector2(x,y));
 						 hatches.add(H);
 					 }
 //					 P.get(j).add(V.get(j));
@@ -239,7 +236,7 @@ public class PEmbroiderHatchSpine{
 
 //		 app.image(pg,0,0);
 
-//		 ArrayList<ArrayList<PVector>> hpr = hatchParallelRaster(pg,PConstants.HALF_PI,2,2);
+//		 ArrayList<ArrayList<Vector2>> hpr = hatchParallelRaster(pg,PConstants.HALF_PI,2,2);
 //		 hatches.addAll(hpr);
 
 		 for (int i = 0; i < hatches.size(); i++) {
@@ -247,7 +244,7 @@ public class PEmbroiderHatchSpine{
 		 }
 
 	}
-	 public static void hatchSpineSmooth(PImage mask, float d) {
+	 public static void hatchSpineSmooth(Image mask, float d) {
 		 int w = mask.width;
 		 int h = mask.height;
 		 boolean[] im = new boolean[w*h];
@@ -264,7 +261,7 @@ public class PEmbroiderHatchSpine{
 		 }
 		 
 		
-		 ArrayList<ArrayList<PVector>> contours0 = PEmbroiderTrace.findContours(iim,w,h);
+		 ArrayList<ArrayList<Vector2>> contours0 = PEmbroiderTrace.findContours(iim,w,h);
 		 for (int i = 0; i < contours0.size(); i++) {
 			 contours0.set(i,PEmbroiderTrace.approxPolyDP(contours0.get(i),1));
 			 G.pushPolyline(contours0.get(i),G.currentStroke,0);
@@ -286,7 +283,7 @@ public class PEmbroiderHatchSpine{
 		 for (int i = 0; i < iim.length; i++) {
 			 iim[i] = im[i]?1:0;
 		 }
-		 ArrayList<ArrayList<PVector>> contours = PEmbroiderTrace.findContours(iim,w,h);
+		 ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(iim,w,h);
 		 for (int i = 0; i < contours.size(); i++) {
 			 contours.set(i,PEmbroiderTrace.approxPolyDP(contours.get(i),1));
 //			 contours.set(i,smoothen(contours.get(i),0.5f,200));
@@ -334,18 +331,18 @@ public class PEmbroiderHatchSpine{
 		 pg.noFill();
 		 pg.strokeWeight(1);
 		 
-		 ArrayList<PVector> P = new ArrayList<PVector>();
-		 ArrayList<PVector> Q = new ArrayList<PVector>();
-		 ArrayList<PVector> V = new ArrayList<PVector>();
+		 ArrayList<Vector2> P = new ArrayList<Vector2>();
+		 ArrayList<Vector2> Q = new ArrayList<Vector2>();
+		 ArrayList<Vector2> V = new ArrayList<Vector2>();
 		 
-		 ArrayList<ArrayList<PVector>> hatches = new ArrayList<ArrayList<PVector>>();
+		 ArrayList<ArrayList<Vector2>> hatches = new ArrayList<ArrayList<Vector2>>();
 		 for (int i = 0; i < contours0.size(); i++) {
-			 ArrayList<PVector> poly = contours0.get(i);
+			 ArrayList<Vector2> poly = contours0.get(i);
 
 			 for (int j = 0; j < poly.size(); j++) {
 
-				 PVector p  = poly.get(j);
-				 PVector p1 = poly.get((j+1)%poly.size());
+				 Vector2 p  = poly.get(j);
+				 Vector2 p1 = poly.get((j+1)%poly.size());
 
 				 float a0 = PApplet.atan2(p1.y-p.y,p1.x-p.x);
 				 float a1 = a0 - PApplet.HALF_PI;
@@ -356,9 +353,9 @@ public class PEmbroiderHatchSpine{
 
 				 float vx = 2*PApplet.cos(a1);
 				 float vy = 2*PApplet.sin(a1);
-				 P.add(new PVector(x,y));
-				 Q.add(new PVector(x,y));
-				 V.add(new PVector(vx,vy));
+				 P.add(new Vector2(x,y));
+				 Q.add(new Vector2(x,y));
+				 V.add(new Vector2(vx,vy));
 
 			 }
 		 }
@@ -371,9 +368,9 @@ public class PEmbroiderHatchSpine{
 				 P.get(j).add(V.get(j).copy().mult(i==0?1:1));
 				 if((pg.get((int)P.get(j).x, (int)P.get(j).y)>>16&0xFF)>127) {
 					 if (i > 0) {
-						 ArrayList<PVector> H = new ArrayList<PVector>();
+						 ArrayList<Vector2> H = new ArrayList<Vector2>();
 						 H.add(Q.get(j).add(V.get(j).copy().mult(-3)));
-						 H.add(new PVector(x+V.get(j).x,y+V.get(j).y));
+						 H.add(new Vector2(x+V.get(j).x,y+V.get(j).y));
 						 hatches.add(H);
 					 }
 					 
@@ -399,16 +396,16 @@ public class PEmbroiderHatchSpine{
 //		 app.image(pg,0,0);
 		 pg.filter(PConstants.INVERT);
 		 
-		 ArrayList<ArrayList<PVector>> hpr = G.hatchParallelRaster(pg,PConstants.HALF_PI,d,1);
+		 ArrayList<ArrayList<Vector2>> hpr = G.hatchParallelRaster(pg,PConstants.HALF_PI,d,1);
 		 for (int i = 0; i < hpr.size(); i++) {
 			 hpr.set(i, G.resample(hpr.get(i),6,6,0,0));
 			 if (hpr.get(i).size() < 2) {
 				 continue;
 			 }
-			 PVector p0 = hpr.get(i).get(0);
-			 PVector p1 = hpr.get(i).get(1);
-			 PVector p2 = hpr.get(i).get(hpr.get(i).size()-2);
-			 PVector p3 = hpr.get(i).get(hpr.get(i).size()-1);
+			 Vector2 p0 = hpr.get(i).get(0);
+			 Vector2 p1 = hpr.get(i).get(1);
+			 Vector2 p2 = hpr.get(i).get(hpr.get(i).size()-2);
+			 Vector2 p3 = hpr.get(i).get(hpr.get(i).size()-1);
 			 
 			 hpr.get(i).get(0).add(p0.copy().sub(p1));
 			 hpr.get(i).get(hpr.get(i).size()-1).add(p3.copy().sub(p2));
@@ -423,11 +420,11 @@ public class PEmbroiderHatchSpine{
 //		 app.tint(255,100);
 //		 app.image(pg,0,0);
 	 }
-	 public static void hatchSpineVF(PImage mask, float d) {
+	 public static void hatchSpineVF(Image mask, float d) {
 		 hatchSpineVF(mask,d,2000);
 	 }
 	 
-	 public static void hatchSpineVF(PImage mask, float d, int maxVertices) {
+	 public static void hatchSpineVF(Image mask, float d, int maxVertices) {
 
 		 int w = mask.width;
 		 int h = mask.height;
@@ -452,7 +449,7 @@ public class PEmbroiderHatchSpine{
 			 ijm[i] = jm[i]?1:0;
 		 }
 		 
-		 ArrayList<ArrayList<PVector>> contours = PEmbroiderTrace.findContours(ijm,w,h);
+		 ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(ijm,w,h);
 		 for (int i = 0; i < contours.size(); i++) {
 			 contours.set(i,PEmbroiderTrace.approxPolyDP(contours.get(i),1));
 		 }
@@ -477,7 +474,7 @@ public class PEmbroiderHatchSpine{
 			 iim[i] = im[i]?0:1;
 			 
 		 }
-		 ArrayList<ArrayList<PVector>> contours0 = PEmbroiderTrace.findContours(iim,w,h);
+		 ArrayList<ArrayList<Vector2>> contours0 = PEmbroiderTrace.findContours(iim,w,h);
 		 for (int i = 0; i < contours0.size(); i++) {
 			 contours0.set(i,PEmbroiderTrace.approxPolyDP(contours0.get(i),2));
 			 G.pushPolyline(contours0.get(i),G.currentStroke,0);
@@ -485,16 +482,16 @@ public class PEmbroiderHatchSpine{
 		 
 		 float[] dt = G.perfectDistanceTransform(contours0,w,h);
 		 
-		 ArrayList<PVector> P = new ArrayList<PVector>();
+		 ArrayList<Vector2> P = new ArrayList<Vector2>();
 		 ArrayList<Float> Q = new ArrayList<Float>();
-		 ArrayList<PVector> V = new ArrayList<PVector>();
+		 ArrayList<Vector2> V = new ArrayList<Vector2>();
 		 for (int i = 0; i < contours.size(); i++) {
-			 ArrayList<PVector> poly = contours.get(i);
+			 ArrayList<Vector2> poly = contours.get(i);
 
 			 for (int j = 0; j < poly.size(); j++) {
 
-				 PVector p  = poly.get(j);
-				 PVector p1 = poly.get((j+1)%poly.size());
+				 Vector2 p  = poly.get(j);
+				 Vector2 p1 = poly.get((j+1)%poly.size());
 
 				 float a0 = PApplet.atan2(p1.y-p.y,p1.x-p.x);
 				 float a1 = a0 + PApplet.HALF_PI;
@@ -505,7 +502,7 @@ public class PEmbroiderHatchSpine{
 				 float vx = 2*PApplet.cos(a1);
 				 float vy = 2*PApplet.sin(a1);
 				 
-				 float l = p.dist(p1);
+				 float l = p.dst(p1);
 				 int n = PApplet.ceil(l / d);
 
 				 float dd = l/(float)n;
@@ -516,20 +513,20 @@ public class PEmbroiderHatchSpine{
 				 for (int k = 0; k < n; k++) {
 					x += dx;
 					y += dy;
-					P.add(new PVector(x,y));
+					P.add(new Vector2(x,y));
 					Q.add(-1f);
-					V.add(new PVector(vx,vy));
+					V.add(new Vector2(vx,vy));
 				 }
 			 }
 		 }
 
 		 for (int i = 0; i < contours0.size(); i++) {
-			 ArrayList<PVector> poly = contours0.get(i);
+			 ArrayList<Vector2> poly = contours0.get(i);
 
 			 for (int j = 0; j < poly.size(); j++) {
 
-				 PVector p  = poly.get(j);
-				 PVector p1 = poly.get((j+1)%poly.size());
+				 Vector2 p  = poly.get(j);
+				 Vector2 p1 = poly.get((j+1)%poly.size());
 
 				 float a0 = PApplet.atan2(p1.y-p.y,p1.x-p.x);
 
@@ -541,7 +538,7 @@ public class PEmbroiderHatchSpine{
 				 float vx = 2*PApplet.cos(a1);
 				 float vy = 2*PApplet.sin(a1);
 
-				 float l = p.dist(p1);
+				 float l = p.dst(p1);
 				 int n = PApplet.ceil(l / d);
 
 				 float dd = l/(float)n;
@@ -552,9 +549,9 @@ public class PEmbroiderHatchSpine{
 				 for (int k = 0; k < n; k++) {
 					x += dx;
 					y += dy;
-					P.add(new PVector(x,y));
+					P.add(new Vector2(x,y));
 					Q.add(1f);
-					V.add(new PVector(vx,vy));
+					V.add(new Vector2(vx,vy));
 				 }
 			 }
 		 }
@@ -571,7 +568,7 @@ public class PEmbroiderHatchSpine{
 //			}
 //		 int maxVertices = 2000;
 		 int minVertices = 3;
-		 ArrayList<ArrayList<PVector>> polys = new ArrayList<ArrayList<PVector>>();
+		 ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 		 PGraphics pg2 = G.app.createGraphics(mask.width,mask.height);
 		 pg2.beginDraw();
 		 pg2.background(255);
@@ -586,21 +583,21 @@ public class PEmbroiderHatchSpine{
 			 float y = P.get(i).y;
 			 float[] ddt = Q.get(i)<0?dt:dt;
 //			 G.app.rect(x,y,2,2);
-			 ArrayList<PVector> poly = new ArrayList<PVector>();
+			 ArrayList<Vector2> poly = new ArrayList<Vector2>();
 			 int hate = 0;
 			 for (int j = 0; j < maxVertices; j++) {
-				 poly.add(new PVector(x,y));
-				 PVector v;
+				 poly.add(new Vector2(x,y));
+				 Vector2 v;
 				 int ii = (int)y;
 				 int jj = (int)x;
 				 if (j >= 4) {
 					 try {
 	
-						 PVector u = new PVector(ddt[ii*w+jj]-ddt[ii*w+jj-1],ddt[ii*w+jj]-ddt[ii*w+jj-w]);
+						 Vector2 u = new Vector2(ddt[ii*w+jj]-ddt[ii*w+jj-1],ddt[ii*w+jj]-ddt[ii*w+jj-w]);
 						 u.normalize();
 						 v= u.mult(2).mult(Q.get(i));
 					 }catch(Exception e) {
-						 v = new PVector(2,2);
+						 v = new Vector2(2,2);
 					 }
 				 }else {
 					 v = V.get(i);
@@ -608,7 +605,7 @@ public class PEmbroiderHatchSpine{
 				 x += v.x;
 				 y += v.y;
 				 if (Q.get(i)<0 && j==0) {
-					 poly.add(0,new PVector(x-v.x*2,y-v.y*2));
+					 poly.add(0,new Vector2(x-v.x*2,y-v.y*2));
 				 }
 				 if (x < 0 || x >= pg2.width || y < 0 || y >= pg2.height) {
 					 break;
@@ -627,7 +624,7 @@ public class PEmbroiderHatchSpine{
 					 break;
 				 }
 			 }
-			 if (poly.size() < minVertices || poly.get(0).dist(poly.get(poly.size()-1))<5) {
+			 if (poly.size() < minVertices || poly.get(0).dst(poly.get(poly.size()-1))<5) {
 				 continue;
 			 }
 			 pg2.beginShape();
@@ -646,7 +643,7 @@ public class PEmbroiderHatchSpine{
 //		 pg2.filter(PConstants.ERODE);
 		 for (int i = 0; i < polys.size(); i++) {
 			 for (int j = polys.get(i).size()-2; j >=0; j--) {
-				 if ((j < polys.get(i).size()-3 && polys.get(i).get(j).dist(polys.get(i).get(j+3))<1) || (j < polys.get(i).size()-2 && polys.get(i).get(j).dist(polys.get(i).get(j+2))<1) || polys.get(i).get(j).dist(polys.get(i).get(j+1))<1) {
+				 if ((j < polys.get(i).size()-3 && polys.get(i).get(j).dst(polys.get(i).get(j+3))<1) || (j < polys.get(i).size()-2 && polys.get(i).get(j).dst(polys.get(i).get(j+2))<1) || polys.get(i).get(j).dst(polys.get(i).get(j+1))<1) {
 //					 polys.get(i).remove(j+1);
 					 polys.get(i).remove(j);
 				 }
@@ -654,12 +651,12 @@ public class PEmbroiderHatchSpine{
 			 
 			 G.pushPolyline(polys.get(i),G.currentStroke,0);
 		 }
-		 ArrayList<ArrayList<PVector>> cpr = PEmbroiderTrace.findContours(pg2);
+		 ArrayList<ArrayList<Vector2>> cpr = PEmbroiderTrace.findContours(pg2);
 		 for (int i = 0; i < cpr.size(); i++) {
 			 cpr.set(i,PEmbroiderTrace.approxPolyDP(cpr.get(i),1));
 			 G.pushPolyline(cpr.get(i),G.currentStroke,0);
 		 }
-//		 ArrayList<ArrayList<PVector>> hpr = G.hatchParallelRaster(pg2,PConstants.QUARTER_PI,d,2);
+//		 ArrayList<ArrayList<Vector2>> hpr = G.hatchParallelRaster(pg2,PConstants.QUARTER_PI,d,2);
 //		 for (int i = 0; i < hpr.size(); i++) {
 //			 G.pushPolyline(hpr.get(i),G.currentStroke,0);
 //		 }

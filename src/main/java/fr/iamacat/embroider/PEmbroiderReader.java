@@ -1,20 +1,21 @@
 package fr.iamacat.embroider;
 
-import processing.core.PApplet;
-import processing.core.PImage;
-import processing.core.PVector;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import fr.iamacat.utils.PConstants;
+import javafx.scene.Scene;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
-import static processing.controlP5.ControlP5Legacy.println;
-
 public class PEmbroiderReader {
     public static class PES {
 
-        public static void read(String filename, ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int canvasWidth, int canvasHeight) throws IOException {
+        public static void read(String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int canvasWidth, int canvasHeight) throws IOException {
             try (DataInputStream dis = new DataInputStream(new FileInputStream(filename))) {
                 byte[] header = new byte[8];
                 dis.readFully(header);
@@ -24,7 +25,7 @@ public class PEmbroiderReader {
                 int dataOffset = readIntLittleEndian(dis);
                 dis.skipBytes(dataOffset - 16); // Skip to the data section
 
-                ArrayList<PVector> currentPolyline = new ArrayList<>();
+                ArrayList<Vector2> currentPolyline = new ArrayList<>();
                 int currentColor = -1;
 
                 while (dis.available() >= 3) {
@@ -46,7 +47,7 @@ public class PEmbroiderReader {
                         if ((b2 & 0x80) != 0) x = (short) -x;
                         if ((command & 0x10) != 0) y = (short) -y;
 
-                        currentPolyline.add(new PVector(x, y));
+                        currentPolyline.add(new Vector2(x, y));
                     }
                 }
 
@@ -67,15 +68,15 @@ public class PEmbroiderReader {
             return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
         }
     }
-    public static void normalizePolylines(ArrayList<ArrayList<PVector>> polylines, int canvasWidth, int canvasHeight) {
+    public static void normalizePolylines(ArrayList<ArrayList<Vector2>> polylines, int canvasWidth, int canvasHeight) {
         float minX = Float.MAX_VALUE;
         float minY = Float.MAX_VALUE;
         float maxX = Float.MIN_VALUE;
         float maxY = Float.MIN_VALUE;
 
         // Trouver les coordonnées minimales et maximales
-        for (ArrayList<PVector> polyline : polylines) {
-            for (PVector point : polyline) {
+        for (ArrayList<Vector2> polyline : polylines) {
+            for (Vector2 point : polyline) {
                 if (point.x < minX) minX = point.x;
                 if (point.y < minY) minY = point.y;
                 if (point.x > maxX) maxX = point.x;
@@ -89,8 +90,8 @@ public class PEmbroiderReader {
         float scale = Math.min(scaleX, scaleY);
 
         // Normaliser les coordonnées
-        for (ArrayList<PVector> polyline : polylines) {
-            for (PVector point : polyline) {
+        for (ArrayList<Vector2> polyline : polylines) {
+            for (Vector2 point : polyline) {
                 point.x = (point.x - minX) * scale;
                 point.y = (point.y - minY) * scale;
             }
@@ -105,7 +106,7 @@ public class PEmbroiderReader {
         println("Extension: " + tokens[1]);
 
         // Créer des listes pour stocker les données lues (polylines et couleurs)
-        ArrayList<ArrayList<PVector>> polylines = new ArrayList<>();
+        ArrayList<ArrayList<Vector2>> polylines = new ArrayList<>();
         ArrayList<Integer> colors = new ArrayList<>();
 
         try {
@@ -122,15 +123,15 @@ public class PEmbroiderReader {
                 println("Unsupported format: " + tokens[1]);
             }
         } catch (IOException e) {
-            println("Error reading file: " + e.getMessage());
+            System.out.println("Error reading file: " + e.getMessage());
         }
 
         normalizePolylines(polylines, canvasWidth, canvasHeight);
         return new EmbroideryData(polylines, colors);
     }
 
-    public static PImage createImageFromPolylines(ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors, int width, int height, PApplet p) {
-        PImage image = new PImage(width, height, PApplet.RGB);
+    public static Image createImageFromPolylines(ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height, Screen p) {
+        Image image = new Image(width, height, PConstants.RGB);
         image.loadPixels();
 
         // Effacer l'image pour obtenir un fond blanc
@@ -140,12 +141,12 @@ public class PEmbroiderReader {
 
         // Dessiner les polylines sur l'image
         for (int i = 0; i < polylines.size(); i++) {
-            ArrayList<PVector> polyline = polylines.get(i);
+            ArrayList<Vector2> polyline = polylines.get(i);
             int color = colors.get(i);
 
             for (int j = 0; j < polyline.size() - 1; j++) {
-                PVector p1 = polyline.get(j);
-                PVector p2 = polyline.get(j + 1);
+                Vector2 p1 = polyline.get(j);
+                Vector2 p2 = polyline.get(j + 1);
                 drawLineOnImage(image, p1, p2, color, width, height);
             }
         }
@@ -154,11 +155,11 @@ public class PEmbroiderReader {
         return image;
     }
 
-    private static void drawLineOnImage(PImage image, PVector p1, PVector p2, int color, int width, int height) {
-        int x1 = (int) PApplet.map(p1.x, 0, width, 0, image.width);
-        int y1 = (int) PApplet.map(p1.y, 0, height, 0, image.height);
-        int x2 = (int) PApplet.map(p2.x, 0, width, 0, image.width);
-        int y2 = (int) PApplet.map(p2.y, 0, height, 0, image.height);
+    private static void drawLineOnImage(Image image, Vector2 p1, Vector2 p2, int color, int width, int height) {
+        int x1 = (int) MathUtils.map(p1.x, 0, width, 0, image.getWidth());
+        int y1 = (int) MathUtils.map(p1.y, 0, height, 0, image.getHeight());
+        int x2 = (int) MathUtils.map(p2.x, 0, width, 0, image.getWidth());
+        int y2 = (int) MathUtils.map(p2.y, 0, height, 0, image.getHeight());
 
         // Algorithme de tracé de ligne de Bresenham
         int dx = Math.abs(x2 - x1);
@@ -168,7 +169,7 @@ public class PEmbroiderReader {
         int err = dx - dy;
 
         while (true) {
-            if (x1 >= 0 && x1 < image.width && y1 >= 0 && y1 < image.height) {
+            if (x1 >= 0 && x1 < image.getWidth() && y1 >= 0 && y1 < image.getHeight()) {
                 image.set(x1, y1, color);
             }
 
@@ -190,15 +191,15 @@ public class PEmbroiderReader {
 
     // Classe pour encapsuler les données d'embroidery
     public static class EmbroideryData {
-        private ArrayList<ArrayList<PVector>> polylines;
+        private ArrayList<ArrayList<Vector2>> polylines;
         private ArrayList<Integer> colors;
 
-        public EmbroideryData(ArrayList<ArrayList<PVector>> polylines, ArrayList<Integer> colors) {
+        public EmbroideryData(ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors) {
             this.polylines = polylines;
             this.colors = colors;
         }
 
-        public ArrayList<ArrayList<PVector>> getPolylines() {
+        public ArrayList<ArrayList<Vector2>> getPolylines() {
             return polylines;
         }
 

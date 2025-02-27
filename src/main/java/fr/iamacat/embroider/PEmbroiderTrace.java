@@ -2,8 +2,10 @@ package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import processing.core.*;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 
 public class PEmbroiderTrace {
@@ -20,7 +22,7 @@ public class PEmbroiderTrace {
 			return (x - i) * (x - i) + g_i * g_i;
 		}
 		public static float EDT_Sep(float i, float u, float g_i, float g_u) {
-			return PApplet.floor((u * u - i * i + g_u * g_u - g_i * g_i) / (2 * (u - i)));
+			return MathUtils.floor((u * u - i * i + g_u * g_u - g_i * g_i) / (2 * (u - i)));
 		}
 		//	Meijster distance
 		public static float[] getDistTransform(boolean[] booleanImage, int m, int n) {
@@ -79,7 +81,7 @@ public class PEmbroiderTrace {
 				for (int u = m - 1; u >= 0; u--) {
 					float d = EDT_f(u, s[q], g[s[q] + y * m]);
 
-					d = PApplet.floor(PApplet.sqrt(d));
+					d = (float) Math.floor(Math.sqrt(d));
 					dt[u + y * m] = d;
 					if (u == t[q])
 						q--;
@@ -132,15 +134,15 @@ public class PEmbroiderTrace {
 				boolean ok = false;
 
 				for (int j = edges.size()-1; j >= 0; j--){
-					if (PApplet.abs(wip.get(i).get(wip.get(i).size()-1).x - edges.get(j).x) +
-							PApplet.abs(wip.get(i).get(wip.get(i).size()-1).y - edges.get(j).y) <=d){
+					if (Math.abs(wip.get(i).get(wip.get(i).size()-1).x - edges.get(j).x) +
+							Math.abs(wip.get(i).get(wip.get(i).size()-1).y - edges.get(j).y) <=d){
 						wip.get(i).add(edges.remove(j));
 						ok = true;
 					}
 				}
 				if (wip.size() >= 3 &&
-						PApplet.abs(wip.get(i).get(wip.get(i).size()-1).x - wip.get(i).get(0).x) +
-						PApplet.abs(wip.get(i).get(wip.get(i).size()-1).y - wip.get(i).get(0).y) <=d){
+						Math.abs(wip.get(i).get(wip.get(i).size()-1).x - wip.get(i).get(0).x) +
+								Math.abs(wip.get(i).get(wip.get(i).size()-1).y - wip.get(i).get(0).y) <=d){
 					ok = true;
 					contours.add(wip.remove(i));
 					wip.add(new ArrayList<Vector2>());
@@ -353,26 +355,29 @@ public class PEmbroiderTrace {
 		return contours;
 	}
 
-	
-	public static ArrayList<ArrayList<Vector2>> findContours_naive(PImage im){
-		boolean[] bim = new boolean[im.width*im.height];
-		im.loadPixels();
-		for (int i = 0; i < im.width * im.height; i++){
-			bim[i] = (im.pixels[i]>>16&0xFF)>0x7F;
+
+	public static ArrayList<ArrayList<Vector2>> findContours_naive(Pixmap pixmap) {
+		boolean[] bim = new boolean[pixmap.getWidth() * pixmap.getHeight()];
+		for (int i = 0; i < pixmap.getWidth() * pixmap.getHeight(); i++) {
+			int x = i % pixmap.getWidth();
+			int y = i / pixmap.getWidth();
+			bim[i] = (pixmap.getPixel(x, y) >> 16 & 0xFF) > 0x7F;
 		}
-		return findContours_naive(bim,im.width,im.height);
+		return findContours_naive(bim, pixmap.getWidth(), pixmap.getHeight());
 	}
-	public static ArrayList<ArrayList<Vector2>> findContours(PImage im){
-		return findContours(im,null,null);
+
+	public static ArrayList<ArrayList<Vector2>> findContours(Pixmap pixmap) {
+		return findContours(pixmap, null, null);
 	}
-	public static ArrayList<ArrayList<Vector2>> findContours(PImage im, ArrayList<Boolean> oIsHole, ArrayList<Integer> oParent){
-		
-		int[] bim = new int[im.width*im.height];
-		im.loadPixels();
-		for (int i = 0; i < im.width * im.height; i++){
-			bim[i] = (im.pixels[i]>>16&0xFF)>0x7F?1:0;
+
+	public static ArrayList<ArrayList<Vector2>> findContours(Pixmap pixmap, ArrayList<Boolean> oIsHole, ArrayList<Integer> oParent) {
+		int[] bim = new int[pixmap.getWidth() * pixmap.getHeight()];
+		for (int i = 0; i < pixmap.getWidth() * pixmap.getHeight(); i++) {
+			int x = i % pixmap.getWidth();
+			int y = i / pixmap.getWidth();
+			bim[i] = (pixmap.getPixel(x, y) >> 16 & 0xFF) > 0x7F ? 1 : 0;
 		}
-		return findContours(bim,im.width,im.height,oIsHole,oParent);
+		return findContours(bim, pixmap.getWidth(), pixmap.getHeight(), oIsHole, oParent);
 	}
 	
 	public static ArrayList<Vector2> approxPolyDP(ArrayList<Vector2> polyline, float epsilon){
@@ -398,56 +403,55 @@ public class PEmbroiderTrace {
 			ret.addAll(L.subList(0,L.size()-1));
 			ret.addAll(R);
 		}else{
-			ret.add(polyline.get(0).copy());
-			ret.add(polyline.get(polyline.size()-1).copy());
+			ret.add(polyline.get(0).cpy());
+			ret.add(polyline.get(polyline.size()-1).cpy());
 		}
 		return ret;
 	}
-	
-	public static ArrayList<ArrayList<ArrayList<Vector2>>> findIsolines(PImage im, int n, float d) {
-		int w = im.width;
-		int h = im.height;
-		im.loadPixels();
-		boolean[] bim = new boolean[w*h];
-		for (int i = 0; i < w*h; i++){
-			bim[i] = ((im.pixels[i]>>16)&0xFF) < 128;
+
+	public static ArrayList<ArrayList<ArrayList<Vector2>>> findIsolines(Pixmap pixmap, int n, float d) {
+		int w = pixmap.getWidth();
+		int h = pixmap.getHeight();
+
+		boolean[] bim = new boolean[w * h];
+		for (int i = 0; i < w * h; i++) {
+			int x = i % w;
+			int y = i / w;
+			bim[i] = ((pixmap.getPixel(x, y) >> 16) & 0xFF) < 128;
 		}
-		
-		
-		float[] dt = DistanceTransform.getDistTransform(bim,w,h);
+
+		float[] dt = DistanceTransform.getDistTransform(bim, w, h);
 		float m = Float.NEGATIVE_INFINITY;
-		for (int i = 0; i < w*h; i++){
-			m = PApplet.max(m,dt[i]);
+		for (int i = 0; i < w * h; i++) {
+			m = Math.max(m, dt[i]);
 		}
-		
+
 		if (n == -1) {
-			n = (int)((float)m/(float)d);
+			n = (int) (m / d);
 		}
-		
-		int[][] iso = new int[n][w*h];
-		 
+
+		int[][] iso = new int[n][w * h];
 		float[] thresh = new float[n];
 		for (int i = 0; i < n; i++) {
-			thresh[i] = ((float)(i+1)/(float)(n+1))*m;
+			thresh[i] = ((float) (i + 1) / (float) (n + 1)) * m;
 		}
 		for (int j = 0; j < n; j++) {
-			for (int i = 0; i < w*h; i++) {		
-				iso[j][i] =  dt[i] > thresh[j]?1:0;
+			for (int i = 0; i < w * h; i++) {
+				iso[j][i] = dt[i] > thresh[j] ? 1 : 0;
 			}
 		}
-	
-		ArrayList<ArrayList<ArrayList<Vector2>>> isolines = new ArrayList<ArrayList<ArrayList<Vector2>>>();
+
+		ArrayList<ArrayList<ArrayList<Vector2>>> isolines = new ArrayList<>();
 		for (int j = 0; j < n; j++) {
-			ArrayList<ArrayList<Vector2>> c = findContours(iso[j],w,h);
+			ArrayList<ArrayList<Vector2>> c = findContours(iso[j], w, h);
 			for (int i = 0; i < c.size(); i++) {
-				c.set(i,approxPolyDP(c.get(i),1f));
+				c.set(i, approxPolyDP(c.get(i), 1f));
 			}
 			isolines.add(c);
 		}
-		
+
 		return isolines;
 	}
-	
 	  // Binary image thinning (skeletonization) in-place.
 	  // Implements Zhang-Suen algorithm.
 	  // http://agcggs680.pbworks.com/f/Zhan-Suen_algorithm.pdf

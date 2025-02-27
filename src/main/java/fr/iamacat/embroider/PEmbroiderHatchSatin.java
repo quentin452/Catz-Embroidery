@@ -1,7 +1,9 @@
 package fr.iamacat.embroider;
 
 import java.util.ArrayList;
-import processing.core.*;
+
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 public class PEmbroiderHatchSatin {
 	public static PEmbroiderGraphics G;
@@ -35,7 +37,7 @@ public class PEmbroiderHatchSatin {
 			w = _w;
 			h = _h;
 		}
-		public Im(PImage im){
+		public Im(Image im){
 			data = new int[im.width*im.height];
 			im.loadPixels();
 			for (int i = 0; i < im.width*im.height; i++){
@@ -73,8 +75,8 @@ public class PEmbroiderHatchSatin {
 		void set(Pt p, int v){
 			set(p.x,p.y,v);
 		}
-		PImage toPImage(){
-			PImage im = G.app.createImage(w,h,PConstants.RGB);
+		Image toImage(){
+			Image im = G.app.createImage(w,h,PConstants.RGB);
 			im.loadPixels();
 			for (int i = 0; i < data.length; i++){
 				int g = (data[i]*127+128) & 255;
@@ -271,7 +273,7 @@ public class PEmbroiderHatchSatin {
 	}
 
 	public static ArrayList<Pt> satinStitches(Im prevIm, Im im, Pt p0, int d){
-		//im.toPImage().save(random(1)+".png");
+		//im.toImage().save(random(1)+".png");
 
 		ArrayList<Pt> pts = new ArrayList<Pt>();
 		ArrayList<Pt> walk = new ArrayList<Pt>();
@@ -450,7 +452,7 @@ public class PEmbroiderHatchSatin {
 	
 
 	static ArrayList<Pt> boustrophedonStitches(Im prevIm, Im im, Pt p0, int d){
-		//im.toPImage().save(random(1)+".png");
+		//im.toImage().save(random(1)+".png");
 
 		ArrayList<Pt> pts = new ArrayList<Pt>();
 		ArrayList<Pt> walk = new ArrayList<Pt>();
@@ -696,7 +698,7 @@ public class PEmbroiderHatchSatin {
 				}
 			}
 		}
-		//cache.toPImage().save("?.png");
+		//cache.toImage().save("?.png");
 	}
 
 	static ArrayList<ArrayList<Pt>> satinStitchesMultiple(Im im){
@@ -726,7 +728,7 @@ public class PEmbroiderHatchSatin {
 		return ret;
 	}
 
-	public static ArrayList<ArrayList<PVector>> hatchSatinRaster(PImage im, float d, int n){
+	public static ArrayList<ArrayList<Vector2>> hatchSatinRaster(Image im, float d, int n){
 		PGraphics pg = G.app.createGraphics((int)PApplet.ceil(im.width/2f), (int)PApplet.ceil(im.height/d));
 		float sx = (float)im.width/(float)pg.width;
 		float sy = (float)im.height/(float)pg.height;
@@ -738,12 +740,12 @@ public class PEmbroiderHatchSatin {
 //		remove1pxHolesAndIslands(srcImg);
 		removeNpxHolesAndIslands(srcImg,3);
 		bridgeHoles(srcImg);
-//		G.app.image(srcImg.toPImage(),0,0);
-//		srcImg.toPImage().save("/Users/studio/Downloads/hsar.png");
+//		G.app.image(srcImg.toImage(),0,0);
+//		srcImg.toImage().save("/Users/studio/Downloads/hsar.png");
 		ArrayList<ArrayList<Pt>> pts = satinStitchesMultiple(srcImg);
-		ArrayList<ArrayList<PVector>> ret = new ArrayList<ArrayList<PVector>>();
+		ArrayList<ArrayList<Vector2>> ret = new ArrayList<ArrayList<Vector2>>();
 		for (int i = 0; i < pts.size(); i++) {
-			ArrayList<ArrayList<PVector>> p;
+			ArrayList<ArrayList<Vector2>> p;
 			if (G.SATIN_MODE != PEmbroiderGraphics.BOUSTROPHEDON) {
 				p = resampleSatinStitches(pts.get(i), n);
 			}else {
@@ -763,7 +765,7 @@ public class PEmbroiderHatchSatin {
 		}
 		return ret;
 	}
-	public static ArrayList<ArrayList<PVector>> hatchSatinAngledRaster(PImage im, float ang, float d, int n){
+	public static ArrayList<ArrayList<Vector2>> hatchSatinAngledRaster(Image im, float ang, float d, int n){
 		if (PApplet.abs(ang) == 0.00001f) {
 			hatchSatinRaster(im,d,n);
 		}
@@ -808,7 +810,7 @@ public class PEmbroiderHatchSatin {
 		
 		float costh = PApplet.cos(-ang);
 		float sinth = PApplet.sin(-ang);
-		ArrayList<ArrayList<PVector>> pts = hatchSatinRaster(pg,d,n);
+		ArrayList<ArrayList<Vector2>> pts = hatchSatinRaster(pg,d,n);
 		for (int i = 0; i < pts.size(); i++) {
 			for (int j = 0; j < pts.get(i).size(); j++) {
 				float dx = pts.get(i).get(j).x-w/2;
@@ -820,20 +822,20 @@ public class PEmbroiderHatchSatin {
 		return pts;
 	}
 	
-	public static ArrayList<ArrayList<PVector>> resampleSatinStitches(ArrayList<Pt> pts, int n){
+	public static ArrayList<ArrayList<Vector2>> resampleSatinStitches(ArrayList<Pt> pts, int n){
 		
-		ArrayList<ArrayList<PVector>> ret = new ArrayList<ArrayList<PVector>>();
+		ArrayList<ArrayList<Vector2>> ret = new ArrayList<ArrayList<Vector2>>();
 
 		for (int i = 0; i < pts.size(); i++) {
 			if (i == 0) {
-				ret.add(new ArrayList<PVector>());
-				ret.get(0).add(new PVector(pts.get(i).x, pts.get(i).y));
+				ret.add(new ArrayList<Vector2>());
+				ret.get(0).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				continue;
 			}
 			if (i != pts.size()-1 && pts.get(i).y == pts.get(i-1).y && pts.get(i).y == pts.get(i+1).y && PApplet.abs(pts.get(i).x-pts.get(i-1).x) == 1 && pts.get(i+1).x-pts.get(i).x == pts.get(i).x-pts.get(i-1).x) {
 				int hn = (int)PApplet.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * ((float)pts.get(i).y * 2) * (float)n);
 				if ((pts.get(i).x+hn) % n == 0) {
-					ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
 			}else if (PApplet.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i-1).x-pts.get(i).x > 2) {
 //
@@ -845,51 +847,51 @@ public class PEmbroiderHatchSatin {
 							t = (float)(j-pts.get(i).x)/(float)(pts.get(i-1).x-pts.get(i).x);
 						}
 						float y = (float)pts.get(i).y * (1-t) + (float)pts.get(i-1).y * t;
-						ret.get(ret.size()-1).add(new PVector(j,y));
+						ret.get(ret.size()-1).add(new Vector2(j,y));
 					}
 				}
-				ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}else if (i != pts.size()-1 && PApplet.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i+1).y - pts.get(i).y == pts.get(i).y - pts.get(i-1).y) {
 				if (pts.get(i).y % 2 == 0) {
-					ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
 			}else if (PApplet.abs(pts.get(i).y - pts.get(i-1).y) > 8 || PApplet.abs(pts.get(i).x - pts.get(i-1).x) > 8){
-//				ret.add(new ArrayList<PVector>());
-				ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+//				ret.add(new ArrayList<Vector2>());
+				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}else {
-				ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}
 		}
 		
 		return ret;
 	}
 	
-	public static ArrayList<ArrayList<PVector>> resampleBoustrophedonStitches(ArrayList<Pt> pts, int n){
+	public static ArrayList<ArrayList<Vector2>> resampleBoustrophedonStitches(ArrayList<Pt> pts, int n){
 		
-		ArrayList<ArrayList<PVector>> ret = new ArrayList<ArrayList<PVector>>();
+		ArrayList<ArrayList<Vector2>> ret = new ArrayList<ArrayList<Vector2>>();
 
 		for (int i = 0; i < pts.size(); i++) {
 			if (i == 0) {
-				ret.add(new ArrayList<PVector>());
-				ret.get(0).add(new PVector(pts.get(i).x, pts.get(i).y));
+				ret.add(new ArrayList<Vector2>());
+				ret.get(0).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				continue;
 			}
 			if (i != pts.size()-1 && pts.get(i).y == pts.get(i-1).y && pts.get(i).y == pts.get(i+1).y && PApplet.abs(pts.get(i).x-pts.get(i-1).x) == 1 && pts.get(i+1).x-pts.get(i).x == pts.get(i).x-pts.get(i-1).x) {
 				int hn = (int)PApplet.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * (float)pts.get(i).y * (float)n);
 				
 				if ((pts.get(i).x+hn) % n == 0) {
-					ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
 				
 			}else if (i != pts.size()-1 && PApplet.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i+1).y - pts.get(i).y == pts.get(i).y - pts.get(i-1).y) {
 				if (pts.get(i).y % 2 == 0) {
-					ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
 			}else if (PApplet.abs(pts.get(i).y - pts.get(i-1).y) > 8 || PApplet.abs(pts.get(i).x - pts.get(i-1).x) > 8){
-//				ret.add(new ArrayList<PVector>());
-				ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+//				ret.add(new ArrayList<Vector2>());
+				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}else {
-				ret.get(ret.size()-1).add(new PVector(pts.get(i).x, pts.get(i).y));
+				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}
 		}
 		

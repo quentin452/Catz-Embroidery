@@ -6,15 +6,21 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.*;
 
-//import processing.awt.PGraphicsJava2D;
+//import processing.awt.ShapeRendererJava2D;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.PConstants;
+import fr.iamacat.utils.PShape;
 import fr.iamacat.utils.UIUtils;
 import jdk.jshell.spi.ExecutionControl;
 
@@ -34,11 +40,12 @@ import static java.lang.Math.min;
 @SuppressWarnings("unchecked") // shut up
 public class PEmbroiderGraphics {
 	private Screen app;
-	//public PGraphics preview;
+	private Skin TRUE_FONT;
+	//public ShapeRenderer preview;
 	public int width = 100;
 	public int height = 100;
 	public String path = "output.dst";
-	ArrayList<Matrix3> matStack;
+	List<Matrix3> matStack;
 	public ArrayList<ArrayList<Vector2>> polylines;
 	public ArrayList<Integer> colors;
 	public ArrayList<ArrayList<Vector2>> polyBuff;
@@ -210,7 +217,8 @@ public class PEmbroiderGraphics {
 	* @param  w    width
 	* @param  h    height
 	*/
-	public PEmbroiderGraphics(Screen _app, int w, int h) {
+	public PEmbroiderGraphics(Screen _app, int w, int h, Skin skin) {
+		TRUE_FONT = skin;  // Définir après l'appel au constructeur
 		app = _app;
 		width = w;
 		height = h;
@@ -218,15 +226,15 @@ public class PEmbroiderGraphics {
 		matStack = new ArrayList<Matrix3>();
 		matStack.add(new Matrix3());
 		polylines = new ArrayList<ArrayList<Vector2>>();
-		polyBuff = new ArrayList<ArrayList<Vector2>> ();
-		curveBuff = new ArrayList<Vector2> ();
+		polyBuff = new ArrayList<ArrayList<Vector2>>();
+		curveBuff = new ArrayList<Vector2>();
 		colors = new ArrayList<Integer>();
 		cullGroups = new ArrayList<Integer>();
-		processing.embroider.PEmbroiderHatchSatin.setGraphics(this);
-
+		PEmbroiderHatchSatin.setGraphics(this);
 	}
-	public PEmbroiderGraphics(Screen _app) {
-		this(app, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+	public PEmbroiderGraphics(Screen _app, Skin skin) {
+		this(_app, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), skin);
 	}
 
 	/**
@@ -450,7 +458,7 @@ public class PEmbroiderGraphics {
 			return;
 		}
 		AUTO_HATCH_ANGLE = false;
-		hatchAngle(PApplet.radians(ang));
+		hatchAngle(MathUtils.degreesToRadians * ang);
 	}
 
 	/** Change angles of parallel and cross hatching lines
@@ -466,7 +474,7 @@ public class PEmbroiderGraphics {
 			return;
 		}
 		AUTO_HATCH_ANGLE = false;
-		hatchAngles(PApplet.radians(ang1),PApplet.radians(ang2));
+		hatchAngles(MathUtils.degreesToRadians * ang1,MathUtils.degreesToRadians * ang2);
 	}
 
 	/** Sets the orientation of the stitches within a stroke
@@ -480,7 +488,7 @@ public class PEmbroiderGraphics {
 	 *  @param ang     the angle (in degrees)
 	 */
 	public void strokeAngleDeg(float ang) {
-		STROKE_ANGLE=PApplet.radians(ang);
+		STROKE_ANGLE=MathUtils.degreesToRadians * ang;
 	}
 
 	/** Changes the spacing between hatching lines: a.k.a sparsity or inverse-density
@@ -615,7 +623,7 @@ public class PEmbroiderGraphics {
 	 *  @param r3 row 3
 	 *  @return the determinant
 	 */
-	public static float det(Vector2 r1, Vector2 r2, Vector2 r3) {
+	public static float det(Vector3 r1, Vector3 r2, Vector3 r3) {
 		float a = r1.x; float b = r1.y; float c = r1.z;
 		float d = r2.x; float e = r2.y; float f = r2.z;
 		float g = r3.x; float h = r3.y; float i = r3.z;
@@ -631,27 +639,37 @@ public class PEmbroiderGraphics {
 	 *  @param q1 second endpoint of second segment
 	 *  @return vec where vec.x is the lerp param for first segment, and vec.y is the lerp param for the second segment
 	 */
-	public static Vector2 segmentIntersect3D (Vector2 p0, Vector2 p1, Vector2 q0, Vector2 q1){
+	public static Vector2 segmentIntersect3D(Vector2 p0, Vector2 p1, Vector2 q0, Vector2 q1) {
 		// returns lerp params, not actual point!
 
-		Vector2 d0 = Vector2.sub(p1,p0);
-		Vector2 d1 = Vector2.sub(q1,q0);
+		Vector2 d0 = new Vector2(p1).sub(p0); // Corrected to use sub correctly
+		Vector2 d1 = new Vector2(q1).sub(q0); // Corrected to use sub correctly
 
-		Vector2 vc = d0.cross(d1);
-		float vcn = vc.magSq();
+		float vc = d0.crs(d1);  // Cross product of d0 and d1, returns a float
+		float vcn = vc * vc;  // Length squared of the cross product
 
 		if (vcn == 0) {
-			return null;
+			return null;  // Parallel or collinear lines, no intersection
 		}
 
-		float t = det(Vector2.sub(q0,p0), d1, vc)/vcn;
-		float s = det(Vector2.sub(q0,p0), d0, vc)/vcn;
+		// Calculate t and s using determinant (vector cross product)
+		float t = det(new Vector2(q0).sub(p0), d1, vc) / vcn;
+		float s = det(new Vector2(q0).sub(p0), d0, vc) / vcn;
 
+		// Check if the intersection parameters are within the segment bounds
 		if (t < 0 || t > 1 || s < 0 || s > 1) {
-			return null;
+			return null;  // No intersection within segment bounds
 		}
-		return new Vector2(t,s);
+
+		// Return the intersection parameters (t, s) as a Vector2
+		return new Vector2(t, s);
 	}
+
+	// Assuming the det method is defined somewhere in your codebase
+	private static float det(Vector2 v1, Vector2 v2, float vc) {
+		return v1.x * v2.y - v1.y * v2.x - vc;
+	}
+
 
 	/** Averages a bunch of points
 	 *
@@ -795,7 +813,7 @@ public class PEmbroiderGraphics {
 			float rmax = 0;
 			Vector2 c = centerpoint(poly);
 			for (int i = 0; i < poly.size(); i++) {
-				rmax = Math.max(rmax, c.dist(poly.get(i)));
+				rmax = Math.max(rmax, c.dst(poly.get(i)));
 			}
 			x = c.x;
 			y = c.y;
@@ -811,7 +829,7 @@ public class PEmbroiderGraphics {
 			Vector2 c = centerpoint(poly,0);
 			for (int i = 0; i < poly.size(); i++) {
 				for (int j = 0; j < poly.get(i).size(); j++) {
-					rmax = Math.max(rmax, c.dist(poly.get(i).get(j)));
+					rmax = Math.max(rmax, c.dst(poly.get(i).get(j)));
 				}
 			}
 			x = c.x;
@@ -827,30 +845,28 @@ public class PEmbroiderGraphics {
 	 *  @param poly the polygon
 	 *  @return a list of vectors holding the intersection points sorted from one endpoint to the other
 	 */
+
 	public ArrayList<Vector2> segmentIntersectPolygon(Vector2 p0, Vector2 p1, ArrayList<Vector2> poly) {
 		ArrayList<Vector2> isects = new ArrayList<Vector2>();
 		ArrayList<Float> iparams = new ArrayList<Float>();
 
 		for (int i = 0; i < poly.size(); i++) {
 			Vector2 v0 = poly.get(i);
-			Vector2 v1 = poly.get((i+1)%poly.size());
-			Vector2 o = segmentIntersect3D(p0,p1,v0,v1);
+			Vector2 v1 = poly.get((i + 1) % poly.size());
+			Vector2 o = segmentIntersect3D(p0, p1, v0, v1);
 			if (o != null) {
-
 				iparams.add(o.x);
 			}
 		}
-		float[] iparamsArr = new float[iparams.size()];
-		for (int i = 0; i < iparams.size(); i++) {
-			iparamsArr[i] = (float)iparams.get(i);
-		}
-		iparamsArr = PApplet.sort(iparamsArr);
 
-		for (int i = 0; i < iparams.size(); i++) {
-			Vector2 _p0 = p0.copy();
-			Vector2 _p1 = p1.copy();
+		// Sort the intersection parameters
+		Collections.sort(iparams);
 
-			isects.add( _p0.mult(1-iparamsArr[i]).add(_p1.mult(iparamsArr[i]))   );
+		for (Float iparam : iparams) {
+			Vector2 _p0 = p0.cpy();
+			Vector2 _p1 = p1.cpy();
+
+			isects.add(_p0.scl(1 - iparam).add(_p1.scl(iparam)));
 		}
 		return isects;
 	}
@@ -880,13 +896,13 @@ public class PEmbroiderGraphics {
 		for (int i = 0; i < iparams.size(); i++) {
 			iparamsArr[i] = (float)iparams.get(i);
 		}
-		iparamsArr = PApplet.sort(iparamsArr);
+		Collections.sort(iparams);
 
-		for (int i = 0; i < iparams.size(); i++) {
-			Vector2 _p0 = p0.copy();
-			Vector2 _p1 = p1.copy();
+		for (Float iparam : iparams) {
+			Vector2 _p0 = p0.cpy();
+			Vector2 _p1 = p1.cpy();
 
-			isects.add( _p0.mult(1-iparamsArr[i]).add(_p1.mult(iparamsArr[i]))   );
+			isects.add(_p0.scl(1 - iparam).add(_p1.scl(iparam)));
 		}
 		return isects;
 	}
@@ -901,9 +917,9 @@ public class PEmbroiderGraphics {
 		BCircle bcirc = new BCircle(poly);
 		int avg = 0;
 		for (int i = 0; i < trials; i++) {
-			float a = MathUtils.random(0,PApplet.PI*2);
-			float x = bcirc.x + (bcirc.r*2f) * PApplet.cos(a);
-			float y = bcirc.y + (bcirc.r*2f) * PApplet.sin(a);
+			float a = MathUtils.random(0,PConstants.PI*2);
+			float x = bcirc.x + (bcirc.r*2f) * MathUtils.cos(a);
+			float y = bcirc.y + (bcirc.r*2f) * MathUtils.sin(a);
 			if (segmentIntersectPolygon(p,new Vector2(x,y),poly).size() % 2 == 1) {
 				avg ++;
 			}
@@ -965,7 +981,7 @@ public class PEmbroiderGraphics {
 	  // lingdong's hack agianst NaN's
 	  ArrayList<Vector2> pts = new ArrayList<Vector2>();
 	  for (int i = 0; i < poly.size(); i++) {
-		  pts.add(poly.get(i).copy().add(new Vector2(MathUtils.random(-0.5f,0.5f),MathUtils.random(-0.5f,0.5f))));
+		  pts.add(poly.get(i).cpy().add(new Vector2(MathUtils.random(-0.5f,0.5f),MathUtils.random(-0.5f,0.5f))));
 	  }
 	  // end lingdong's hack
 
@@ -1018,54 +1034,54 @@ public class PEmbroiderGraphics {
 	//---------------------------------
 	// Internal function; don't worry about it
 	// by Golan
-	float[] calcEigenvector ( float[][] matrix ) {
+	public float[] calcEigenvector(float[][] matrix) {
+		// this function takes a 2x2 matrix, and returns a pair of angles which are the eigenvectors
+		float A = matrix[0][0];
+		float B = matrix[0][1];
+		float C = matrix[1][0];
+		float D = matrix[1][1];
 
-	  //this function takes a 2x2 matrix, and returns a pair of angles which are the eigenvectors
-	  float A = matrix[0][0];
-	  float B = matrix[0][1];
-	  float C = matrix[1][0];
-	  float D = matrix[1][1];
+		float[] multiPartData = new float[2]; // watch out for memory leaks.
 
-	  float multiPartData[] = new float[2]; // watch out for memory leaks.
+		// because we assume a 2x2 matrix,
+		// we can solve explicitly for the eigenValues using the Quadratic formula.
+		// the eigenvalues are the roots of the equation  det( lambda * I  - T) = 0
+		float a, b, c, root1, root2;
+		a = 1.0f;
+		b = (0.0f - A) - D;
+		c = (A * D) - (B * C);
+		float Q = (b * b) - (4.0f * a * c);
+		if (Q >= 0) {
+			root1 = (float) (((0.0f - b) + Math.sqrt(Q)) / (2.0f * a));
+			root2 = (float) (((0.0f - b) - Math.sqrt(Q)) / (2.0f * a));
 
-	  // because we assume a 2x2 matrix,
-	  // we can solve explicitly for the eigenValues using the Quadratic formula.
-	  // the eigenvalues are the roots of the equation  det( lambda * I  - T) = 0
-	  float a, b, c, root1, root2;
-	  a = 1.0f;
-	  b = (0.0f - A) - D;
-	  c = (A * D) - (B * C);
-	  float Q = (b * b) - (4.0f * a * c);
-	  if (Q >= 0) {
-	    root1 = ((0.0f - b) + PApplet.sqrt ( Q)) / (2.0f * a);
-	    root2 = ((0.0f - b) - PApplet.sqrt ( Q)) / (2.0f * a);
+			// assume x1 and x2 are the elements of the eigenvector. Then, because Ax1 + Bx2 = lambda * x1,
+			// we know that x2 = x1 * (lambda - A) / B.
+			float factor2 = (Math.min(root1, root2) - A) / B;
 
-	    // assume x1 and x2 are the elements of the eigenvector.  Then, because Ax1 + Bx2 = lambda * x1,
-	    // we know that x2 = x1 * (lambda - A) / B.
-	    float factor2 = ( PApplet.min (root1, root2) - A) / B;
+			// we arbitrarily set x1 = 1.0 and compute the magnitude of the eigenVector with respect to this assumption
+			float magnitude2 = (float) Math.sqrt(1.0f + factor2 * factor2);
 
-	    // we arbitrarily set x1 = 1.0 and compute the magnitude of the eigenVector with respect to this assumption
-	    float magnitude2 = PApplet.sqrt (1.0f + factor2*factor2);
+			// we now find the exact components of the eigenVector by scaling by 1/magnitude
+			if ((magnitude2 == 0) || (Float.isNaN(magnitude2))) {
+				multiPartData[0] = 0;
+				multiPartData[1] = 0;
+			} else {
+				float orientedBoxOrientation = MathUtils.atan2((1.0f / magnitude2), (factor2 / magnitude2));
+				float orientedBoxEigenvalue = MathUtils.log(10.0f, root2 + 1.0f); // orientedness
+				multiPartData[0] = orientedBoxOrientation;
+				multiPartData[1] = orientedBoxEigenvalue;
+			}
+		} else {
+			multiPartData[0] = 0;
+			multiPartData[1] = 0;
+		}
 
-	    // we now find the exact components of the eigenVector by scaling by 1/magnitude
-	    if ((magnitude2 == 0) || (Float.isNaN(magnitude2))) {
-	      multiPartData[0] = 0;
-	      multiPartData[1] = 0;
-	    } else {
-	      float orientedBoxOrientation = MathUtils.atan2 ( (1.0f / magnitude2), (factor2 / magnitude2));
-	      float orientedBoxEigenvalue  = PApplet.log (1.0f+root2); // orientedness
-	      multiPartData[0] = orientedBoxOrientation;
-	      multiPartData[1] = orientedBoxEigenvalue;
-	    }
-	  } else {
-	    multiPartData[0] = 0;
-	    multiPartData[1] = 0;
-	  }
-
-	  return multiPartData;
+		return multiPartData;
 	}
 
-	float calcPolygonTiltRaster(Image im) {
+
+	float calcPolygonTiltRaster(Pixmap im) {
 		ArrayList<ArrayList<Vector2>> polys = PEmbroiderTrace.findContours(im);
 		float ma = -1;
 		int mi = -1;
@@ -1080,19 +1096,29 @@ public class PEmbroiderGraphics {
 		return calcPolygonTilt(polys.get(mi));
 	}
 
+	public Set<Integer> extractColorsFromImage(Texture texture) {
+		// Convert Texture to Pixmap
+		texture.getTextureData().prepare();
+		Pixmap pixmap = texture.getTextureData().consumePixmap();
 
-	public Set<Integer> extractColorsFromImage(Image im) {
-		// Étape 1: Compter la fréquence de chaque couleur
+		// Step 1: Count the frequency of each color
 		Map<Integer, Integer> colorFrequency = new HashMap<>();
-		im.loadPixels();
-		for (int pixel : im.pixels) {
-			int rgb = pixel & 0x00FFFFFF; // Ignorer le canal alpha
-			colorFrequency.put(rgb, colorFrequency.getOrDefault(rgb, 0) + 1);
+		for (int y = 0; y < pixmap.getHeight(); y++) {
+			for (int x = 0; x < pixmap.getWidth(); x++) {
+				int pixel = pixmap.getPixel(x, y);
+				int rgb = pixel & 0x00FFFFFF; // Ignore the alpha channel
+				colorFrequency.put(rgb, colorFrequency.getOrDefault(rgb, 0) + 1);
+			}
 		}
-		// Étape 2: Trier les couleurs par fréquence décroissante
+
+		// Dispose of the Pixmap to free up resources
+		pixmap.dispose();
+
+		// Step 2: Sort the colors by decreasing frequency
 		List<Map.Entry<Integer, Integer>> sortedColors = new ArrayList<>(colorFrequency.entrySet());
 		sortedColors.sort((a, b) -> b.getValue().compareTo(a.getValue()));
-		// Étape 3: Sélectionner couleurs les plus fréquentes
+
+		// Step 3: Select the most frequent colors
 		Set<Integer> dominantColors = new LinkedHashSet<>();
 		for (Map.Entry<Integer, Integer> entry : sortedColors) {
 			dominantColors.add(entry.getKey());
@@ -1100,7 +1126,6 @@ public class PEmbroiderGraphics {
 		}
 		return dominantColors;
 	}
-
 
 	/** Add a polyline to the global array of all polylines drawn
 	 *  Applying transformation matrices and resampling
@@ -1113,9 +1138,9 @@ public class PEmbroiderGraphics {
 	public void pushPolyline(ArrayList<Vector2> poly, int color, float resampleRandomizeOffset) {
 		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		for (int i = 0; i < poly.size(); i++) {
-			poly2.add(poly.get(i).copy());
+			poly2.add(poly.get(i).cpy());
 			for (int j = matStack.size() - 1; j >= 0; j--) {
-				poly2.set(i, matStack.get(j).mult(poly2.get(i), null));
+				poly2.set(i, poly2.get(i).mul(matStack.get(j)));
 			}
 		}
 
@@ -1171,15 +1196,15 @@ public class PEmbroiderGraphics {
 			float a0 = MathUtils.atan2(p0.y-p.y,p0.x-p.x);
 			float a1 = MathUtils.atan2(p1.y-p.y,p1.x-p.x);
 			if (i == 0) {
-				a0 = a1 - PApplet.PI;
+				a0 = a1 - PConstants.PI;
 			}else if (i == poly.size()-1){
-				a1 = a0 + PApplet.PI;
+				a1 = a0 + PConstants.PI;
 			}
 			float a = (a1+a0)/2;
-			float d2 = d / (PApplet.sin((a1-a0)/2));
+			float d2 = d / (MathUtils.sin((a1-a0)/2));
 
-			float x = p.x + d2*PApplet.cos(a);
-			float y = p.y + d2*PApplet.sin(a);
+			float x = p.x + d2*MathUtils.cos(a);
+			float y = p.y + d2*MathUtils.sin(a);
 			poly2.add(new Vector2(x,y));
 		}
 		for (int i = 1; i < poly2.size()-2; i++) {
@@ -1197,7 +1222,7 @@ public class PEmbroiderGraphics {
 			}
 			Vector2 o = segmentIntersect3D(p0,p1,p2,p3);
 			if (o != null){
-				Vector2 x = p0.copy().mult(1-o.x).add(p1.copy().mult(o.x));
+				Vector2 x = p0.cpy().mul(1-o.x).add(p1.cpy().mul(o.x));
 				poly2.set(i1, x);
 				poly2.set(i2, x);
 
@@ -1237,7 +1262,7 @@ public class PEmbroiderGraphics {
 				Vector2 o = segmentIntersect3D(p0,p1,p2,p3);
 				if (o != null){
 
-					Vector2 x = p0.copy().mult(1-o.x).add(p1.copy().mult(o.x));
+					Vector2 x = p0.cpy().mul(1-o.x).add(p1.cpy().mul(o.x));
 					ArrayList<Vector2> poly1 = new ArrayList<Vector2>();
 					ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 					for (int k = 0; k < poly.size(); k++) {
@@ -1337,7 +1362,7 @@ public class PEmbroiderGraphics {
 		float y1 = p0.y;
 		float x2 = p1.x;
 		float y2 = p1.y;
-		return PApplet.abs((y2-y1)*x0-(x2-x1)*y0+x2*y1-y2*x1)/PApplet.sqrt(PApplet.sq(y2-y1)+PApplet.sq(x2-x1));
+		return Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
 	}
 
 	/** Calculate distance between point and a segment (when projection is not on the line, the distance becomes that to one of the endpoints)
@@ -1377,7 +1402,7 @@ public class PEmbroiderGraphics {
 		}
 		float dx = x - xx;
 		float dy = y - yy;
-		return PApplet.sqrt(dx*dx+dy*dy);
+		return Math.sqrt(dx*dx+dy*dy);
 	}
 
 	/** Inset a polygon (making it slightly smaller fitting in the original polygon)
@@ -1405,9 +1430,9 @@ public class PEmbroiderGraphics {
 			Vector2 a = poly.get(i);
 			Vector2 b = poly.get((i+1)%poly.size());
 			Vector2 c = poly.get((i+2)%poly.size());
-			Vector2 u = b.copy().sub(a);
-			Vector2 v = c.copy().sub(b);
-			float ang = PApplet.abs(Vector2.angleBetween(u, v));
+			Vector2 u = b.cpy().sub(a);
+			Vector2 v = c.cpy().sub(b);
+			float ang = Math.abs(Vector2.angleBetween(u, v));
 			if (ang > PConstants.PI) {
 				ang = PConstants.TWO_PI - ang;
 			}
@@ -1428,7 +1453,7 @@ public class PEmbroiderGraphics {
 			for (int j = i+1; j < poly.size(); j++) {
 				Vector2 q = poly.get(j);
 
-				if (PApplet.abs(p.y-q.y) <= 1 && PApplet.abs(p.x-q.x) <= 1) {
+				if (Math.abs(p.y-q.y) <= 1 && Math.abs(p.x-q.x) <= 1) {
 					ok = false;
 					break;
 				}
@@ -1456,10 +1481,10 @@ public class PEmbroiderGraphics {
 			float a0 = MathUtils.atan2(p0.y-p.y,p0.x-p.x);
 			float a1 = MathUtils.atan2(p1.y-p.y,p1.x-p.x);
 			float a = (a1+a0)/2;
-			float d2 = d / (PApplet.sin((a1-a0)/2));
+			float d2 = d / (MathUtils.sin((a1-a0)/2));
 
-			float x = p.x + d2*PApplet.cos(a);
-			float y = p.y + d2*PApplet.sin(a);
+			float x = p.x + d2*MathUtils.cos(a);
+			float y = p.y + d2*MathUtils.sin(a);
 
 			Vector2 pp = new Vector2(x,y);
 
@@ -1475,7 +1500,7 @@ public class PEmbroiderGraphics {
 				}
 
 				for (int j = 0; j < poly.size(); j++) {
-					if (pp.dist(poly.get(i))<PApplet.abs(d)-0.1f) {
+					if (pp.dst(poly.get(i))<Math.abs(d)-0.1f) {
 						ok = false;
 						break;
 					}
@@ -1488,7 +1513,7 @@ public class PEmbroiderGraphics {
 					Vector2 q1 = poly.get((j+1)%poly.size());
 					float dl = pointDistanceToSegment(pp,q0,q1);
 	//				System.out.println(dl);
-					if (dl<PApplet.abs(d)-0.1f) {
+					if (dl<Math.abs(d)-0.1f) {
 						ok = false;
 						break;
 					}
@@ -1509,11 +1534,11 @@ public class PEmbroiderGraphics {
 			// with no intersection, but should still be discarded.
 		}
 		BBox bb = new BBox(poly);
-		bb.x -= PApplet.abs(d)*2;
-		bb.y -= PApplet.abs(d)*2;
-		bb.w += 4*PApplet.abs(d);
-		bb.h += 4*PApplet.abs(d);
-		PGraphics pg = app.createGraphics(MathUtils.ceil(bb.w), MathUtils.ceil(bb.h));
+		bb.x -= Math.abs(d)*2;
+		bb.y -= Math.abs(d)*2;
+		bb.w += 4*Math.abs(d);
+		bb.h += 4*Math.abs(d);
+		ShapeRenderer pg = app.createGraphics(MathUtils.ceil(bb.w), MathUtils.ceil(bb.h));
 		pg.beginDraw();
 		pg.background(d<0?0:255);
 		pg.translate(-bb.x,-bb.y);
@@ -1527,7 +1552,7 @@ public class PEmbroiderGraphics {
 		pg.strokeJoin(PConstants.MITER);
 		pg.noFill();
 		pg.stroke(0);
-		pg.strokeWeight(PApplet.abs(d*2));
+		pg.strokeWeight(Math.abs(d*2));
 		pg.beginShape();
 		for (int i = 0; i < poly.size(); i++) {
 			pg.vertex(poly.get(i).x,poly.get(i).y);
@@ -1568,7 +1593,7 @@ public class PEmbroiderGraphics {
 		}
 		BBox bb = new BBox(polys,0);
 
-		PGraphics pg = app.createGraphics((int)MathUtils.ceil(bb.w),(int)MathUtils.ceil(bb.h));
+		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w),(int)MathUtils.ceil(bb.h));
 		pg.beginDraw();
 		pg.background(0);
 		pg.fill(255);
@@ -1613,7 +1638,7 @@ public class PEmbroiderGraphics {
 		bb.y -= d*2;
 		bb.w += d*4;
 		bb.h += d*4;
-		PGraphics pg = app.createGraphics((int)MathUtils.ceil(bb.w),(int)MathUtils.ceil(bb.h));
+		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w),(int)MathUtils.ceil(bb.h));
 		pg.beginDraw();
 		pg.background(0);
 		pg.fill(255);
@@ -1667,7 +1692,7 @@ public class PEmbroiderGraphics {
 
 						Vector2 p0 = poly0.get(i);
 						Vector2 p1 = poly1.get((i+d) % poly1.size());
-						l += p0.dist(p1);
+						l += p0.dst(p1);
 				}
 
 				if (l < ml) {
@@ -1763,7 +1788,7 @@ public class PEmbroiderGraphics {
 		bb.w += n*d*2;
 		bb.h += n*d*2;
 
-		PGraphics pg = app.createGraphics((int)(bb.w*scl), (int)(bb.h*scl));
+		ShapeRenderer pg = app.createGraphics((int)(bb.w*scl), (int)(bb.h*scl));
 		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<ArrayList<Vector2>>();
 
 		int hn = n/2;
@@ -1820,7 +1845,7 @@ public class PEmbroiderGraphics {
 				}
 //				polys3.set(i,resampleHalfKeepCorners(resampleHalf(resampleHalf(polys3.get(i))),0.1f));
 				polys3.set(i, PEmbroiderTrace.approxPolyDP(polys3.get(i), 1));
-				if (polys3.get(i).get(polys3.get(i).size()-1).dist(polys3.get(i).get(0))<d*2) {
+				if (polys3.get(i).get(polys3.get(i).size()-1).dst(polys3.get(i).get(0))<d*2) {
 					polys3.get(i).add(polys3.get(i).get(0));
 				}
 			}
@@ -1836,9 +1861,9 @@ public class PEmbroiderGraphics {
 								Vector2 a = pp.get((j-1+pp.size())%pp.size());
 								Vector2 b = pp.get(j);
 								Vector2 c = pp.get((j+1)%pp.size());
-								Vector2 u = b.copy().sub(a);
-								Vector2 v = c.copy().sub(b);
-								float ang = PApplet.abs(Vector2.angleBetween(u, v));
+								Vector2 u = b.cpy().sub(a);
+								Vector2 v = c.cpy().sub(b);
+								float ang = Math.abs(Vector2.angleBetween(u, v));
 								if (ang > PConstants.PI) {
 									ang = PConstants.TWO_PI - ang;
 								}
@@ -1847,7 +1872,7 @@ public class PEmbroiderGraphics {
 								}
 							}
 
-							Vector2 p = pp.get(j%pp.size()).copy().mult(0.5f).add(pp.get((j+1)%pp.size()).copy().mult(0.5f));
+							Vector2 p = pp.get(j%pp.size()).cpy().mul(0.5f).add(pp.get((j+1)%pp.size()).cpy().mul(0.5f));
 							qq.add(p);
 						}
 						polys2.add(qq);
@@ -1885,7 +1910,7 @@ public class PEmbroiderGraphics {
 		bb.w += d*4;
 		bb.h += d*4;
 
-		PGraphics pg = app.createGraphics((int)bb.w, (int)bb.h);
+		ShapeRenderer pg = app.createGraphics((int)bb.w, (int)bb.h);
 		pg.beginDraw();
 		pg.background(0);
 		pg.stroke(255);
@@ -1901,26 +1926,26 @@ public class PEmbroiderGraphics {
 			float a0 = MathUtils.atan2(p1.y-p0.y,p1.x-p0.x);
 			float a1 = a0 + PConstants.HALF_PI;
 
-			float l = p0.dist(p1);
+			float l = p0.dst(p1);
 			int n = MathUtils.ceil(l / s);
 			if (n == 0) {
 				continue;
 			}
 			for (int j = 0; j < n+1; j++) {
 				float t = (float)j/(float)n;
-				Vector2 p = p0.copy().lerp(p1, t);
-				float x0 = p.x - d*PApplet.cos(a1);
-				float y0 = p.y - d*PApplet.sin(a1);
-				float x1 = p.x + d*PApplet.cos(a1);
-				float y1 = p.y + d*PApplet.sin(a1);
+				Vector2 p = p0.cpy().lerp(p1, t);
+				float x0 = p.x - d*MathUtils.cos(a1);
+				float y0 = p.y - d*MathUtils.sin(a1);
+				float x1 = p.x + d*MathUtils.cos(a1);
+				float y1 = p.y + d*MathUtils.sin(a1);
 
 				boolean lastOn = false;
 				int m = MathUtils.ceil(d)+1;
-				int mmm = PApplet.min(20,m/3);
+				int mmm = Math.min(20,m/3);
 
 				pg.beginShape();
 				for (int k = 0; k < m; k++) {
-					float u = (float)k/(float)PApplet.max(1,m-1);
+					float u = (float)k/(float)Math.max(1,m-1);
 					float x2 = x0 * (1-u) + x1 * u;
 					float y2 = y0 * (1-u) + y1 * u;
 					if (k == m-1 && lastOn) {
@@ -1946,7 +1971,7 @@ public class PEmbroiderGraphics {
 						lastOn = true;
 					}else {
 						if (lastOn) {
-							if (polys.get(polys.size()-1).size() < mmm) {//PApplet.min(3,m)) {
+							if (polys.get(polys.size()-1).size() < mmm) {//Math.min(3,m)) {
 								polys.remove(polys.size()-1);
 							}else {
 								polys.get(polys.size()-1).add(new Vector2(x2,y2));
@@ -1963,7 +1988,7 @@ public class PEmbroiderGraphics {
 		pg.filter(PConstants.DILATE);
 
 		polyss.add( new ArrayList<ArrayList<Vector2>>());
-		int mm = MathUtils.ceil(PApplet.PI*(d*2)/s*PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER);
+		int mm = MathUtils.ceil(PConstants.PI*(d*2)/s*PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER);
 
 		if (!close) {
 			for (int i = 0; i < poly.size(); i++) {
@@ -1980,15 +2005,15 @@ public class PEmbroiderGraphics {
 					}
 					for (int j = 0; j < mm/2; j++) {
 						float t = (float)j/(float)(mm/2);
-						float x1 = p0.x+d*t*PApplet.cos(a);
-						float y1 = p0.y+d*t*PApplet.sin(a);
-						float cw = d*PApplet.sqrt(1-t*t);
+						float x1 = p0.x+d*t*MathUtils.cos(a);
+						float y1 = p0.y+d*t*MathUtils.sin(a);
+						float cw = d*Math.sqrt(1-t*t);
 
-						float xa = x1+cw*PApplet.cos(a-PConstants.HALF_PI);
-						float ya = y1+cw*PApplet.sin(a-PConstants.HALF_PI);
+						float xa = x1+cw*MathUtils.cos(a-PConstants.HALF_PI);
+						float ya = y1+cw*MathUtils.sin(a-PConstants.HALF_PI);
 
-						float xb = x1+cw*PApplet.cos(a+PConstants.HALF_PI);
-						float yb = y1+cw*PApplet.sin(a+PConstants.HALF_PI);
+						float xb = x1+cw*MathUtils.cos(a+PConstants.HALF_PI);
+						float yb = y1+cw*MathUtils.sin(a+PConstants.HALF_PI);
 
 						ArrayList<Vector2> pp = new ArrayList<Vector2>();
 						pp.add(new Vector2(xa,ya));
@@ -2019,13 +2044,13 @@ public class PEmbroiderGraphics {
 
 
 			for (int j = 0; j < mm; j++) {
-				float a = (float)j/(float)mm*PApplet.TWO_PI;
-				float x1 = p0.x - d*PApplet.cos(a);
-				float y1 = p0.y - d*PApplet.sin(a);
+				float a = (float)j/(float)mm*PConstants.TWO_PI;
+				float x1 = p0.x - d*MathUtils.cos(a);
+				float y1 = p0.y - d*MathUtils.sin(a);
 				boolean lastOn = false;
 
 				int m = MathUtils.ceil(d);
-				int mmm = PApplet.min(10,m/3);
+				int mmm = Math.min(10,m/3);
 				mmm = 0;
 
 				pg.beginShape();
@@ -2056,7 +2081,7 @@ public class PEmbroiderGraphics {
 						lastOn = true;
 					}else {
 						if (lastOn) {
-							if (polys.get(polys.size()-1).size() < mmm) {//PApplet.min(3,m)) {
+							if (polys.get(polys.size()-1).size() < mmm) {//Math.min(3,m)) {
 								polys.remove(polys.size()-1);
 							}else {
 								polys.get(polys.size()-1).add(new Vector2(x2,y2));
@@ -2083,13 +2108,13 @@ public class PEmbroiderGraphics {
 			}
 		}
 		pg.endDraw();
-		float ml = PApplet.min(2,d-1);
+		float ml = Math.min(2,d-1);
 		for (int i = polys.size()-1; i >= 0; i--) {
 			if (polys.get(i).size() < 2) {
 				polys.remove(i);
 				continue;
 			}
-			if (polys.get(i).get(0).dist(polys.get(i).get(polys.get(i).size()-1))<ml) {
+			if (polys.get(i).get(0).dst(polys.get(i).get(polys.get(i).size()-1))<ml) {
 				polys.remove(i);
 				continue;
 			}
@@ -2114,7 +2139,7 @@ public class PEmbroiderGraphics {
 //		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 		ArrayList<ArrayList<ArrayList<Vector2>>> polyss = new ArrayList<ArrayList<ArrayList<Vector2>>>();
 
-		float dd = PApplet.abs(d / PApplet.cos(ang));
+		float dd = Math.abs(d / MathUtils.cos(ang));
 
 		BBox bb = new BBox(poly);
 		bb.x -= d*2;
@@ -2122,7 +2147,7 @@ public class PEmbroiderGraphics {
 		bb.w += d*4;
 		bb.h += d*4;
 
-		PGraphics pg = app.createGraphics((int)bb.w, (int)bb.h);
+		ShapeRenderer pg = app.createGraphics((int)bb.w, (int)bb.h);
 		pg.beginDraw();
 		pg.background(0);
 		pg.stroke(255);
@@ -2139,26 +2164,26 @@ public class PEmbroiderGraphics {
 			float a0 = MathUtils.atan2(p1.y-p0.y,p1.x-p0.x);
 			float a1 = a0 + PConstants.HALF_PI + ang;
 
-			float l = p0.dist(p1);
+			float l = p0.dst(p1);
 			int n = MathUtils.ceil(l / s);
 			if (n == 0) {
 				continue;
 			}
 			for (int j = 0; j < n+1; j++) {
 				float t = (float)j/(float)n;
-				Vector2 p = p0.copy().lerp(p1, t);
-				float x0 = p.x - dd*PApplet.cos(a1);
-				float y0 = p.y - dd*PApplet.sin(a1);
-				float x1 = p.x + dd*PApplet.cos(a1);
-				float y1 = p.y + dd*PApplet.sin(a1);
+				Vector2 p = p0.cpy().lerp(p1, t);
+				float x0 = p.x - dd*MathUtils.cos(a1);
+				float y0 = p.y - dd*MathUtils.sin(a1);
+				float x1 = p.x + dd*MathUtils.cos(a1);
+				float y1 = p.y + dd*MathUtils.sin(a1);
 
 				boolean lastOn = false;
 				int m = MathUtils.ceil(dd)+1;
-				int mmm = PApplet.min(20,m/3);
+				int mmm = Math.min(20,m/3);
 
 				pg.beginShape();
 				for (int k = 0; k < m; k++) {
-					float u = (float)k/(float)PApplet.max(1,m-1);
+					float u = (float)k/(float)Math.max(1,m-1);
 					float x2 = x0 * (1-u) + x1 * u;
 					float y2 = y0 * (1-u) + y1 * u;
 					if (k == m-1 && lastOn) {
@@ -2184,7 +2209,7 @@ public class PEmbroiderGraphics {
 						lastOn = true;
 					}else {
 						if (lastOn) {
-							if (polys.get(polys.size()-1).size() < mmm) {//PApplet.min(3,m)) {
+							if (polys.get(polys.size()-1).size() < mmm) {//Math.min(3,m)) {
 								polys.remove(polys.size()-1);
 							}else {
 								polys.get(polys.size()-1).add(new Vector2(x2,y2));
@@ -2201,7 +2226,7 @@ public class PEmbroiderGraphics {
 		pg.filter(PConstants.DILATE);
 
 		polyss.add( new ArrayList<ArrayList<Vector2>>());
-		int mm = MathUtils.ceil(PApplet.PI*(d*2)/s*PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER);
+		int mm = MathUtils.ceil(PConstants.PI*(d*2)/s*PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER);
 
 
 
@@ -2224,15 +2249,15 @@ public class PEmbroiderGraphics {
 						if (i == 0) {
 							t = 1-t;
 						}
-						float x1 = p0.x+d*t*PApplet.cos(a);
-						float y1 = p0.y+d*t*PApplet.sin(a);
-						float cw = d*PApplet.sqrt(1-t*t)/PApplet.abs(PApplet.cos(ang));
+						float x1 = p0.x+d*t*MathUtils.cos(a);
+						float y1 = p0.y+d*t*MathUtils.sin(a);
+						float cw = d*Math.sqrt(1-t*t)/Math.abs(MathUtils.cos(ang));
 
-						float xa = x1+cw*PApplet.cos(a-PConstants.HALF_PI);
-						float ya = y1+cw*PApplet.sin(a-PConstants.HALF_PI);
+						float xa = x1+cw*MathUtils.cos(a-PConstants.HALF_PI);
+						float ya = y1+cw*MathUtils.sin(a-PConstants.HALF_PI);
 
-						float xb = x1+cw*PApplet.cos(a+PConstants.HALF_PI);
-						float yb = y1+cw*PApplet.sin(a+PConstants.HALF_PI);
+						float xb = x1+cw*MathUtils.cos(a+PConstants.HALF_PI);
+						float yb = y1+cw*MathUtils.sin(a+PConstants.HALF_PI);
 
 						ArrayList<Vector2> pp = new ArrayList<Vector2>();
 						pp.add(new Vector2(xa,ya));
@@ -2260,13 +2285,13 @@ public class PEmbroiderGraphics {
 			float y0 = p0.y;
 
 			for (int j = 0; j < mm; j++) {
-				float a = (float)j/(float)mm*PApplet.TWO_PI;
-				float x1 = p0.x - d*PApplet.cos(a);
-				float y1 = p0.y - d*PApplet.sin(a);
+				float a = (float)j/(float)mm*PConstants.TWO_PI;
+				float x1 = p0.x - d*MathUtils.cos(a);
+				float y1 = p0.y - d*MathUtils.sin(a);
 				boolean lastOn = false;
 
 				int m = MathUtils.ceil(d);
-				int mmm = PApplet.min(10,m/3);
+				int mmm = Math.min(10,m/3);
 				mmm = 0;
 
 				pg.beginShape();
@@ -2297,7 +2322,7 @@ public class PEmbroiderGraphics {
 						lastOn = true;
 					}else {
 						if (lastOn) {
-							if (polys.get(polys.size()-1).size() < mmm) {//PApplet.min(3,m)) {
+							if (polys.get(polys.size()-1).size() < mmm) {//Math.min(3,m)) {
 								polys.remove(polys.size()-1);
 							}else {
 								polys.get(polys.size()-1).add(new Vector2(x2,y2));
@@ -2323,13 +2348,13 @@ public class PEmbroiderGraphics {
 			}
 		}
 		pg.endDraw();
-		float ml = PApplet.min(2,d-1);
+		float ml = Math.min(2,d-1);
 		for (int i = polys.size()-1; i >= 0; i--) {
 			if (polys.get(i).size() < 2) {
 				polys.remove(i);
 				continue;
 			}
-			if (polys.get(i).get(0).dist(polys.get(i).get(polys.get(i).size()-1))<ml) {
+			if (polys.get(i).get(0).dst(polys.get(i).get(polys.get(i).size()-1))<ml) {
 				polys.remove(i);
 				continue;
 			}
@@ -2368,12 +2393,12 @@ public class PEmbroiderGraphics {
 				pushPolyline(polys.get(i),currentStroke);
 			}
 		}else {
-			if (PApplet.abs(STROKE_LOCATION) > Float.MIN_VALUE && close) {
+			if (Math.abs(STROKE_LOCATION) > Float.MIN_VALUE && close) {
 				float d = STROKE_WEIGHT/2*STROKE_LOCATION;
 				if (d > 0) {
 					polys = outsetPolygonsRaster(polys,d);
 				}else {
-					polys = insetPolygonsRaster(polys,PApplet.abs(d));
+					polys = insetPolygonsRaster(polys,Math.abs(d));
 				}
 			}
 			if (STROKE_MODE == TANGENT) {
@@ -2489,7 +2514,7 @@ public class PEmbroiderGraphics {
 
 		float l = 0;
 		for (int i = 0; i < poly.size()-1; i++) {
-			l += poly.get(i).dist(poly.get(i+1));
+			l += poly.get(i).dst(poly.get(i+1));
 		}
 
 		int n = 100*((int)Math.ceil((float)l / (float)STITCH_LENGTH));
@@ -2531,18 +2556,18 @@ public class PEmbroiderGraphics {
 
 				if (i == polys2.size()-1) {
 					if (polys.size() >= 1 && polys2.size() >= 1 && i > 0) {
-						Vector2 a = p0.copy().sub(polys2.get(i-1).get(Math.max(j-1,0)));
-						Vector2 b = p0.copy().sub(polys2.get(i-1).get(Math.max(j-1,0)));
-						Vector2 c = a.mult(0.5f).add(b.mult(0.5f));
-						p1 = p0.copy().add(c);
+						Vector2 a = p0.cpy().sub(polys2.get(i-1).get(Math.max(j-1,0)));
+						Vector2 b = p0.cpy().sub(polys2.get(i-1).get(Math.max(j-1,0)));
+						Vector2 c = a.mul(0.5f).add(b.mul(0.5f));
+						p1 = p0.cpy().add(c);
 					}else {
-						p1 = p0.copy();
+						p1 = p0.cpy();
 					}
 				}else {
 					p1 = polys2.get(i+1).get(j);
 				}
 				float t = (float)j/(float)n;
-				spiral.add(p0.copy().mult(1-t).add(p1.copy().mult(t)));
+				spiral.add(p0.cpy().mul(1-t).add(p1.cpy().mul(t)));
 			}
 		}
 
@@ -2576,9 +2601,9 @@ public class PEmbroiderGraphics {
 
 
 		Vector2 c = centerpoint(poly);
-		float r = PApplet.max(bb.w,bb.h)*200f;
+		float r = Math.max(bb.w,bb.h)*200f;
 
-		PGraphics pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
+		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
 
 		float dd = d;
 		float a = 0;
@@ -2623,7 +2648,7 @@ public class PEmbroiderGraphics {
 
 //			ret.add(poly2);
 
-			Vector2 p = new Vector2(c.x+r*PApplet.cos(a),c.y+r*PApplet.sin(a));
+			Vector2 p = new Vector2(c.x+r*MathUtils.cos(a),c.y+r*MathUtils.sin(a));
 
 			ArrayList<Vector2> qs = segmentIntersectPolygon(c,p,ppp);
 			if (qs.size()>0) {
@@ -2662,7 +2687,7 @@ public class PEmbroiderGraphics {
 		bb.x = 0;
 		bb.y = 0;
 
-		PGraphics pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
+		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
 
 		float dd = 0;
 
@@ -2727,7 +2752,7 @@ public class PEmbroiderGraphics {
 
 		float l = 0;
 		for (int i = 0; i < poly.size()-1; i++) {
-			l += poly.get(i).dist(poly.get(i+1));
+			l += poly.get(i).dst(poly.get(i+1));
 		}
 
 		int n = 20*((int)Math.ceil((float)l / (float)STITCH_LENGTH));
@@ -2762,13 +2787,13 @@ public class PEmbroiderGraphics {
 
 						p1 = polys2.get(i-1).get(j);
 					}else {
-						p1 = p0.copy();
+						p1 = p0.cpy();
 					}
 				}else {
 					p1 = polys2.get(i+1).get(j);
 				}
 				float t = (float)j/(float)n;
-				spiral.add(p0.copy().mult(1-t).add(p1.copy().mult(t)));
+				spiral.add(p0.cpy().mul(1-t).add(p1.cpy().mul(t)));
 			}
 //			spirals.add(polys2.get(i));
 		}
@@ -2801,7 +2826,7 @@ public class PEmbroiderGraphics {
 		bb.x = 0;
 		bb.y = 0;
 
-		PGraphics pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
+		ShapeRenderer pg = app.createGraphics((int)MathUtils.ceil(bb.w), (int)MathUtils.ceil(bb.h));
 
 		float dd = 0;
 
@@ -2866,7 +2891,7 @@ public class PEmbroiderGraphics {
 
 		float l = 0;
 		for (int i = 0; i < poly.size()-1; i++) {
-			l += poly.get(i).dist(poly.get(i+1));
+			l += poly.get(i).dst(poly.get(i+1));
 		}
 
 		int n = 100*((int)Math.ceil((float)l / (float)STITCH_LENGTH));
@@ -2921,7 +2946,7 @@ public class PEmbroiderGraphics {
 		BBox bb = new BBox(poly);
 
 
-		PGraphics pg = app.createGraphics((int)bb.w,(int)bb.h);
+		ShapeRenderer pg = app.createGraphics((int)bb.w,(int)bb.h);
 		pg.beginDraw();
 		pg.background(0);
 		pg.noStroke();
@@ -2957,7 +2982,7 @@ public class PEmbroiderGraphics {
 
 		BBox bb = new BBox(poly);
 
-		PGraphics pg = app.createGraphics((int)bb.w,(int)bb.h);
+		ShapeRenderer pg = app.createGraphics((int)bb.w,(int)bb.h);
 		pg.beginDraw();
 		pg.background(0);
 		pg.noStroke();
@@ -2992,13 +3017,13 @@ public class PEmbroiderGraphics {
 		BCircle bcirc = new BCircle(poly);
 		bcirc.r *= 1.05;
 
-		float x0 = bcirc.x - bcirc.r * PApplet.cos(ang);
-		float y0 = bcirc.y - bcirc.r * PApplet.sin(ang);
+		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
+		float y0 = bcirc.y - bcirc.r * MathUtils.sin(ang);
 
-		float x1 = bcirc.x + bcirc.r * PApplet.cos(ang);
-		float y1 = bcirc.y + bcirc.r * PApplet.sin(ang);
+		float x1 = bcirc.x + bcirc.r * MathUtils.cos(ang);
+		float y1 = bcirc.y + bcirc.r * MathUtils.sin(ang);
 
-		float l = new Vector2(x0,y0).dist(new Vector2(x1,y1));
+		float l = new Vector2(x0,y0).dst(new Vector2(x1,y1));
 
 		int n = (int)Math.ceil(l/d);
 
@@ -3013,11 +3038,11 @@ public class PEmbroiderGraphics {
 			float y = y0 * (1-t) + y1 * t;
 
 
-			float px = x + bcirc.r * PApplet.cos(ang-PConstants.HALF_PI);
-			float py = y + bcirc.r * PApplet.sin(ang-PConstants.HALF_PI);
+			float px = x + bcirc.r * MathUtils.cos(ang-PConstants.HALF_PI);
+			float py = y + bcirc.r * MathUtils.sin(ang-PConstants.HALF_PI);
 
-			float qx = x + bcirc.r * PApplet.cos(ang+PConstants.HALF_PI);
-			float qy = y + bcirc.r * PApplet.sin(ang+PConstants.HALF_PI);
+			float qx = x + bcirc.r * MathUtils.cos(ang+PConstants.HALF_PI);
+			float qy = y + bcirc.r * MathUtils.sin(ang+PConstants.HALF_PI);
 
 
 			ArrayList<Vector2> ps = segmentIntersectPolygon(new Vector2(px,py), new Vector2(qx,qy), poly);
@@ -3045,13 +3070,13 @@ public class PEmbroiderGraphics {
 		BCircle bcirc = new BCircle(polys,0);
 		bcirc.r *= 1.05;
 
-		float x0 = bcirc.x - bcirc.r * PApplet.cos(ang);
-		float y0 = bcirc.y - bcirc.r * PApplet.sin(ang);
+		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
+		float y0 = bcirc.y - bcirc.r * MathUtils.sin(ang);
 
-		float x1 = bcirc.x + bcirc.r * PApplet.cos(ang);
-		float y1 = bcirc.y + bcirc.r * PApplet.sin(ang);
+		float x1 = bcirc.x + bcirc.r * MathUtils.cos(ang);
+		float y1 = bcirc.y + bcirc.r * MathUtils.sin(ang);
 
-		float l = new Vector2(x0,y0).dist(new Vector2(x1,y1));
+		float l = new Vector2(x0,y0).dst(new Vector2(x1,y1));
 
 		int n = (int)Math.ceil(l/d);
 
@@ -3060,11 +3085,11 @@ public class PEmbroiderGraphics {
 			float x = x0 * (1-t) + x1 * t;
 			float y = y0 * (1-t) + y1 * t;
 
-			float px = x + bcirc.r * PApplet.cos(ang-PConstants.HALF_PI);
-			float py = y + bcirc.r * PApplet.sin(ang-PConstants.HALF_PI);
+			float px = x + bcirc.r * MathUtils.cos(ang-PConstants.HALF_PI);
+			float py = y + bcirc.r * MathUtils.sin(ang-PConstants.HALF_PI);
 
-			float qx = x + bcirc.r * PApplet.cos(ang+PConstants.HALF_PI);
-			float qy = y + bcirc.r * PApplet.sin(ang+PConstants.HALF_PI);
+			float qx = x + bcirc.r * MathUtils.cos(ang+PConstants.HALF_PI);
+			float qy = y + bcirc.r * MathUtils.sin(ang+PConstants.HALF_PI);
 
 			ArrayList<Vector2> ps = segmentIntersectPolygons(new Vector2(px,py), new Vector2(qx,qy), polys);
 			if (ps.size() % 2 != 0) {
@@ -3118,21 +3143,21 @@ public class PEmbroiderGraphics {
 	 *  @param maxIter  maximum number of iterations to do the drunk walk
 	 *  @return         the hatching as an array of polys
 	 */
-	public ArrayList<ArrayList<Vector2>> hatchDrunkWalkRaster(Image im, int rad, int maxIter){
+	public ArrayList<ArrayList<Vector2>> hatchDrunkWalkRaster(Texture texture, int rad, int maxIter) {
 		// for polygons already rendered as an image. this is usually more robust for complex polygons and is the default most of the time
 
-		ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(im); // find the polygons in the raster image
+		Pixmap pixmap = textureToPixmap(texture);
+		ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(pixmap); // find the polygons in the raster image
 		ArrayList<ArrayList<Vector2>> hatch = new ArrayList<ArrayList<Vector2>>(); // this is the set of polylines representing the hatches
 
-		im.loadPixels();
 		for (int k = 0; k < contours.size(); k++) {
-
 			// first find a starting point that's not in a hole
 			int trial = 100;
-			Vector2 p = new Vector2(); int j;
+			Vector2 p = new Vector2();
+			int j;
 			for (j = 0; j < trial; j++) {
 				p = randomPointInPolygon(contours.get(k));
-				if ((im.pixels[(int)p.y*im.width+(int)p.x]>>16&0xFF)>0x7F) {// found white pixel
+				if ((pixmap.getPixel((int) p.x, (int) p.y) >> 16 & 0xFF) > 0x7F) { // found white pixel
 					break;
 				}
 			}
@@ -3141,18 +3166,23 @@ public class PEmbroiderGraphics {
 			}
 			hatch.add(new ArrayList<Vector2>());
 			for (int i = 0; i < maxIter; i++) { // start fumbling
-				hatch.get(hatch.size()-1).add(p);  // add the point to the polyline
+				hatch.get(hatch.size() - 1).add(p);  // add the point to the polyline
 				Vector2 q = new Vector2();
 				do {
-				  q.x = p.x + MathUtils.random(-rad,rad); // for simplicity; technically we should compute from polar coordinates
-				  q.y = p.y + MathUtils.random(-rad,rad); // MathUtils.random() is equivalent random() in a Processing sketch, app refers to the PApplet object
-				}while((im.pixels[(int)q.y*im.width+(int)q.x]>>16&0xFF)<0x7F); // keep fumbling around until white pixel is found
+					q.x = p.x + MathUtils.random(-rad, rad); // for simplicity; technically we should compute from polar coordinates
+					q.y = p.y + MathUtils.random(-rad, rad); // MathUtils.random() is equivalent to random() in Processing
+				} while ((pixmap.getPixel((int) q.x, (int) q.y) >> 16 & 0xFF) < 0x7F); // keep fumbling around until white pixel is found
 				p = q;
 			}
 		}
+		pixmap.dispose(); // Dispose of the pixmap to free up resources
 		return hatch; // done! now go register this hatch method in hatchRaster()
 	}
 
+	private Pixmap textureToPixmap(Texture texture) {
+		texture.getTextureData().prepare();
+		return texture.getTextureData().consumePixmap();
+	}
 	/**
 	 *  Resample a polyline to make it stitchable
 	 *  @param poly                the polyline
@@ -3178,7 +3208,7 @@ public class PEmbroiderGraphics {
 			Vector2 p0 = poly.get(i);
 			Vector2 p1 = poly.get(i+1);
 
-			float l = p0.dist(p1);
+			float l = p0.dst(p1);
 
 
 
@@ -3186,9 +3216,9 @@ public class PEmbroiderGraphics {
 				Vector2 a = poly.get(i);
 				Vector2 b = poly.get((i+1)%poly.size());
 				Vector2 c = poly.get((i+2)%poly.size());
-				Vector2 u = b.copy().sub(a);
-				Vector2 v = c.copy().sub(b);
-				float ang = PApplet.abs(Vector2.angleBetween(u, v));
+				Vector2 u = b.cpy().sub(a);
+				Vector2 v = c.cpy().sub(b);
+				float ang = Math.abs(Vector2.angleBetween(u, v));
 				if (ang<maxTurn) {
 					clen += l;
 					continue;
@@ -3207,23 +3237,23 @@ public class PEmbroiderGraphics {
 //				randomizeOffsetPrevious = rr;
 				float r = (Math.max(1,maxLen*randomizeOffset*rr))/l;
 //				    			System.out.println(r,randomizeOffset);
-				Vector2 p = p0.copy().mult(1-r).add(p1.copy().mult(r));
+				Vector2 p = p0.cpy().mul(1-r).add(p1.cpy().mul(r));
 				poly2.add(p);
 				p0 = p;
-				l = p0.dist(p1);
+				l = p0.dst(p1);
 				if (l < maxLen) {
 					poly2.add(p1);
 					continue;
 				}
 			}
-//			Vector2 p2 = poly.get(i+1).copy();
+//			Vector2 p2 = poly.get(i+1).cpy();
 //
 //			if (i == poly.size()-1 && randomizeOffset > 0) {
 //				float rr = MathUtils.random(0f,1f);
 ////				float rr = 0.5f - randomizeOffsetPrevious;
 //				float r = (Math.max(1,maxLen*randomizeOffset*rr))/l;
 ////				    			System.out.println(r,randomizeOffset);
-//				Vector2 p = p0.copy().mult(r).add(p1.copy().mult(1-r));
+//				Vector2 p = p0.cpy().mul(r).add(p1.cpy().mul(1-r));
 ////				poly2.add(p);
 //				p1 = p;
 //			}
@@ -3251,7 +3281,7 @@ public class PEmbroiderGraphics {
 					lin[j-1] = (float)j/(float)n + rr*randomize*(1f/(float)n)*0.5f;
 				}
 				for (int j = 0; j < n-1; j++) {
-					poly2.add(p0.copy().mult(1-lin[j]).add(p1.copy().mult(lin[j])));
+					poly2.add(p0.cpy().mul(1-lin[j]).add(p1.cpy().mul(lin[j])));
 				}
 			}
 			poly2.add(p1);
@@ -3280,7 +3310,7 @@ public class PEmbroiderGraphics {
 		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		float l = 0;
 		for (int i = 0; i < poly.size()-1; i++) {
-			l += poly.get(i).dist(poly.get(i+1));
+			l += poly.get(i).dst(poly.get(i+1));
 		}
 		float d = l/(float)n;
 		float clen = 0;
@@ -3290,10 +3320,10 @@ public class PEmbroiderGraphics {
 		for (int i = 0; i < poly.size()-1; i++) {
 			Vector2 p0 = poly.get(i);
 			Vector2 p1 = poly.get(i+1);
-			float d0 = p0.dist(p1);
+			float d0 = p0.dst(p1);
 			float pc = (d-clen)/(d0);
 
-			Vector2 p2 = p0.copy().mult(1-pc).add(p1.copy().mult(pc));
+			Vector2 p2 = p0.cpy().mul(1-pc).add(p1.cpy().mul(pc));
 
 			float d1 = d0;
 			while (pc < 1) {
@@ -3301,7 +3331,7 @@ public class PEmbroiderGraphics {
 				d1 = d1-(d-clen);
 				clen = 0;
 				pc = d/d1;
-				p2 = p2.copy().mult(1-pc).add(p1.copy().mult(pc));
+				p2 = p2.cpy().mul(1-pc).add(p1.cpy().mul(pc));
 
 			}
 			clen += d1;
@@ -3314,7 +3344,7 @@ public class PEmbroiderGraphics {
 			float ml = Float.POSITIVE_INFINITY;
 			int mi = -1;
 			for (int i = 0; i < poly2.size()-1; i++) {
-				float ll = poly2.get(i).dist(poly2.get(i+1));
+				float ll = poly2.get(i).dst(poly2.get(i+1));
 				if (ll < ml) {
 					ml = ll;
 					mi = i;
@@ -3345,7 +3375,7 @@ public class PEmbroiderGraphics {
 
 		float l = 0;
 		for (int i = 0; i < poly.size()-1; i++) {
-			float d = poly.get(i).dist(poly.get(i+1));
+			float d = poly.get(i).dst(poly.get(i+1));
 			l += d;
 			dists.add(d);
 		}
@@ -3363,7 +3393,7 @@ public class PEmbroiderGraphics {
 			int n0 = ns.get(i);
 			for (int j = 0; j < n0; j++) {
 				float t = (float)(j+1)/(float)n0;
-				Vector2 p = poly.get(i).copy().mult(1-t).add(poly.get(i+1).copy().mult(t));
+				Vector2 p = poly.get(i).cpy().mul(1-t).add(poly.get(i+1).cpy().mul(t));
 				poly2.add(p);
 			}
 		}
@@ -3390,8 +3420,8 @@ public class PEmbroiderGraphics {
 //		}
 		float base = len*offsetFactor;
 		float relang = MathUtils.atan2(spacing, base);
-//		float d = PApplet.sqrt(base*base+spacing*spacing);
-		float d = len * PApplet.cos(PConstants.HALF_PI-relang);
+//		float d = Math.sqrt(base*base+spacing*spacing);
+		float d = len * MathUtils.cos(PConstants.HALF_PI-relang);
 
 //		System.out.println("computed cross ang",relang,"spacing",d);
 
@@ -3400,13 +3430,13 @@ public class PEmbroiderGraphics {
 		BCircle bcirc = new BCircle(polys,0);
 		bcirc.r *= 1.05;
 
-		float x0 = bcirc.x - bcirc.r * PApplet.cos(ang);
-		float y0 = bcirc.y - bcirc.r * PApplet.sin(ang);
+		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
+		float y0 = bcirc.y - bcirc.r * MathUtils.sin(ang);
 
-		float x1 = bcirc.x + bcirc.r * PApplet.cos(ang);
-		float y1 = bcirc.y + bcirc.r * PApplet.sin(ang);
+		float x1 = bcirc.x + bcirc.r * MathUtils.cos(ang);
+		float y1 = bcirc.y + bcirc.r * MathUtils.sin(ang);
 
-		float l = new Vector2(x0,y0).dist(new Vector2(x1,y1));
+		float l = new Vector2(x0,y0).dst(new Vector2(x1,y1));
 
 		int n = (int)Math.ceil(l/d);
 
@@ -3417,11 +3447,11 @@ public class PEmbroiderGraphics {
 			float x = x0 * (1-t) + x1 * t;
 			float y = y0 * (1-t) + y1 * t;
 
-			float px = x + bcirc.r * PApplet.cos(ang-PConstants.HALF_PI);
-			float py = y + bcirc.r * PApplet.sin(ang-PConstants.HALF_PI);
+			float px = x + bcirc.r * MathUtils.cos(ang-PConstants.HALF_PI);
+			float py = y + bcirc.r * MathUtils.sin(ang-PConstants.HALF_PI);
 
-			float qx = x + bcirc.r * PApplet.cos(ang+PConstants.HALF_PI);
-			float qy = y + bcirc.r * PApplet.sin(ang+PConstants.HALF_PI);
+			float qx = x + bcirc.r * MathUtils.cos(ang+PConstants.HALF_PI);
+			float qy = y + bcirc.r * MathUtils.sin(ang+PConstants.HALF_PI);
 
 //			System.out.println(x0,y0,x1,y1,px,py,qx,qy);
 
@@ -3461,16 +3491,16 @@ public class PEmbroiderGraphics {
 				for (int k = 0; k < iparams.size(); k++) {
 					iparamsArr[k] = (float)iparams.get(k);
 				}
-				iparamsArr = PApplet.sort(iparamsArr);
+				iparamsArr = Collections.sort(iparamsArr);
 
 				for (int k = 0; k < iparams.size(); k++) {
-					Vector2 _p0 = a.copy();
-					Vector2 _p1 = b.copy();
+					Vector2 _p0 = a.cpy();
+					Vector2 _p1 = b.cpy();
 					float t0 = iparamsArr[k];
-					float t1 = iparamsArr[PApplet.min(k+1,iparams.size()-1)];
+					float t1 = iparamsArr[Math.min(k+1,iparams.size()-1)];
 					float tr = MathUtils.random(t0,t1);
-					float t = PApplet.lerp(t0, tr, randomize);
-					resamped.add( _p0.mult(1-t).add(_p1.mult(t)) );
+					float t = Math.lerp(t0, tr, randomize);
+					resamped.add( _p0.mul(1-t).add(_p1.mul(t)) );
 				}
 				resamped.add(b);
 			}
@@ -3499,8 +3529,8 @@ public class PEmbroiderGraphics {
 				Vector2 is1 = segmentIntersect3D(a,b,e,f);
 				if (is0 != null && is1 != null) {
 					float t = is0.x*0.5f+is1.x*0.5f;
-					dh = (is0.x-is1.x)*a.dist(b);
-					mid = a.copy().mult(1-t).add(b.copy().mult(t));
+					dh = (is0.x-is1.x)*a.dst(b);
+					mid = a.cpy().mul(1-t).add(b.cpy().mul(t));
 					break;
 				}
 			}
@@ -3517,12 +3547,12 @@ public class PEmbroiderGraphics {
 		float rmax = 0;
 		for (int i = 0; i < polys1.size(); i++) {
 			for (int j = 0; j < polys1.get(i).size(); j++) {
-				rmax = Math.max(rmax, mid.dist(polys1.get(i).get(j)));
+				rmax = Math.max(rmax, mid.dst(polys1.get(i).get(j)));
 			}
 		}
 		for (int i = 0; i < polys2.size(); i++) {
 			for (int j = 0; j < polys2.get(i).size(); j++) {
-				rmax = Math.max(rmax, mid.dist(polys2.get(i).get(j)));
+				rmax = Math.max(rmax, mid.dst(polys2.get(i).get(j)));
 			}
 		}
 		float ang = lerp360(angle1*180f/PConstants.PI,angle2*180f/PConstants.PI,0.5f)*PConstants.PI/180f;
@@ -3533,9 +3563,9 @@ public class PEmbroiderGraphics {
 			bigang = PConstants.PI - bigang;
 		}
 		float alpha = bigang/2;
-		float d = (dh/2 * PApplet.sin(alpha))*2;
+		float d = (dh/2 * MathUtils.sin(alpha))*2;
 
-		float mult = PApplet.max(1f,PApplet.floor(len/dh));
+		float mult = Math.max(1f,Math.floor(len/dh));
 //		System.out.println(d);
 		d*= mult;
 
@@ -3546,26 +3576,26 @@ public class PEmbroiderGraphics {
 		bcirc.r = n*d;
 
 //		n = 1;
-		float x0 = bcirc.x - bcirc.r * PApplet.cos(ang);
-		float y0 = bcirc.y - bcirc.r * PApplet.sin(ang);
+		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
+		float y0 = bcirc.y - bcirc.r * MathUtils.sin(ang);
 
-		float x1 = bcirc.x + bcirc.r * PApplet.cos(ang);
-		float y1 = bcirc.y + bcirc.r * PApplet.sin(ang);
+		float x1 = bcirc.x + bcirc.r * MathUtils.cos(ang);
+		float y1 = bcirc.y + bcirc.r * MathUtils.sin(ang);
 
 		ArrayList<ArrayList<Vector2>> crosslines = new ArrayList<ArrayList<Vector2>>();
 
 		n*=2;
 //		n = 1;
 		for (int i = 0; i < n; i++) {
-			float t = (float)i/(float)PApplet.max(1,n);
+			float t = (float)i/(float)Math.max(1,n);
 			float x = x0 * (1-t) + x1 * t;
 			float y = y0 * (1-t) + y1 * t;
 
-			float px = x + bcirc.r * PApplet.cos(ang-PConstants.HALF_PI);
-			float py = y + bcirc.r * PApplet.sin(ang-PConstants.HALF_PI);
+			float px = x + bcirc.r * MathUtils.cos(ang-PConstants.HALF_PI);
+			float py = y + bcirc.r * MathUtils.sin(ang-PConstants.HALF_PI);
 
-			float qx = x + bcirc.r * PApplet.cos(ang+PConstants.HALF_PI);
-			float qy = y + bcirc.r * PApplet.sin(ang+PConstants.HALF_PI);
+			float qx = x + bcirc.r * MathUtils.cos(ang+PConstants.HALF_PI);
+			float qy = y + bcirc.r * MathUtils.sin(ang+PConstants.HALF_PI);
 
 //			System.out.println(x0,y0,x1,y1,px,py,qx,qy);
 
@@ -3605,16 +3635,16 @@ public class PEmbroiderGraphics {
 				for (int k = 0; k < iparams.size(); k++) {
 					iparamsArr[k] = (float)iparams.get(k);
 				}
-				iparamsArr = PApplet.sort(iparamsArr);
+				iparamsArr = Collections.sort(iparamsArr);
 
 				for (int k = 0; k < iparams.size(); k++) {
-					Vector2 _p0 = a.copy();
-					Vector2 _p1 = b.copy();
+					Vector2 _p0 = a.cpy();
+					Vector2 _p1 = b.cpy();
 					float t0 = iparamsArr[k];
-					float t1 = iparamsArr[PApplet.min(k+1,iparams.size()-1)];
+					float t1 = iparamsArr[Math.min(k+1,iparams.size()-1)];
 					float tr = MathUtils.random(t0,t1);
-					float t = PApplet.lerp(t0, tr, randomize);
-					resamped.add( _p0.mult(1-t).add(_p1.mult(t)) );
+					float t = Math.lerp(t0, tr, randomize);
+					resamped.add( _p0.mul(1-t).add(_p1.mul(t)) );
 				}
 				resamped.add(b);
 			}
@@ -3640,8 +3670,8 @@ public class PEmbroiderGraphics {
 		ArrayList<Vector2> poly = new ArrayList<Vector2>();
 		for (int i = 0; i < CIRCLE_DETAIL; i++) {
 			float a = ((float)i/(float)CIRCLE_DETAIL)*PConstants.PI*2;
-			float x = cx + rx * PApplet.cos(a);
-			float y = cy + ry * PApplet.sin(a);
+			float x = cx + rx * MathUtils.cos(a);
+			float y = cy + ry * MathUtils.sin(a);
 			poly.add(new Vector2(x,y));
 		}
 		polyBuff.clear();
@@ -3653,8 +3683,8 @@ public class PEmbroiderGraphics {
 		ArrayList<Vector2> poly = new ArrayList<Vector2>();
 		for (int i = 0; i < CIRCLE_DETAIL; i++) {
 			float a = start+((float)i/(float)(CIRCLE_DETAIL-1))*(stop-start);
-			float x = cx + rx * PApplet.cos(a);
-			float y = cy + ry * PApplet.sin(a);
+			float x = cx + rx * MathUtils.cos(a);
+			float y = cy + ry * MathUtils.sin(a);
 			poly.add(new Vector2(x,y));
 		}
 		if (mode == PConstants.CHORD && poly.size()>0) {
@@ -3695,8 +3725,8 @@ public class PEmbroiderGraphics {
 
 		for (int i = 0; i < n+1; i++) {
 			float a = ((float)i/(float)n)*PConstants.HALF_PI;;
-			float xx = x+tl-PApplet.cos(a)*tl;
-			float yy = y+tl-PApplet.sin(a)*tl;
+			float xx = x+tl-MathUtils.cos(a)*tl;
+			float yy = y+tl-MathUtils.sin(a)*tl;
 			poly.add(new Vector2(xx,yy));
 		}
 
@@ -3705,8 +3735,8 @@ public class PEmbroiderGraphics {
 
 		for (int i = 0; i < n+1; i++) {
 			float a = ((float)i/(float)n)*PConstants.HALF_PI;;
-			float xx = x+w-tr+PApplet.sin(a)*tr;
-			float yy = y+tr-PApplet.cos(a)*tr;
+			float xx = x+w-tr+MathUtils.sin(a)*tr;
+			float yy = y+tr-MathUtils.cos(a)*tr;
 			poly.add(new Vector2(xx,yy));
 		}
 
@@ -3714,8 +3744,8 @@ public class PEmbroiderGraphics {
 
 		for (int i = 0; i < n+1; i++) {
 			float a = ((float)i/(float)n)*PConstants.HALF_PI;;
-			float xx = x+w-br+PApplet.cos(a)*br;
-			float yy = y+h-br+PApplet.sin(a)*br;
+			float xx = x+w-br+MathUtils.cos(a)*br;
+			float yy = y+h-br+MathUtils.sin(a)*br;
 			poly.add(new Vector2(xx,yy));
 		}
 
@@ -3723,8 +3753,8 @@ public class PEmbroiderGraphics {
 
 		for (int i = 0; i < n+1; i++) {
 			float a = ((float)i/(float)n)*PConstants.HALF_PI;;
-			float xx = x+bl-PApplet.sin(a)*bl;
-			float yy = y+h-bl+PApplet.cos(a)*bl;
+			float xx = x+bl-MathUtils.sin(a)*bl;
+			float yy = y+h-bl+MathUtils.cos(a)*bl;
 			poly.add(new Vector2(xx,yy));
 		}
 
@@ -3784,7 +3814,7 @@ public class PEmbroiderGraphics {
 	/**
 	 *  Hatch a raster image with global user settings.
 	 *  Returns nothing because the result is directly pushed to the design.
-	 *  @param im   a processing image, PGraphics also qualify
+	 *  @param im   a processing image, ShapeRenderer also qualify
 	 *  @param x    x coordinate of upper left corner to start drawing
 	 *  @param y    y coordinate of upper left corner to start drawing
 	 */
@@ -3830,7 +3860,7 @@ public class PEmbroiderGraphics {
 				didit = true;
 				NO_RESAMPLE = true;
 			}
-			polys = processing.embroider.PEmbroiderHatchSatin.hatchSatinAngledRaster(im,hatch_angle,HATCH_SPACING,PApplet.max(1,(int)MathUtils.ceil(STITCH_LENGTH/2)));
+			polys = processing.embroider.PEmbroiderHatchSatin.hatchSatinAngledRaster(im,hatch_angle,HATCH_SPACING,Math.max(1,(int)MathUtils.ceil(STITCH_LENGTH/2)));
 		}else if (HATCH_MODE == DRUNK) {
 			polys = hatchDrunkWalkRaster(im,10,999);
 		}
@@ -3849,7 +3879,7 @@ public class PEmbroiderGraphics {
 	 *  Hatch a raster image with global user settings.
 	 *  Returns nothing because the result is directly pushed to the design.
 	 *  Simplified version of hatchRaster(3), draws at 0,0
-	 *  @param im   a processing image, PGraphics also qualify
+	 *  @param im   a processing image, ShapeRenderer also qualify
 	 */
 	public void hatchRaster(Image im) {
 		hatchRaster(im,0,0);
@@ -3863,14 +3893,14 @@ public class PEmbroiderGraphics {
 	 *  @param w    weight of the rational bezier, higher the weight, pointier the turning
 	 *  @param t    the interpolation parameter (generally 0-1)
 	 */
-	Vector2 rationalQuadraticBezier(Vector2 p0, Vector2 p1, Vector2 p2, float w, float t) {
+	public Vector3 rationalQuadraticBezier(Vector3 p0, Vector3 p1, Vector3 p2, float w, float t) {
 		// intro: https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Rational_B%C3%A9zier_curves
 		// ported from: http://okb.glitch.me/Okb.js
-		float u = (PApplet.pow (1 - t, 2) + 2 * t * (1 - t) * w + t * t);
-		return new Vector2(
-		          (PApplet.pow(1-t,2)*p0.x+2*t*(1-t)*p1.x*w+t*t*p2.x)/u,
-		          (PApplet.pow(1-t,2)*p0.y+2*t*(1-t)*p1.y*w+t*t*p2.y)/u,
-		          (PApplet.pow(1-t,2)*p0.z+2*t*(1-t)*p1.z*w+t*t*p2.z)/u
+		float u = (1 - t) * (1 - t) + 2 * t * (1 - t) * w + t * t;
+		return new Vector3(
+				((1 - t) * (1 - t) * p0.x + 2 * t * (1 - t) * p1.x * w + t * t * p2.x) / u,
+				((1 - t) * (1 - t) * p0.y + 2 * t * (1 - t) * p1.y * w + t * t * p2.y) / u,
+				((1 - t) * (1 - t) * p0.z + 2 * t * (1 - t) * p1.z * w + t * t * p2.z) / u
 		);
 	}
 	/**
@@ -3881,7 +3911,7 @@ public class PEmbroiderGraphics {
 	 *  @param t    the interpolation parameter (generally 0-1)
 	 */
 	Vector2 quadraticBezier(Vector2 p0, Vector2 p1, Vector2 p2, float t) {
-		return p0.copy().mult(PApplet.pow(1-t,2)).add(p1.copy().mult(2*(1-t)*t)).add(p2.copy().mult(t*t));
+		return p0.cpy().mul(Math.pow(1-t,2)).add(p1.cpy().mul(2*(1-t)*t)).add(p2.cpy().mul(t*t));
 	}
 	/**
 	 *  Compute a point on a cubic bezier curve
@@ -3892,7 +3922,7 @@ public class PEmbroiderGraphics {
 	 *  @param t    the interpolation parameter (generally 0-1)
 	 */
 	Vector2 cubicBezier(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t) {
-		return p0.copy().mult(PApplet.pow(1-t, 3)).add(p1.copy().mult(t*3*PApplet.pow(1-t, 2))).add(p2.copy().mult(3*(1-t)*t*t)).add(p3.copy().mult(t*t*t));
+		return p0.cpy().mul(Math.pow(1-t, 3)).add(p1.cpy().mul(t*3*Math.pow(1-t, 2))).add(p2.cpy().mul(3*(1-t)*t*t)).add(p3.cpy().mul(t*t*t));
 	}
 
 	/**
@@ -3905,14 +3935,14 @@ public class PEmbroiderGraphics {
 		if (P.size() == 1) {
 			return P.get(0);
 		}else if (P.size() == 2) {
-			return P.get(0).copy().lerp(P.get(1), t);
+			return P.get(0).cpy().lerp(P.get(1), t);
 		}else {
 			return highBezier(new ArrayList<Vector2>(P.subList(0,P.size()-1)),t).lerp(highBezier(new ArrayList<Vector2>(P.subList(1, P.size())),t),t);
 		}
 	}
 	public float catmullromSplineGetT(float t, Vector2 p0, Vector2 p1, float alpha){
-	    float a = PApplet.pow((p1.x-p0.x), 2.0f) + PApplet.pow((p1.y-p0.y), 2.0f);
-	    float b = PApplet.pow(a, alpha * 0.5f);
+	    float a = Math.pow((p1.x-p0.x), 2.0f) + Math.pow((p1.y-p0.y), 2.0f);
+	    float b = Math.pow(a, alpha * 0.5f);
 
 	    return (b + t);
 	}
@@ -3938,13 +3968,13 @@ public class PEmbroiderGraphics {
 
 		for (float t=t1; t<t2; t+=((t2-t1)/(float)numberOfPoints))
 		{
-		    Vector2 A1 = p0.copy().mult((t1-t)/(t1-t0)) .add( p1.copy().mult((t-t0)/(t1-t0)) );
-		    Vector2 A2 = p1.copy().mult((t2-t)/(t2-t1)) .add( p2.copy().mult((t-t1)/(t2-t1)) );
-		    Vector2 A3 = p2.copy().mult((t3-t)/(t3-t2)) .add( p3.copy().mult((t-t2)/(t3-t2)) );
+		    Vector2 A1 = p0.cpy().mul((t1-t)/(t1-t0)) .add( p1.cpy().mul((t-t0)/(t1-t0)) );
+		    Vector2 A2 = p1.cpy().mul((t2-t)/(t2-t1)) .add( p2.cpy().mul((t-t1)/(t2-t1)) );
+		    Vector2 A3 = p2.cpy().mul((t3-t)/(t3-t2)) .add( p3.cpy().mul((t-t2)/(t3-t2)) );
 
-		    Vector2 B1 = A1.copy().mult((t2-t)/(t2-t0)) .add( A2.copy().mult((t-t0)/(t2-t0)) );
-		    Vector2 B2 = A2.copy().mult((t3-t)/(t3-t1)) .add( A3.copy().mult((t-t1)/(t3-t1)) );
-		    Vector2 C = B1.copy().mult((t2-t)/(t2-t1)) .add( B2.copy().mult((t-t1)/(t2-t1)) );
+		    Vector2 B1 = A1.cpy().mul((t2-t)/(t2-t0)) .add( A2.cpy().mul((t-t0)/(t2-t0)) );
+		    Vector2 B2 = A2.cpy().mul((t3-t)/(t3-t1)) .add( A3.cpy().mul((t-t1)/(t3-t1)) );
+		    Vector2 C = B1.cpy().mul((t2-t)/(t2-t1)) .add( B2.cpy().mul((t-t1)/(t2-t1)) );
 //		    System.out.println(C);
 		    newPoints.add(C);
 		}
@@ -4348,7 +4378,7 @@ public class PEmbroiderGraphics {
 					bb.y -= 10;
 					bb.w += 20;
 					bb.h += 20;
-					PGraphics pg = app.createGraphics((int)bb.w, (int)bb.h);
+					ShapeRenderer pg = app.createGraphics((int)bb.w, (int)bb.h);
 					pg.beginDraw();
 					pg.background(0);
 					pg.noStroke();
@@ -4620,7 +4650,7 @@ public class PEmbroiderGraphics {
 		for (int i = 0; i < poly.size()-1; i++) {
 			Vector2 p0 = poly.get(i);
 			Vector2 p1 = poly.get(i+1);
-			Vector2 p2 = p0.copy().mult(0.5f).add(p1.copy().mult(0.5f));
+			Vector2 p2 = p0.cpy().mul(0.5f).add(p1.cpy().mul(0.5f));
 			poly2.add(p2);
 			poly2.add(p1);
 		}
@@ -4668,9 +4698,9 @@ public class PEmbroiderGraphics {
 			Vector2 a = poly.get((i-1+poly.size())%poly.size());
 			Vector2 b = poly.get(i);
 			Vector2 c = poly.get((i+1)%poly.size());
-			Vector2 u = b.copy().sub(a);
-			Vector2 v = c.copy().sub(b);
-			float ang = PApplet.abs(Vector2.angleBetween(u, v));
+			Vector2 u = b.cpy().sub(a);
+			Vector2 v = c.cpy().sub(b);
+			float ang = Math.abs(Vector2.angleBetween(u, v));
 			if (ang > PConstants.PI) {
 				ang = PConstants.TWO_PI - ang;
 			}
@@ -4724,7 +4754,7 @@ public class PEmbroiderGraphics {
 		}
 
 
-		PGraphics[] channels = new PGraphics[groups.size()];
+		ShapeRenderer[] channels = new ShapeRenderer[groups.size()];
 		for (int i = 0; i < groups.size(); i++) {
 			channels[i] = app.createGraphics(width,height);
 			channels[i].beginDraw();
@@ -4771,8 +4801,8 @@ public class PEmbroiderGraphics {
 						ArrayList<Vector2> lhs = new ArrayList<Vector2>(groups.get(i).get(j).subList(0, k));
 						ArrayList<Vector2> rhs = new ArrayList<Vector2>(groups.get(i).get(j).subList(k+1,groups.get(i).get(j).size()));
 
-						ArrayList<Vector2> s0 = new ArrayList<Vector2>(groups.get(i).get(j).subList(k, PApplet.min(k+1, groups.get(i).get(j).size())));
-						ArrayList<Vector2> s1 = new ArrayList<Vector2>(groups.get(i).get(j).subList(PApplet.max(k-3,0), k+1));
+						ArrayList<Vector2> s0 = new ArrayList<Vector2>(groups.get(i).get(j).subList(k, Math.min(k+1, groups.get(i).get(j).size())));
+						ArrayList<Vector2> s1 = new ArrayList<Vector2>(groups.get(i).get(j).subList(Math.max(k-3,0), k+1));
 
 						groups.get(i).remove(j);
 						groups.get(i).add(j,rhs); // rhs first
@@ -4844,14 +4874,14 @@ public class PEmbroiderGraphics {
 
 	/**
 	 * Draw an image
-	 * @param im   a Image, PGraphics also qualify
+	 * @param im   a Image, ShapeRenderer also qualify
 	 * @param x    left
 	 * @param y    top
 	 * @param w    width
 	 * @param h    height
 	 */
 	public void image(Image im, int x, int y, int w, int h) {
-		PGraphics im2  = app.createGraphics(w,h);
+		ShapeRenderer im2  = app.createGraphics(w,h);
 		im2.beginDraw();
 		im2.image(im,0,0,w,h);
 //		im2.filter(PConstants.INVERT);
@@ -4906,7 +4936,7 @@ public class PEmbroiderGraphics {
 	public void shape(PShape sh, int x, int y, int w, int h) {
 		int pad = 10;
 		sh.disableStyle();
-		PGraphics pg = app.createGraphics(w+pad*2, h+pad*2);
+		ShapeRenderer pg = app.createGraphics(w+pad*2, h+pad*2);
 		pg.beginDraw();
 		pg.background(0);
 		pg.fill(255);
@@ -4940,10 +4970,10 @@ public class PEmbroiderGraphics {
 		class PerlinVectorField implements VectorField{
 			@Override
             public Vector2 get(float x, float y) {
-				float a = app.noise(x*perlinScale,y*perlinScale,1f)*2*PApplet.PI-PApplet.PI;
+				float a = app.noise(x*perlinScale,y*perlinScale,1f)*2*PConstants.PI-PConstants.PI;
 				float r = app.noise(x*perlinScale,y*perlinScale,2f)*deltaX;
-				float dx = PApplet.cos(a)*r;
-				float dy = PApplet.sin(a)*r;
+				float dx = MathUtils.cos(a)*r;
+				float dy = MathUtils.sin(a)*r;
 				return new Vector2(dx,dy);
 
 			}
@@ -4973,7 +5003,7 @@ public class PEmbroiderGraphics {
 	 */
 	public ArrayList<ArrayList<Vector2>> customField(Image mask, VectorField vf, float d, int minVertices, int maxVertices, int maxIter){
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
-		PGraphics pg = app.createGraphics(mask.width,mask.height);
+		ShapeRenderer pg = app.createGraphics(mask.width,mask.height);
 		pg.beginDraw();
 		pg.background(255);
 		pg.image(mask,0,0);
@@ -5026,16 +5056,16 @@ public class PEmbroiderGraphics {
 	public ArrayList<ArrayList<Vector2>> hatchParallelRaster(Image mask, float ang, float d, float step) {
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 
-		float r = PApplet.sqrt(mask.width*mask.width+mask.height*mask.height)*1.05f;
-		BCircle bcirc = new BCircle(mask.width/2,mask.height/2,r);
+		float r = Math.sqrt(mask.getWidth()*mask.getWidth()+mask.getHeight()*mask.getHeight())*1.05f;
+		BCircle bcirc = new BCircle(mask.getWidth()/2,mask.getHeight()/2,r);
 
-		float x0 = bcirc.x - bcirc.r * PApplet.cos(ang);
-		float y0 = bcirc.y - bcirc.r * PApplet.sin(ang);
+		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
+		float y0 = bcirc.y - bcirc.r * MathUtils.sin(ang);
 
-		float x1 = bcirc.x + bcirc.r * PApplet.cos(ang);
-		float y1 = bcirc.y + bcirc.r * PApplet.sin(ang);
+		float x1 = bcirc.x + bcirc.r * MathUtils.cos(ang);
+		float y1 = bcirc.y + bcirc.r * MathUtils.sin(ang);
 
-		float l = new Vector2(x0,y0).dist(new Vector2(x1,y1));
+		float l = new Vector2(x0,y0).dst(new Vector2(x1,y1));
 
 		int n = (int)Math.ceil(l/d);
 
@@ -5045,11 +5075,11 @@ public class PEmbroiderGraphics {
 			float y = y0 * (1-t) + y1 * t;
 
 
-			float px = x + bcirc.r * PApplet.cos(ang-PConstants.HALF_PI);
-			float py = y + bcirc.r * PApplet.sin(ang-PConstants.HALF_PI);
+			float px = x + bcirc.r * MathUtils.cos(ang-PConstants.HALF_PI);
+			float py = y + bcirc.r * MathUtils.sin(ang-PConstants.HALF_PI);
 
-			float qx = x + bcirc.r * PApplet.cos(ang+PConstants.HALF_PI);
-			float qy = y + bcirc.r * PApplet.sin(ang+PConstants.HALF_PI);
+			float qx = x + bcirc.r * MathUtils.cos(ang+PConstants.HALF_PI);
+			float qy = y + bcirc.r * MathUtils.sin(ang+PConstants.HALF_PI);
 
 			int m = (int)MathUtils.ceil(bcirc.r / step);
 
@@ -5096,9 +5126,9 @@ public class PEmbroiderGraphics {
 	 */
     public float lerp360 (float h0,float h1,float t){
         float[][] methods = new float[][] {
-          {Math.abs(h1-h0),     PApplet.map(t,0,1,h0,h1)},
-          {Math.abs(h1+360-h0), PApplet.map(t,0,1,h0,h1+360)},
-          {Math.abs(h1-360-h0), PApplet.map(t,0,1,h0,h1-360)}
+          {Math.abs(h1-h0),     MathUtils.map(t,0,1,h0,h1)},
+          {Math.abs(h1+360-h0), MathUtils.map(t,0,1,h0,h1+360)},
+          {Math.abs(h1-360-h0), MathUtils.map(t,0,1,h0,h1-360)}
         };
         for (int i = 0; i < methods.length; i++) {
         	boolean best = true;
@@ -5131,9 +5161,9 @@ public class PEmbroiderGraphics {
 		 }
 		 ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		 for (int j = 0; j < poly.size(); j++) {
-			 Vector2 p0 = poly.get(j).copy().lerp(poly.get((j+1)%poly.size()),0.5f);
+			 Vector2 p0 = poly.get(j).cpy().lerp(poly.get((j+1)%poly.size()),0.5f);
 			 Vector2 p1 = poly.get((j+1)%poly.size());
-			 Vector2 p2 = poly.get((j+1)%poly.size()).copy().lerp(poly.get((j+2)%poly.size()),0.5f);
+			 Vector2 p2 = poly.get((j+1)%poly.size()).cpy().lerp(poly.get((j+2)%poly.size()),0.5f);
 			 for (int i = 0; i < n; i ++) {
 				 float t = (float)i/n;
 				 poly2.add(rationalQuadraticBezier(p0,p1,p2,w,t));
@@ -5156,16 +5186,16 @@ public class PEmbroiderGraphics {
 			 for (int j = 0; j < w; j++) {
 				 Vector2 p = new Vector2(j,i);
 				 float md = w*h;
-				 for (int k = 0; k < polys.size(); k++) {
-					 for (int l = 0; l < polys.get(k).size(); l++) {
-						 Vector2 p0 = polys.get(k).get(l);
-						 Vector2 p1 = polys.get(k).get((l+1)%polys.get(k).size());
-						 float d = pointDistanceToSegment(p,p0,p1);
-						 if (d < md) {
-							 md = d;
-						 }
-					 }
-				 }
+                 for (ArrayList<Vector2> poly : polys) {
+                     for (int l = 0; l < poly.size(); l++) {
+                         Vector2 p0 = poly.get(l);
+                         Vector2 p1 = poly.get((l + 1) % poly.size());
+                         float d = pointDistanceToSegment(p, p0, p1);
+                         if (d < md) {
+                             md = d;
+                         }
+                     }
+                 }
 				 dt[i*w+j]=md;
 			 }
 		 }
@@ -5208,8 +5238,8 @@ public class PEmbroiderGraphics {
 					ArrayList<Vector2> lhs = new ArrayList<Vector2>(polys.get(j).subList(0, k));
 					ArrayList<Vector2> rhs = new ArrayList<Vector2>(polys.get(j).subList(k+1,polys.get(j).size()));
 
-					ArrayList<Vector2> s0 = new ArrayList<Vector2>(polys.get(j).subList(k, PApplet.min(k+1, polys.get(j).size())));
-					ArrayList<Vector2> s1 = new ArrayList<Vector2>(polys.get(j).subList(PApplet.max(k-1,0), k+1));
+					ArrayList<Vector2> s0 = new ArrayList<Vector2>(polys.get(j).subList(k, Math.min(k+1, polys.get(j).size())));
+					ArrayList<Vector2> s1 = new ArrayList<Vector2>(polys.get(j).subList(Math.max(k-1,0), k+1));
 
 					polys.remove(j);
 					polys.add(j,rhs); // rhs first
@@ -5263,9 +5293,9 @@ public class PEmbroiderGraphics {
 								Vector2 a = pp.get((k-1+pp.size())%pp.size());
 								Vector2 b = pp.get(k);
 								Vector2 c = pp.get((k+1)%pp.size());
-								Vector2 u = b.copy().sub(a);
-								Vector2 v = c.copy().sub(b);
-								float ang = PApplet.abs(Vector2.angleBetween(u, v));
+								Vector2 u = b.cpy().sub(a);
+								Vector2 v = c.cpy().sub(b);
+								float ang = Math.abs(Vector2.angleBetween(u, v));
 								if (ang > PConstants.PI) {
 									ang = PConstants.TWO_PI - ang;
 								}
@@ -5274,7 +5304,7 @@ public class PEmbroiderGraphics {
 								}
 							}
 							
-							Vector2 p = pp.get(k%pp.size()).copy().mult(0.5f).add(pp.get((k+1)%pp.size()).copy().mult(0.5f));
+							Vector2 p = pp.get(k%pp.size()).cpy().mul(0.5f).add(pp.get((k+1)%pp.size()).cpy().mul(0.5f));
 							qq.add(p);
 						}
 						polys.add(qq);
@@ -5485,7 +5515,7 @@ public class PEmbroiderGraphics {
 	  * This one is for PFont
 	  * @param font the desired PFont
 	  */
-	public void textFont(PFont font) {
+	public void textFont(Skin font) {
 		TRUE_FONT = font;
 		FONT = null;
 	}
@@ -5517,9 +5547,9 @@ public class PEmbroiderGraphics {
 				pushPolyline(polys.get(i), currentFill);
 			}
 		} else if (TRUE_FONT != null) {
-			PGraphics pg0 = app.createGraphics(1, 1);
+			ShapeRenderer pg0 = app.createGraphics(1, 1);
 			pg0.beginDraw();
-			pg0.textFont(UIUtils.visSkin);
+			pg0.textFont(TRUE_FONT);
 			pg0.textSize(FONT_SCALE);
 			float tw = pg0.textWidth(str);
 			float ta = pg0.textAscent();
@@ -5528,13 +5558,13 @@ public class PEmbroiderGraphics {
 //			System.out.println(tw,ta,td);
 			pg0.endDraw();
 
-			PGraphics pg = app.createGraphics((int) MathUtils.ceil(tw), (int) MathUtils.ceil(ta + td));
+			ShapeRenderer pg = app.createGraphics((int) MathUtils.ceil(tw), (int) MathUtils.ceil(ta + td));
 			pg.beginDraw();
 			pg.background(0);
 			pg.fill(255);
 			pg.noStroke();
 
-			pg.textFont(UIUtils.visSkin);
+			pg.textFont(TRUE_FONT);
 			pg.textSize(FONT_SCALE);
 			pg.textAlign(PConstants.LEFT, PConstants.TOP);
 			pg.text(str, 0, 0);
@@ -5554,7 +5584,7 @@ public class PEmbroiderGraphics {
 				}
 //				conts.set(i,resampleHalfKeepCorners(resampleHalf(resampleHalf(conts.get(i))),0.1f));
 				conts.set(i, PEmbroiderTrace.approxPolyDP(conts.get(i), 1));
-//				if (conts.get(i).get(conts.get(i).size() - 1).dist(conts.get(i).get(0)) < FONT_SCALE / 10f) {
+//				if (conts.get(i).get(conts.get(i).size() - 1).dst(conts.get(i).get(0)) < FONT_SCALE / 10f) {
 //					conts.get(i).add(conts.get(i).get(0));
 //				}
 			}
@@ -5655,14 +5685,14 @@ public class PEmbroiderGraphics {
 		 for (int i = 0; i < polylines.size(); i++) {
 			 nStitches += polylines.get(i).size();
 			 for (int j = 1; j < polylines.get(i).size(); j++) {
-				 lenPoly += polylines.get(i).get(j-1).dist(polylines.get(i).get(j));
+				 lenPoly += polylines.get(i).get(j-1).dst(polylines.get(i).get(j));
 			 }
 		 }
 		 System.out.println("total number of stitches: "+ nStitches);
 
 		 for (int i = 1; i < polylines.size(); i++) {
 			 if (polylines.get(i-1).size() > 0 && polylines.get(i).size() > 0) {
-				 lenConnect += polylines.get(i-1).get(polylines.get(i-1).size()-1).dist(polylines.get(i).get(0));
+				 lenConnect += polylines.get(i-1).get(polylines.get(i-1).size()-1).dst(polylines.get(i).get(0));
 			 }
 		 }
 
@@ -5693,10 +5723,10 @@ public class PEmbroiderGraphics {
 			 if (polylines.get(i).size() < 2) {
 				 continue;
 			 }
-			 Vector2 a = polylines.get(i).get(0).copy();
-			 float l = polylines.get(i).get(0).dist(polylines.get(i).get(1));
+			 Vector2 a = polylines.get(i).get(0).cpy();
+			 float l = polylines.get(i).get(0).dst(polylines.get(i).get(1));
 			 float t = x/l;
-			 Vector2 b = polylines.get(i).get(0).copy().mult(1-t).add(polylines.get(i).get(1).copy().mult(t));
+			 Vector2 b = polylines.get(i).get(0).cpy().mul(1-t).add(polylines.get(i).get(1).cpy().mul(t));
 
 //			 a.x += MathUtils.random(10);
 //			 b.x += MathUtils.random(10);
@@ -5704,10 +5734,10 @@ public class PEmbroiderGraphics {
 			 polylines.get(i).add(0,b);
 			 polylines.get(i).add(0,a);
 			 
-			 Vector2 c = polylines.get(i).get(polylines.get(i).size()-1).copy();
-			 float m = polylines.get(i).get(polylines.get(i).size()-1).dist(polylines.get(i).get(polylines.get(i).size()-2));
+			 Vector2 c = polylines.get(i).get(polylines.get(i).size()-1).cpy();
+			 float m = polylines.get(i).get(polylines.get(i).size()-1).dst(polylines.get(i).get(polylines.get(i).size()-2));
 			 float s = x/m;
-			 Vector2 d = polylines.get(i).get(polylines.get(i).size()-1).copy().mult(1-s).add(polylines.get(i).get(polylines.get(i).size()-2).copy().mult(s));
+			 Vector2 d = polylines.get(i).get(polylines.get(i).size()-1).cpy().mul(1-s).add(polylines.get(i).get(polylines.get(i).size()-2).cpy().mul(s));
 			 polylines.get(i).add(d);
 			 
 //			 c.x += MathUtils.random(10);
@@ -5733,25 +5763,25 @@ public class PEmbroiderGraphics {
 		 }
 		 ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		 for (int i = 0; i < polyBuff.get(0).size(); i++) {
-			 poly2.add(polyBuff.get(0).get(i).copy());
+			 poly2.add(polyBuff.get(0).get(i).cpy());
 			 for (int j = matStack.size()-1; j>= 0; j--) {
-				 poly2.set(i, matStack.get(j).mult(poly2.get(i), null));
+				 poly2.set(i, matStack.get(j).mul(poly2.get(i), null));
 			 }
 		 }
 		 colors.add(currentStroke);
 		 polylines.add(poly2);
 	 }
-	 
+
 	 public float getCurrentScale(float ang) {
 		Vector2 p0 = new Vector2(0,0);
-		Vector2 p1 = new Vector2(PApplet.cos(ang),PApplet.sin(ang));
-		Vector2 p2 = p0.copy();
-		Vector2 p3 = p1.copy();
+		Vector2 p1 = new Vector2(MathUtils.cos(ang),MathUtils.sin(ang));
+		Vector2 p2 = p0.cpy();
+		Vector2 p3 = p1.cpy();
 		for (int j = 0; j < matStack.size(); j++) {
-			p2 = matStack.get(j).mult(p2, null);
-			p3 = matStack.get(j).mult(p3, null);
+			p2 = matStack.get(j).mul(p2, null);
+			p3 = matStack.get(j).mul(p3, null);
 		}
-		return p2.dist(p3);
+		return p2.dst(p3);
 	 }
 	 
 	 ArrayList<Integer> reorderColorMonteCarlo(ArrayList<ArrayList<Vector2>> polys, ArrayList<Integer> cols, float d, float wait) {
@@ -5787,8 +5817,8 @@ public class PEmbroiderGraphics {
 					 }
 //					 drawRender().save("/Users/studio/Downloads/rcmc-"+hashCode()+".png");
 				 }
-				 PGraphics drawRender(){
-					 PGraphics pg = app.createGraphics(w,h);
+				 ShapeRenderer drawRender(){
+					 ShapeRenderer pg = app.createGraphics(w,h);
 					 pg.beginDraw();
 					 pg.loadPixels();
 					 for (int i = 0; i < render.length; i++){
@@ -5834,7 +5864,7 @@ public class PEmbroiderGraphics {
 					 a[i] = layers[i];
 				 }
 				 for (int i = a.length - 1; i > 0; i--) {
-					 int j = (int)PApplet.floor(MathUtils.random((i + 1)));
+					 int j = (int)Math.floor(MathUtils.random((i + 1)));
 					 Layer x = a[i];
 					 a[i] = a[j];
 					 a[j] = x;
@@ -5868,18 +5898,18 @@ public class PEmbroiderGraphics {
 				 standard = new Solution();
 				 ArrayList<Solution> solutions = new ArrayList<Solution>();
 				 
-				 ArrayList<PGraphics> pgs = new ArrayList<PGraphics>();
+				 ArrayList<ShapeRenderer> pgs = new ArrayList<ShapeRenderer>();
 				 ArrayList<ArrayList<Integer>> indices = new ArrayList<ArrayList<Integer>>();
 				 for (int i = 0; i < polys.size(); i++) {
 					 if (i == 0 || (!cols.get(i).equals(cols.get(i-1)))) {
-						 PGraphics pg = app.createGraphics(w,h);
+						 ShapeRenderer pg = app.createGraphics(w,h);
 						 pg.beginDraw();
 						 pg.background(0);
 						 pg.endDraw();
 						 pgs.add(pg);
 						 indices.add(new ArrayList<Integer>());
 					 }
-					 PGraphics pg = pgs.get(pgs.size()-1);
+					 ShapeRenderer pg = pgs.get(pgs.size()-1);
 					 pg.beginDraw();
 					 pg.noFill();
 					 pg.strokeWeight(1);
@@ -5896,7 +5926,7 @@ public class PEmbroiderGraphics {
 				 for (int i = 0; i < pgs.size(); i++) {
 					Layer l = new Layer();
 					l.id = i+1;
-					PGraphics pg = pgs.get(i);
+					ShapeRenderer pg = pgs.get(i);
 				    pg.beginDraw();
 					pg.loadPixels();
 				    l.data = new boolean[pg.pixels.length];
@@ -5951,7 +5981,7 @@ public class PEmbroiderGraphics {
 			
 	 }
 	 void throwNPE() {// hack to throw null pointer exception
-		PGraphics pg = null;
+		ShapeRenderer pg = null;
 		if (MathUtils.random(1)>999) {// silence eclipse warning
 			pg = app.createGraphics(0,0);
 		}
@@ -6000,7 +6030,7 @@ public class PEmbroiderGraphics {
 		boolean brk = false;
 		for (int i = 0; i < polylines.size(); i++) {
 			for (int j = 0; j < polylines.get(i).size(); j++) {
-				if (polylines.get(i).get(j).dist(new Vector2(x,y))<=d) {
+				if (polylines.get(i).get(j).dst(new Vector2(x,y))<=d) {
 					removePolylinesVertex(i,j);
 					ok = false;
 					brk = true;
@@ -6026,7 +6056,7 @@ public class PEmbroiderGraphics {
 			for (int j = 0; j < polylines.get(i).size(); j++) {
 				Vector2 p = polylines.get(i).get(j);
 				if (p.x<0 || p.x > width || p.y < 0 || p.y > height) {
-					ps.add(p.copy());
+					ps.add(p.cpy());
 				}
 			}
 		}

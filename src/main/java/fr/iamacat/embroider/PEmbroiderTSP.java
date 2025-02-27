@@ -3,8 +3,8 @@
 // https://en.wikipedia.org/wiki/2-opt
 
 package fr.iamacat.embroider;
-import processing.core.*;
-import java.util.*; 
+import com.badlogic.gdx.math.Vector2;
+import java.util.*;
 
 
 public class PEmbroiderTSP {
@@ -17,8 +17,8 @@ public class PEmbroiderTSP {
 		boolean r0; //left or right?
 		boolean r1;
 		float d; //distance
-		PVector p0;
-		PVector p1;
+		Vector2 p0;
+		Vector2 p1;
 	}
 	public static Edge reverseEdge(Edge e1){
 		Edge e2 = new Edge();
@@ -43,12 +43,12 @@ public class PEmbroiderTSP {
 		}
 	}
 	
-	public static ArrayList<Edge> NN(ArrayList<ArrayList<PVector>> polylines, int i0){
+	public static ArrayList<Edge> NN(ArrayList<ArrayList<Vector2>> polylines, int i0){
 
 		ArrayList<Edge> edges = new ArrayList<Edge>();
 		
 		boolean r0 = true;
-		PVector p = polylines.get(i0).get(polylines.get(i0).size()-1);
+		Vector2 p = polylines.get(i0).get(polylines.get(i0).size()-1);
 		boolean[] mask = new boolean[polylines.size()];
 		
 		for (int i = 0; i < mask.length; i++){
@@ -61,15 +61,15 @@ public class PEmbroiderTSP {
 			int minI = 0;
 			float minD = Float.POSITIVE_INFINITY;
 			boolean minR = false;
-			PVector minP = new PVector();
-			PVector minQ = new PVector();
+			Vector2 minP = new Vector2();
+			Vector2 minQ = new Vector2();
 			for (int i = 0; i < polylines.size(); i++){
 				if (!mask[i]){
 					continue;
 				}
-				PVector q0 = polylines.get(i).get(0);
-				PVector q1 = polylines.get(i).get(polylines.get(i).size()-1);
-				float d0 = q0.dist(p);
+				Vector2 q0 = polylines.get(i).get(0);
+				Vector2 q1 = polylines.get(i).get(polylines.get(i).size()-1);
+				float d0 = q0.dst(p);
 				if (d0 < minD){
 					minI = i;
 					minD = d0;
@@ -77,7 +77,7 @@ public class PEmbroiderTSP {
 					minP = q0;
 					minQ = q1;
 				}
-				float d1 = q1.dist(p);
+				float d1 = q1.dst(p);
 				if (d1 < minD){
 					minI = i;
 					minD = d1;
@@ -114,7 +114,7 @@ public class PEmbroiderTSP {
 				for (int j = i+1; j < edges.size(); j++){
 					Edge e0 = edges.get(i);
 					Edge e1 = edges.get(j);
-					PVector o = PEmbroiderGraphics.segmentIntersect3D( e0.p0, e0.p1,e1.p0, e1.p1);
+					Vector2 o = PEmbroiderGraphics.segmentIntersect3D( e0.p0, e0.p1,e1.p0, e1.p1);
 					if (o != null){
 						Edge f0 = new Edge();
 						Edge f1 = new Edge();
@@ -135,8 +135,8 @@ public class PEmbroiderTSP {
 						f1.r1 = e1.r1;
 						f1.p1 = e1.p1;
 
-						f0.d = f0.p0.dist(f0.p1);
-						f1.d = f1.p0.dist(f1.p1);
+						f0.d = f0.p0.dst(f0.p1);
+						f1.d = f1.p0.dst(f1.p1);
 
 						edges.set(i,f0);
 						edges.set(j,f1);
@@ -161,28 +161,28 @@ public class PEmbroiderTSP {
 		return l;
 	
 	}
-	public static float sumLengthPolylines(ArrayList<ArrayList<PVector>> polylines) {
+	public static float sumLengthPolylines(ArrayList<ArrayList<Vector2>> polylines) {
 		float l = 0;
 		for (int i = 1; i < polylines.size(); i++) {
 			if (polylines.get(i-1).size() > 0 && polylines.get(i).size() > 0) {
-				l += polylines.get(i-1).get(polylines.get(i-1).size()-1).dist(polylines.get(i).get(0));
+				l += polylines.get(i-1).get(polylines.get(i-1).size()-1).dst(polylines.get(i).get(0));
 			}
 		}
 		return l;
 	
 	}
 	
-	public static ArrayList<ArrayList<PVector>> solve(ArrayList<ArrayList<PVector>> polylines) {
+	public static ArrayList<ArrayList<Vector2>> solve(ArrayList<ArrayList<Vector2>> polylines) {
 		return solve(polylines,5,999);
 	}
 	
-	public static ArrayList<ArrayList<PVector>> solve(ArrayList<ArrayList<PVector>> polylines, int trials, int maxIter) {
+	public static ArrayList<ArrayList<Vector2>> solve(ArrayList<ArrayList<Vector2>> polylines, int trials, int maxIter) {
 
 		if (polylines.size() < 2) {
 			return polylines;
 		}
-		ArrayList<ArrayList<PVector>> polylines2 = new ArrayList<ArrayList<PVector>>();
-		ArrayList<ArrayList<PVector>> polylines3 = new ArrayList<ArrayList<PVector>>();
+		ArrayList<ArrayList<Vector2>> polylines2 = new ArrayList<ArrayList<Vector2>>();
+		ArrayList<ArrayList<Vector2>> polylines3 = new ArrayList<ArrayList<Vector2>>();
 		for (int i = 0; i < polylines.size(); i++) {
 			if (polylines.get(i).size() > 0) {
 				polylines2.add(polylines.get(i));
@@ -203,7 +203,7 @@ public class PEmbroiderTSP {
 					if (j != 0 && j != polylines.get(ii).size()-1) {
 						continue;
 					}
-					PVector p = polylines2.get(ii).get(j);
+					Vector2 p = polylines2.get(ii).get(j);
 					if (p.y < ymin) {
 						yam = ii;
 						ymin = p.y;
@@ -252,7 +252,7 @@ public class PEmbroiderTSP {
 
 				Edge e = minE.get(i);
 				if (next == -1 || e.i0 == next) {
-					ArrayList<PVector> p = polylines2.get(e.i0);
+					ArrayList<Vector2> p = polylines2.get(e.i0);
 					if (!e.r0) {
 						Collections.reverse(p);
 					}
@@ -268,7 +268,7 @@ public class PEmbroiderTSP {
 					break;
 				}
 				if (e.i1 == zero) {
-					ArrayList<PVector> p = polylines2.get(e.i0);
+					ArrayList<Vector2> p = polylines2.get(e.i0);
 					if (!e.r0) {
 						Collections.reverse(p);
 					}
@@ -283,7 +283,7 @@ public class PEmbroiderTSP {
 				break;
 			}
 			if (!end) {
-				ArrayList<PVector> q = polylines2.get(next);
+				ArrayList<Vector2> q = polylines2.get(next);
 				if (nr) {
 					Collections.reverse(q);
 				}
