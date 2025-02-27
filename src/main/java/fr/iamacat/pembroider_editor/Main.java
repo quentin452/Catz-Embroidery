@@ -27,7 +27,7 @@ public class Main extends MainBase {
     private int currentLayerCount = 0;
     private VisTextButton addLayerButton;
     private static final float RIGHT_PANEL_WIDTH = 200f;
-    private VisScrollPane scrollPane; 
+    private VisScrollPane scrollPane;
     float backgroundWidthLeft = 50;
     float backgroundWidthRight = 200;
     float backgroundHeight;

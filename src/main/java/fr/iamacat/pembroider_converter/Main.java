@@ -25,7 +25,6 @@ public class Main extends MainBase {
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     public boolean FillB = false;
-
     private VisTable rootTable;
     public Main() {
         rootTable = new VisTable();
@@ -93,10 +92,8 @@ public class Main extends MainBase {
             displayedImage.remove();
         }
         displayedImage = new Image(texture);
-        float windowWidth = Gdx.graphics.getWidth();
-        float windowHeight = Gdx.graphics.getHeight();
         displayedImage.setSize(500, 500);
-        displayedImage.setPosition((windowWidth - displayedImage.getWidth()) / 2, (windowHeight - displayedImage.getHeight()) / 2);
+        displayedImage.setPosition((Gdx.graphics.getWidth() - displayedImage.getWidth()) / 2, (Gdx.graphics.getHeight() - displayedImage.getHeight()) / 2);
         getStage().addActor(displayedImage);
     }
 
@@ -137,10 +134,7 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
     }
-    @Override
-    public void dispose() {
-        getStage().dispose();
-    }
+
     @Override
     public boolean keyDown(int keycode) {
         Texture texture =  ApplicationUtil.copyImage(keycode);
@@ -167,7 +161,7 @@ public class Main extends MainBase {
 
     private void showSaveLocallyDialog(SaveLocallyType type) {
         currentSaveLocallyType = type;
-       DialogUtil.showSaveDialog(currentSaveLocallyType,getStage(),displayedImage);
+        DialogUtil.showSaveDialog(currentSaveLocallyType,getStage(),displayedImage);
     }
     private void showDropboxDialog(SaveDropboxType type) {
         currentSaveDropboxType = type;

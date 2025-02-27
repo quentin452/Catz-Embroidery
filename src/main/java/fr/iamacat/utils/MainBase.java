@@ -100,7 +100,7 @@ public class MainBase implements Screen, Translatable , InputProcessor {
 
     @Override
     public void dispose() {
-
+        getStage().dispose();
     }
 
     @Override
