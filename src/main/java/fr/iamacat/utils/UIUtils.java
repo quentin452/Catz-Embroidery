@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.FocusListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
@@ -338,6 +339,24 @@ public class UIUtils {
 
     public static String t(String key) {
         return Translator.getInstance().translate(key);
+    }
+
+    public static Image createBackground(Stage stage,Color color, float width, float height) {
+        Drawable drawable = VisUI.getSkin().newDrawable("white", color);
+        Image background = new Image(drawable);
+        background.setSize(width, height);
+        stage.addActor(background);
+        background.setZIndex(0);
+        return background;
+    }
+
+    public static Image createBorder(Stage stage,Color color, float width, float height) {
+        Drawable drawable = VisUI.getSkin().newDrawable("white", color);
+        Image border = new Image(drawable);
+        border.setSize(width, height);
+        stage.addActor(border);
+        border.setZIndex(1);
+        return border;
     }
 
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {

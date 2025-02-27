@@ -40,7 +40,7 @@ public class PEmbroiderLauncher extends Game {
         UIUtils.visSkin = FontManager.createCustomSkin("fonts/Microsoft Yahei.ttf",16,VisUI.getSkin());
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
-        fpsLabel = UIUtils.createLabel(stage,"FPS: 0",false,35, windowHeight- 55,15,15, Align.top,Align.top,Color.BLACK ,"default");
+        fpsLabel = UIUtils.createLabel(stage,"FPS: 0",false,80, windowHeight- 55,15,15, Align.top,Align.top,Color.BLACK ,"default");
         fpsLabel.setVisible(showFPS);
         setScreen(new Main(this));
     }
@@ -81,7 +81,7 @@ public class PEmbroiderLauncher extends Game {
     @Override
     public void resize(int width, int height) {
         super.resize(width, height);
-        float fpsLabelX = 35;
+        float fpsLabelX = 80;
         float fpsLabelY = height - 55;
         fpsLabel.setPosition(fpsLabelX, fpsLabelY);
         stage.getViewport().update(width, height, true);

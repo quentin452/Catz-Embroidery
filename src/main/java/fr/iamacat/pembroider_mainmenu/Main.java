@@ -108,7 +108,7 @@ public class Main extends MainBase {
     }
 
     private void launchEditor() {
-        //this.setScreen(new fr.iamacat.pembroider_editor.Main()); // TODO
+        game.setScreen(new fr.iamacat.pembroider_editor.Main());
     }
     private void launchConverter() {
         game.setScreen(new fr.iamacat.pembroider_converter.Main());

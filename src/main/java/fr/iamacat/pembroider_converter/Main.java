@@ -127,9 +127,6 @@ public class Main extends MainBase {
         getStage().addActor(scrollPane); // Ajouter le ScrollPane à l'écran
     }
 
-
-
-
     private void updateDisplayedImage(Texture texture) {
         if (displayedImage != null) {
             displayedImage.remove();
@@ -206,7 +203,6 @@ public class Main extends MainBase {
             }
         });
     }
-
 
     private void showSaveLocallyDialog(SaveLocallyType type) {
         currentSaveLocallyType = type;
