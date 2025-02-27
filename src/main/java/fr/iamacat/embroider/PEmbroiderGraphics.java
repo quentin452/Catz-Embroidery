@@ -24,6 +24,7 @@ import fr.iamacat.utils.PConstants;
 import fr.iamacat.utils.PShape;
 import fr.iamacat.utils.UIUtils;
 import jdk.jshell.spi.ExecutionControl;
+import org.lwjgl.opengl.GL20;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -1832,64 +1833,62 @@ public class PEmbroiderGraphics {
 	 *  @param close  whether the polyline is considered as closed (polygon) or open (polyline)
 	 *  @return       an array of polylines
 	 */
+
 	public ArrayList<ArrayList<Vector2>> strokePolyTangentRaster(ArrayList<ArrayList<Vector2>> polys, int n, float d, int cap, int join, boolean close) {
-		BBox bb = new BBox(polys,0);
+		BBox bb = new BBox(polys, 0);
 		float scl = 1;
 		if (d <= 4) {
 			scl = 2;
 		}
 
-		bb.x -= n*d;
-		bb.y -= n*d;
-		bb.w += n*d*2;
-		bb.h += n*d*2;
+		bb.x -= n * d;
+		bb.y -= n * d;
+		bb.w += n * d * 2;
+		bb.h += n * d * 2;
 
-		ShapeRenderer pg = app.createGraphics((int)(bb.w*scl), (int)(bb.h*scl));
-		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<ArrayList<Vector2>>();
+		Pixmap pixmap = new Pixmap((int) (bb.w * scl), (int) (bb.h * scl), Pixmap.Format.RGBA8888);
+		ArrayList<ArrayList<Vector2>> polys2 = new ArrayList<>();
 
-		int hn = n/2;
+		int hn = n / 2;
+
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
 
 		for (int k = 0; k < hn; k++) {
 			float dd = d;
 			if (k == 0) {
 				if (n % 2 == 1) {
-					for (int i = 0; i < polys.size(); i++) {
-						ArrayList<Vector2> poly = new ArrayList<Vector2>(polys.get(i));
-						if (close && poly.size() > 1) {
-							poly.add(poly.get(0));
+					for (ArrayList<Vector2> poly : polys) {
+						ArrayList<Vector2> newPoly = new ArrayList<>(poly);
+						if (close && newPoly.size() > 1) {
+							newPoly.add(newPoly.get(0));
 						}
-						polys2.add(poly);
+						polys2.add(newPoly);
 					}
-				}else {
 				}
 			}
-			pg.beginDraw();
-			pg.background(0);
-			pg.stroke(255);
-			pg.strokeWeight(scl*(dd*2*(k+1)-((n%2)==0?dd:0)));
-			pg.strokeCap(cap);
-			pg.strokeJoin(join);
-			pg.noFill();
-			pg.beginShape();
 
+			shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+			shapeRenderer.setColor(Color.WHITE);
+			shapeRenderer.translate(-bb.x * scl, -bb.y * scl, 0);
+			shapeRenderer.set(ShapeRenderer.ShapeType.Line);
+
+			// Set line width using GL20.glLineWidth
+			GL20.glLineWidth(scl * (dd * 2 * (k + 1) - ((n % 2) == 0 ? dd : 0)));
+			// Draw outer and inner polygons
 			for (int i = 0; i < polys.size(); i++) {
 				if (i > 0) {
-					pg.beginContour();
+					shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 				}
-				for (int j = 0; j < polys.get(i).size(); j++) {
-					pg.vertex((polys.get(i).get(j).x -bb.x)*scl,(polys.get(i).get(j).y -bb.y)*scl);
+				for (Vector2 point : polys.get(i)) {
+					shapeRenderer.line(point.x * scl, point.y * scl, point.x * scl, point.y * scl);
 				}
 				if (i > 0) {
-					pg.endContour();
+					shapeRenderer.end();
 				}
 			}
-			if (close) {
-				pg.endShape(PConstants.CLOSE);
-			}else {
-				pg.endShape();
-			}
-			pg.endDraw();
-			ArrayList<ArrayList<Vector2>> polys3 = PEmbroiderTrace.findContours(pg);
+
+			shapeRenderer.end();
+			ArrayList<ArrayList<Vector2>> polys3 = PEmbroiderTrace.findContours(pixmap);
 
 			for (int i = polys3.size()-1; i >= 0; i--) {
 				if (polys3.get(i).size() < 2) {
@@ -1897,7 +1896,7 @@ public class PEmbroiderGraphics {
 					continue;
 				}
 				for (int j = 0; j < polys3.get(i).size(); j++) {
-					polys3.get(i).get(j).div(scl).add(new Vector2(bb.x,bb.y));
+					polys3.get(i).get(j).scl(1 / scl).add(new Vector2(bb.x, bb.y));
 				}
 //				polys3.set(i,resampleHalfKeepCorners(resampleHalf(resampleHalf(polys3.get(i))),0.1f));
 				polys3.set(i, PEmbroiderTrace.approxPolyDP(polys3.get(i), 1));
@@ -1919,7 +1918,7 @@ public class PEmbroiderGraphics {
 								Vector2 c = pp.get((j+1)%pp.size());
 								Vector2 u = b.cpy().sub(a);
 								Vector2 v = c.cpy().sub(b);
-								float ang = Math.abs(Vector2.angleBetween(u, v));
+								float ang = Math.abs(angleBetween(u, v));
 								if (ang > PConstants.PI) {
 									ang = PConstants.TWO_PI - ang;
 								}
@@ -1928,7 +1927,7 @@ public class PEmbroiderGraphics {
 								}
 							}
 
-							Vector2 p = pp.get(j%pp.size()).cpy().mul(0.5f).add(pp.get((j+1)%pp.size()).cpy().mul(0.5f));
+							Vector2 p = pp.get(j % pp.size()).cpy().scl(0.5f).add(pp.get((j + 1) % pp.size()).cpy().scl(0.5f));
 							qq.add(p);
 						}
 						polys2.add(qq);
