@@ -1,13 +1,10 @@
 package fr.iamacat.pembroider_mainmenu;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -15,8 +12,6 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import fr.iamacat.PEmbroiderLauncher;
 import fr.iamacat.utils.*;
-
-import java.io.IOException;
 
 import static fr.iamacat.PEmbroiderLauncher.windowHeight;
 import static fr.iamacat.PEmbroiderLauncher.windowWidth;

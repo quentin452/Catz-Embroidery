@@ -7,18 +7,24 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import fr.iamacat.utils.MainBase;
 import fr.iamacat.utils.UIUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class Main extends MainBase {
     private final VisTable leftTable;
     private final VisTable rightTable;
     private final HashMap<String, Boolean> buttonStates = new HashMap<>();
-
+    private List<VisTable> layers = new ArrayList<>();
+    private int currentLayerCount = 0;
+    private VisTextButton addLayerButton;
+    private static final float RIGHT_PANEL_WIDTH = 200f;
     public Main() {
         leftTable = new VisTable();
         leftTable.top().left();
@@ -48,6 +54,65 @@ public class Main extends MainBase {
         topBorder.setPosition(0, getStage().getHeight() - 2);
 
         addRadioButtonsToTable(leftTable);
+        setupLayersSystem();
+    }
+    private void setupLayersSystem() {
+        // Configuration de la table de droite
+        rightTable.defaults().pad(5).width(RIGHT_PANEL_WIDTH - 20);
+        rightTable.top().right();
+
+        // Création du layer initial
+        addNewLayer("Layer 0");
+
+        // Bouton d'ajout de layer
+        addLayerButton = new VisTextButton("+");
+        addLayerButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                addNewLayer("Layer " + (++currentLayerCount));
+            }
+        });
+
+        updateRightTableLayout();
+    }
+    private void addNewLayer(String layerName) {
+        VisTable layerTable = new VisTable();
+        //layerTable.setBackground(UIUtils.createDebugDrawable(Color.DARK_GRAY));
+
+        // Header du layer
+        VisTable header = new VisTable();
+        header.add(new VisLabel(layerName)).left().row();
+        header.addSeparator();
+
+        // Boutons du layer
+        VisTable buttonsTable = new VisTable();
+        for(int i = 1; i <= 5; i++) {
+            VisTextButton btn = new VisTextButton(String.valueOf(i));
+            btn.setColor(Color.LIGHT_GRAY);
+            buttonsTable.add(btn).width(30).height(30).pad(2);
+        }
+        buttonsTable.center();
+
+        layerTable.add(header).growX().row();
+        layerTable.add(buttonsTable).padTop(10).row();
+        layers.add(layerTable);
+
+        updateRightTableLayout();
+    }
+
+    private void updateRightTableLayout() {
+        rightTable.clear();
+
+        // Ajout des layers existants
+        for(VisTable layer : layers) {
+            rightTable.add(layer).padBottom(15).row();
+        }
+
+        // Ajout du bouton "+" en bas
+        rightTable.add(addLayerButton)
+                .width(40)
+                .height(40)
+                .padTop(20);
     }
     private void addRadioButtonsToTable(VisTable table) {
         ButtonGroup<VisTextButton> buttonGroup = new ButtonGroup<>();
@@ -74,13 +139,5 @@ public class Main extends MainBase {
         buttonGroup.setMaxCheckCount(1);
         buttonGroup.setMinCheckCount(0);
         buttonGroup.setUncheckLast(true);
-    }
-
-    @Override
-    public void render(float delta) {
-        Gdx.gl.glClearColor(0.8f, 0.8f, 0.8f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        getStage().act(delta);
-        getStage().draw();
     }
 }
