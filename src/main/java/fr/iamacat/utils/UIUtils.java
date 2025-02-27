@@ -4,10 +4,12 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.FocusListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.VisUI;
@@ -20,6 +22,7 @@ import static fr.iamacat.utils.Translator.isReloadingLanguage;
 
 public class UIUtils {
     public static Skin visSkin;
+
     // Création de bouton avec callback immédiat
     public static TextButton createButton(Stage stage,String text,boolean translated, float x, float y, Color color, Runnable callback) {
         if (translated) {
@@ -167,7 +170,7 @@ public class UIUtils {
         return button;
     }
     // Méthode générique pour créer un menu à partir de n'importe quel enum
-    public static <T extends Enum<T>> PopupMenu createEnumMenu(Class<T> enumClass, Consumer<T> onChange) {
+    public static <T extends Enum<T>> PopupMenu createEnumMenu(Class<T> enumClass,Consumer<T> onChange) {
         PopupMenu menu = new PopupMenu();
 
         // Parcours toutes les valeurs de l'enum
@@ -181,11 +184,11 @@ public class UIUtils {
 
     // Méthode générique pour créer un MenuItem à partir d'un enum
     public static <T extends Enum<T>> MenuItem createEnumMenuItem(T type, Consumer<T> onChange) {
-
-        return new MenuItem(type.toString(), new ChangeListener() {
+        String translatedText = t(type.toString());
+        return new MenuItem(translatedText, new ChangeListener() {
             @Override
             public void changed(ChangeListener.ChangeEvent event, Actor actor) {
-                onChange.accept(type);  // Appel de la méthode sur changement de sélection
+                onChange.accept(type);
             }
         });
     }
@@ -237,17 +240,105 @@ public class UIUtils {
         menu.addItem(menuItem);
     }
 
-    public static <T extends Enum<T>> void addSubmenu(PopupMenu menu, String text, Class<T> enumType, Consumer<T> onChange) {
+    public static void addMenuTextBox(PopupMenu menu, String placeholder, int initialValue, Consumer<Integer> onChange) {
+        VisTextField textBox = new VisTextField();
+        textBox.setMessageText(placeholder); // Placeholder text
+        textBox.setText(String.valueOf(initialValue));
+
+        textBox.addListener(new InputListener() {
+            @Override
+            public boolean keyTyped(InputEvent event, char character) {
+                try {
+                    int intValue = Integer.parseInt(textBox.getText());
+                    onChange.accept(intValue);
+                } catch (NumberFormatException e) {
+                    // Handle invalid integer input
+                }
+                return true;
+            }
+        });
+        textBox.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                event.stop();
+                return super.touchDown(event, x, y, pointer, button);
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                event.stop();
+                super.touchUp(event, x, y, pointer, button);
+            }
+        });
+        MenuItem menuItem = new MenuItem("");
+        menuItem.addActor(textBox);
+        menu.addItem(menuItem);
+    }
+
+    public static VisTextField addMenuTextBox(int initialValue, Consumer<Integer> onChange) {
+        VisTextField textField = new VisTextField();
+        textField.setText(String.valueOf(initialValue));
+
+        textField.addListener(new InputListener() {
+            @Override
+            public boolean keyTyped(InputEvent event, char character) {
+                try {
+                    int intValue = Integer.parseInt(textField.getText());
+                    onChange.accept(intValue);
+                } catch (NumberFormatException e) {
+                    // Handle invalid integer input
+                }
+                return true;
+            }
+        });
+        return textField;
+    }
+    public static <T extends Enum<T>> PopupMenu addSubmenu(PopupMenu menu, String text, Class<T> enumType, Consumer<T> onChange) {
         PopupMenu subMenu = UIUtils.createEnumMenu(enumType, onChange);
         MenuItem menuItem = new MenuItem(text);
         menuItem.setSubMenu(subMenu);
         menu.addItem(menuItem);
+        return menu;
+    }
+
+    public static void addCheckbox(Table table, String label, boolean initialValue, Consumer<Boolean> onChange) {
+        // Créer un nouveau CheckBox de libGDX
+        CheckBox checkBox = new CheckBox(label, visSkin);
+        checkBox.setChecked(initialValue);
+        checkBox.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                onChange.accept(checkBox.isChecked());
+            }
+        });
+        table.add(checkBox).left().pad(5).row();
+    }
+
+    // 🔹 Ajouter un champ de texte dans le panneau
+    public static void addTextBox(Table table, String label, int initialValue, Consumer<Integer> onChange) {
+        // Créer un nouveau TextField de libGDX
+        TextField textField = new TextField(String.valueOf(initialValue), visSkin);
+
+        textField.addListener(new InputListener() {
+            @Override
+            public boolean keyTyped(InputEvent event, char character) {
+                try {
+                    int intValue = Integer.parseInt(textField.getText());
+                    onChange.accept(intValue);
+                } catch (NumberFormatException ignored) {
+                }
+                return true;
+            }
+        });
+
+        // Ajouter le label à gauche et le TextField à droite
+        table.add(label).left().pad(5);  // Affichage du label
+        table.add(textField).width(100).pad(5).row();  // Affichage du TextField
     }
 
     public static String t(String key) {
         return Translator.getInstance().translate(key);
     }
-
 
     public static void checkComponentOutsideWindow(float x, float y, float width, float height,String name) {
         int windowWidth = Gdx.graphics.getWidth();

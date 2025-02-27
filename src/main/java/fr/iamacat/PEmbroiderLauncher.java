@@ -9,16 +9,14 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
 import fr.iamacat.pembroider_mainmenu.Main;
+import fr.iamacat.utils.FontManager;
 import fr.iamacat.utils.UIUtils;
 
 import static fr.iamacat.pembroider_converter.Main.displayedImage;
@@ -37,8 +35,9 @@ public class PEmbroiderLauncher extends Game {
         if (!VisUI.isLoaded()) {
             VisUI.load();
         }
+        // TODO FIX FONT QUALITY
         //VisUI.load(Gdx.files.internal("uiskins/cloud-form/skin/cloud-form-ui.json"));  // TODO
-        UIUtils.visSkin = VisUI.getSkin();
+        UIUtils.visSkin = FontManager.createCustomSkin("fonts/Microsoft Yahei.ttf",16,VisUI.getSkin());
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
         fpsLabel = UIUtils.createLabel(stage,"FPS: 0",false,35, windowHeight- 55,15,15, Align.top,Align.top,Color.BLACK ,"default");
@@ -78,6 +77,14 @@ public class PEmbroiderLauncher extends Game {
             vsyncEnabled = !vsyncEnabled;
             Gdx.graphics.setVSync(vsyncEnabled);
         }
+    }
+    @Override
+    public void resize(int width, int height) {
+        super.resize(width, height);
+        float fpsLabelX = 35;
+        float fpsLabelY = height - 55;
+        fpsLabel.setPosition(fpsLabelX, fpsLabelY);
+        stage.getViewport().update(width, height, true);
     }
 
     @Override

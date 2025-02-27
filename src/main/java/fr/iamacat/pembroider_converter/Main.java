@@ -1,6 +1,7 @@
 package fr.iamacat.pembroider_converter;
 
 import com.badlogic.gdx.*;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.utils.Align;
@@ -20,6 +21,7 @@ public class Main extends MainBase {
     private HatchModeType currentHatchModeType = HatchModeType.Parallel;
     private SaveLocallyType currentSaveLocallyType = SaveLocallyType.JPG;
     private SaveDropboxType currentSaveDropboxType = SaveDropboxType.JPG;
+    private int spaceBetweenPoints = 10 , exportHeight = 95 , exportWidth = 95 , maxColors = 10 , strokeWeight = 20;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     public boolean FillB = false;
@@ -52,13 +54,80 @@ public class Main extends MainBase {
 
         // EDIT MENU
         editMenu = new PopupMenu();
-        addSubmenu(editMenu, t("color_mode"), ColorType.class, this::setColorMode);
-        addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, this::setHatchMode);
-        addMenuCheckbox(editMenu, t("fill_mode"), FillB, checked -> FillB = checked);
+        colorModeMenu = addSubmenu(editMenu, t("color_mode"), ColorType.class, this::setColorMode);
+        hatchModeMenu = addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, this::setHatchMode);
         VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
         editButton.getLabel().setAlignment(Align.left);
         menuBar.add(editButton).expandX().fillX().pad(0).left();
+        createSettingsPanel();
     }
+    private void createSettingsPanel() {
+        // Créer la table et la personnaliser
+        VisTable settingsTable = new VisTable();
+        settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
+        settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
+
+        // Ajouter un label et un champ de texte pour "Space Between Points"
+        VisLabel label = new VisLabel(t("space_between_points"));
+        label.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(label).width(150).left().padLeft(10).padRight(10); // Ajouter le label à la table et l'aligner à gauche
+        VisTextField textField = addMenuTextBox(spaceBetweenPoints, this::setSpaceBetweenPoints);
+        textField.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(textField).width(50).left().padLeft(10).padRight(10);
+        settingsTable.row();
+
+        // Ajouter un champ de texte pour "WIDTH (MM)"
+        VisLabel widthLabel = new VisLabel(t("width_in_mm"));
+        widthLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(widthLabel).width(150).left().padLeft(10).padRight(10);
+        VisTextField widthField = addMenuTextBox(exportWidth, this::setExportWidth);
+        widthField.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(widthField).width(50).left().padLeft(10).padRight(10);
+        settingsTable.row();
+
+        // Ajouter un champ de texte pour "HEIGHT (MM)"
+        VisLabel heightLabel = new VisLabel(t("height_in_mm"));
+        heightLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(heightLabel).width(150).left().padLeft(10).padRight(10);
+        VisTextField heightField = addMenuTextBox(exportHeight, this::setExportHeight);
+        heightField.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(heightField).width(50).left().padLeft(10).padRight(10);
+        settingsTable.row();
+
+        // Ajouter un champ de texte pour "STROKE WEIGHT"
+        VisLabel strokeLabel = new VisLabel(t("stroke_weight"));
+        strokeLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(strokeLabel).width(150).left().padLeft(10).padRight(10);
+        VisTextField strokeField = addMenuTextBox(strokeWeight, this::setStrokeWeight);
+        strokeField.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(strokeField).width(50).left().padLeft(10).padRight(10);
+        settingsTable.row();
+
+        // Ajouter un champ de texte pour "MAX COLORS"
+        VisLabel maxColorsLabel = new VisLabel(t("max_color"));
+        maxColorsLabel.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(maxColorsLabel).width(150).left().padLeft(10).padRight(10);
+        VisTextField maxColorsField = addMenuTextBox(maxColors, this::setMaxColors);
+        maxColorsField.setAlignment(Align.left); // Forcer l'alignement à gauche
+        settingsTable.add(maxColorsField).width(50).left().padLeft(10).padRight(10);
+        settingsTable.row();
+
+        // Ajouter une checkbox pour "fill_mode"
+        VisCheckBox checkBox = new VisCheckBox(t("fill_mode"));
+        checkBox.setChecked(FillB);
+        checkBox.addListener(event -> FillB = checkBox.isChecked());
+        settingsTable.add(checkBox).left().padLeft(10).padRight(10).row();
+
+        // Créer un ScrollPane pour la table
+        ScrollPane scrollPane = new ScrollPane(settingsTable);
+        scrollPane.setScrollingDisabled(false, true);
+        scrollPane.setPosition(50, 50);
+        scrollPane.setSize(250, 200);
+
+        getStage().addActor(scrollPane); // Ajouter le ScrollPane à l'écran
+    }
+
+
 
 
     private void updateDisplayedImage(Texture texture) {
@@ -81,6 +150,22 @@ public class Main extends MainBase {
     private void setColorMode(ColorType type) {
         currentColorType = type;
         setMenuItemChecked(colorModeMenu, type.toString());
+    }
+
+    private void setSpaceBetweenPoints(int intz) {
+        spaceBetweenPoints = intz;
+    }
+    private void setMaxColors(int intz) {
+        maxColors = intz;
+    }
+    private void setExportHeight(int intz) {
+        exportHeight = intz;
+    }
+    private void setExportWidth(int intz) {
+        exportWidth = intz;
+    }
+    private void setStrokeWeight(int intz) {
+        strokeWeight = intz;
     }
 
     @Override
@@ -130,5 +215,10 @@ public class Main extends MainBase {
     private void showDropboxDialog(SaveDropboxType type) {
         currentSaveDropboxType = type;
         DialogUtil.showUploadDialog(currentSaveDropboxType,getStage(),displayedImage);
+    }
+    @Override
+    public void resize(int width, int height) {
+        super.resize(width, height);
+        getStage().getViewport().update(width, height, true);
     }
 }

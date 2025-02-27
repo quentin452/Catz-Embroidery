@@ -4,9 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.dropbox.core.*;
@@ -17,7 +15,6 @@ import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.files.WriteMode;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -96,14 +93,14 @@ public class DropboxUtil {
                     // We will handle closing manually based on button clicks.
                 }
             };
-            dialog.text("Enter the authorization code below:");
+            dialog.text(t("enter_auth_code_bellow"));
 
             final TextField authCodeField = new TextField("", skin);
             dialog.getContentTable().add(authCodeField).width(200).padBottom(10);
 
             // Buttons
-            dialog.button("Submit", true);
-            dialog.button("Cancel", false);
+            dialog.button(t("submit"), true);
+            dialog.button(t("cancel"), false);
 
             // Add ESC key listener
             dialog.addListener(new InputListener() {

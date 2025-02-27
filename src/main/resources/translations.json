@@ -61,7 +61,12 @@
     "error_connecting_dropbox": "Error connecting to Dropbox: ",
     "error_opening_browser": "Error Opening the Browser: ",
     "error_uploading_dropbox": "Error Uploading to dropbox : ",
-    "file_uploaded_dropbox": "File uploaded to dropbox : "
+    "file_uploaded_dropbox": "File uploaded to dropbox : ",
+    "cross": "Cross",
+    "parallel": "Parallel",
+    "concentric": "Concentric",
+    "spiral": "Spiral",
+    "perlinnoise": "Perlin Noise"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -125,6 +130,11 @@
     "error_connecting_dropbox": "Erreur lors de la connexion à dropbox: ",
     "error_opening_browser": "Erreur lors de l'ouverture du navigateur: ",
     "error_uploading_dropbox": "Erreur lors du telechargement vers dropbox : ",
-    "file_uploaded_dropbox": "Fichié telecharger vers dropbox : "
+    "file_uploaded_dropbox": "Fichié telecharger vers dropbox : ",
+    "cross": "Croisé",
+    "parallel": "Parallèle",
+    "concentric": "Concentrique",
+    "spiral": "Spirale",
+    "perlinnoise": "Bruit de Perlin"
   }
 }

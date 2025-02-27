@@ -5,5 +5,5 @@ public enum HatchModeType {
     Parallel,
     Concentric,
     Spiral,
-    Perlin
+    PerlinNoise
 }
