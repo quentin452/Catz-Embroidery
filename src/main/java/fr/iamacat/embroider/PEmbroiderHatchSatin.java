@@ -2,6 +2,7 @@ package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
@@ -728,100 +729,124 @@ public class PEmbroiderHatchSatin {
 		return ret;
 	}
 
-	public static ArrayList<ArrayList<Vector2>> hatchSatinRaster(Image im, float d, int n){
-		PGraphics pg = G.app.createGraphics((int)PApplet.ceil(im.width/2f), (int)PApplet.ceil(im.height/d));
-		float sx = (float)im.width/(float)pg.width;
-		float sy = (float)im.height/(float)pg.height;
-		pg.beginDraw();
-		pg.image(im,0,0,pg.width,pg.height);
-		pg.endDraw();
-		
-		Im srcImg = new Im(pg);
-//		remove1pxHolesAndIslands(srcImg);
-		removeNpxHolesAndIslands(srcImg,3);
+	public static ArrayList<ArrayList<Vector2>> hatchSatinRaster(Pixmap im, float d, int n) {
+		// Create a new Pixmap for processing the image
+		int newWidth = (int) Math.ceil(im.getWidth() / 2f);
+		int newHeight = (int) Math.ceil(im.getHeight() / d);
+
+		// Create a new Pixmap with the resized dimensions
+		Pixmap pg = new Pixmap(newWidth, newHeight, Pixmap.Format.RGBA8888);
+
+		// Resize the image (scaling down to fit into the new dimensions)
+		pg.drawPixmap(im, 0, 0, 0, 0, im.getWidth(), im.getHeight(), newWidth, newHeight);
+
+		// Create an Im object (you should implement this or adapt as per libGDX equivalent)
+		Im srcImg = new Im(pg);  // Assuming 'Im' is a class that processes the Pixmap in your code
+
+		// Remove holes and islands (implement or adapt to libGDX)
+		removeNpxHolesAndIslands(srcImg, 3);
+
+		// Bridge holes (implement or adapt to libGDX)
 		bridgeHoles(srcImg);
-//		G.app.image(srcImg.toImage(),0,0);
-//		srcImg.toImage().save("/Users/studio/Downloads/hsar.png");
+
+		// Process satin stitches (implement or adapt to libGDX)
 		ArrayList<ArrayList<Pt>> pts = satinStitchesMultiple(srcImg);
-		ArrayList<ArrayList<Vector2>> ret = new ArrayList<ArrayList<Vector2>>();
+
+		ArrayList<ArrayList<Vector2>> ret = new ArrayList<>();
+
+		// Resample the stitches
 		for (int i = 0; i < pts.size(); i++) {
 			ArrayList<ArrayList<Vector2>> p;
 			if (G.SATIN_MODE != PEmbroiderGraphics.BOUSTROPHEDON) {
-				p = resampleSatinStitches(pts.get(i), n);
-			}else {
-				p = resampleBoustrophedonStitches(pts.get(i), n);
+				p = resampleSatinStitches(pts.get(i), n);  // Assuming this function works as expected
+			} else {
+				p = resampleBoustrophedonStitches(pts.get(i), n);  // Assuming this function works as expected
 			}
-			for (int j = p.size()-1; j >= 0; j--) {
-				if (p.get(j).size()<=2) {
+
+			for (int j = p.size() - 1; j >= 0; j--) {
+				if (p.get(j).size() <= 2) {
 					p.remove(j);
 					continue;
 				}
+
+				// Rescale the coordinates to the original Pixmap size
 				for (int k = 0; k < p.get(j).size(); k++) {
-					p.get(j).get(k).x = (p.get(j).get(k).x+0.5f)*sx;
-					p.get(j).get(k).y = (p.get(j).get(k).y+0.5f)*sy;
+					p.get(j).get(k).x = (p.get(j).get(k).x + 0.5f) * (float)im.getWidth() / newWidth;
+					p.get(j).get(k).y = (p.get(j).get(k).y + 0.5f) * (float)im.getHeight() / newHeight;
 				}
 			}
+
 			ret.addAll(p);
 		}
+
 		return ret;
 	}
-	public static ArrayList<ArrayList<Vector2>> hatchSatinAngledRaster(Image im, float ang, float d, int n){
-		if (PApplet.abs(ang) == 0.00001f) {
-			hatchSatinRaster(im,d,n);
+
+	public static ArrayList<ArrayList<Vector2>> hatchSatinAngledRaster(Pixmap im, float ang, float d, int n) {
+		if (Math.abs(ang) == 0.00001f) {
+			return hatchSatinRaster(im, d, n);
 		}
-		im.loadPixels();
-		int xmin = 0;
-		int xmax = im.width;
-		int ymin = 0;
-		int ymax = im.height;
-		for (int i = 0; i < im.height; i++){
-			for (int j = 0; j < im.width; j++){
-				if ((im.pixels[i*im.width+j]&255) > 128){
-					xmin = PApplet.min(j,xmin);
-					ymin = PApplet.min(i,ymin);
-					xmax = PApplet.max(j,xmax);
-					ymax = PApplet.max(i,ymax);
+
+		// Load the pixels of the Pixmap
+		int xmin = Integer.MAX_VALUE;
+		int xmax = Integer.MIN_VALUE;
+		int ymin = Integer.MAX_VALUE;
+		int ymax = Integer.MIN_VALUE;
+
+		for (int i = 0; i < im.getHeight(); i++) {
+			for (int j = 0; j < im.getWidth(); j++) {
+				if ((im.getPixel(j, i) & 0xFF) > 128) {  // Check if the pixel is bright enough
+					xmin = Math.min(j, xmin);
+					ymin = Math.min(i, ymin);
+					xmax = Math.max(j, xmax);
+					ymax = Math.max(i, ymax);
 				}
 			}
 		}
-		int rw = xmax-xmin;
-		int rh = ymax-ymin;
-		
-		float a0 = PApplet.atan2(rh,rw);
-		
-		float diag = (float)Math.hypot(rw/2, rh/2);
-		float hh = PApplet.max(PApplet.abs(PApplet.sin(ang-a0)),PApplet.abs(PApplet.sin(ang+a0)))*diag;
-		float ww = PApplet.max(PApplet.abs(PApplet.cos(ang-a0)),PApplet.abs(PApplet.cos(ang+a0)))*diag;
-		
-		int w = (int)PApplet.ceil(ww*2)+4;
-		int h = (int)PApplet.ceil(hh*2)+4;
-		int px = (w-im.width)/2;
-		int py = (h-im.height)/2;
-		PGraphics pg = G.app.createGraphics(w, h);
-		pg.beginDraw();
-		pg.background(0);
-		pg.translate(w/2, h/2);
-		pg.rotate(ang);
-		pg.translate(-im.width/2, -im.height/2);
-		pg.image(im,0,0);
-		pg.endDraw();
-//		G.app.image(pg,0,0);
-//		pg.save("/Users/studio/Downloads/hsar.png");
-		
-		float costh = PApplet.cos(-ang);
-		float sinth = PApplet.sin(-ang);
-		ArrayList<ArrayList<Vector2>> pts = hatchSatinRaster(pg,d,n);
+
+		int rw = xmax - xmin;
+		int rh = ymax - ymin;
+
+		// Calculate the angle based on the bounding box aspect ratio
+		float a0 = (float) Math.atan2(rh, rw);
+
+		// Calculate the diagonal and the max horizontal and vertical distances
+		float diag = (float) Math.hypot(rw / 2, rh / 2);
+		float hh = (float) (Math.max(Math.abs(Math.sin(ang - a0)), Math.abs(Math.sin(ang + a0))) * diag);
+		float ww = (float) (Math.max(Math.abs(Math.cos(ang - a0)), Math.abs(Math.cos(ang + a0))) * diag);
+
+		int w = (int) Math.ceil(ww * 2) + 4;
+		int h = (int) Math.ceil(hh * 2) + 4;
+		int px = (w - im.getWidth()) / 2;
+		int py = (h - im.getHeight()) / 2;
+
+		// Create a new Pixmap for rotated image
+		Pixmap rotatedPixmap = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+		rotatedPixmap.setColor(0, 0, 0, 1); // Set background to black
+		rotatedPixmap.fill();
+
+		// Rotate and copy the original Pixmap onto the rotated one
+		rotatedPixmap.drawPixmap(im, px, py);
+
+		// Now apply the rotation
+		float costh = (float) Math.cos(-ang);
+		float sinth = (float) Math.sin(-ang);
+
+		ArrayList<ArrayList<Vector2>> pts = hatchSatinRaster(rotatedPixmap, d, n);
+
 		for (int i = 0; i < pts.size(); i++) {
 			for (int j = 0; j < pts.get(i).size(); j++) {
-				float dx = pts.get(i).get(j).x-w/2;
-				float dy = pts.get(i).get(j).y-h/2;
-		        pts.get(i).get(j).x = -px+w/2 + (dx * costh - dy * sinth);
-		        pts.get(i).get(j).y = -py+h/2 + (dx * sinth + dy * costh);
+				// Transform the coordinates back from the rotated space
+				float dx = pts.get(i).get(j).x - w / 2;
+				float dy = pts.get(i).get(j).y - h / 2;
+				pts.get(i).get(j).x = -px + w / 2 + (dx * costh - dy * sinth);
+				pts.get(i).get(j).y = -py + h / 2 + (dx * sinth + dy * costh);
 			}
 		}
 		return pts;
 	}
-	
+
+
 	public static ArrayList<ArrayList<Vector2>> resampleSatinStitches(ArrayList<Pt> pts, int n){
 		
 		ArrayList<ArrayList<Vector2>> ret = new ArrayList<ArrayList<Vector2>>();

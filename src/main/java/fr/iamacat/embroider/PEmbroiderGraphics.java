@@ -2789,7 +2789,7 @@ public class PEmbroiderGraphics {
 					p1 = polys2.get(i+1).get(j);
 				}
 				float t = (float)j/(float)n;
-				spiral.add(p0.cpy().mul(1-t).add(p1.cpy().mul(t)));
+				spiral.add(p0.cpy().scl(1-t).add(p1.cpy().scl(t)));
 			}
 //			spirals.add(polys2.get(i));
 		}
@@ -2934,31 +2934,34 @@ public class PEmbroiderGraphics {
 	 *  @return         the hatching as an array of polys
 	 */
 	public ArrayList<ArrayList<Vector2>> hatchPerlin(ArrayList<Vector2> poly, float d, float len, float scale, int maxIter) {
+		ArrayList<ArrayList<Vector2>> polys = new ArrayList<>();
 
+		// Create the bounding box for the polygon
 		BBox bb = new BBox(poly);
 
+		// Create a Pixmap to draw shapes (simulating the "background" fill)
+		Pixmap pixmap = new Pixmap((int) MathUtils.ceil(bb.w), (int) MathUtils.ceil(bb.h), Pixmap.Format.RGBA8888);
+		pixmap.setColor(0, 0, 0, 1); // Black color for background
+		pixmap.fill(); // Fill the Pixmap with black (background)
 
-		ShapeRenderer pg = app.createGraphics((int)bb.w,(int)bb.h);
-		pg.beginDraw();
-		pg.background(0);
-		pg.noStroke();
-		pg.fill(255);
-		pg.beginShape();
+		// Draw the polygon in the Pixmap
 		for (int i = 0; i < poly.size(); i++) {
-			pg.vertex(poly.get(i).x-bb.x, poly.get(i).y-bb.y);
+			Vector2 p1 = poly.get(i);
+			Vector2 p2 = poly.get((i + 1) % poly.size());
+			pixmap.drawLine((int) (p1.x - bb.x), (int) (p1.y - bb.y), (int) (p2.x - bb.x), (int) (p2.y - bb.y));
 		}
-		pg.endShape();
-		pg.endDraw();
 
-		ArrayList<ArrayList<Vector2>> polys = perlinField(pg, d, 0.01f*scale, len, 3, 100, maxIter);
+		// Generate the Perlin field based on the drawn polygon and noise
+		polys = perlinField(pixmap, d, 0.01f * scale, len, 3, 100, maxIter);
 
-		for (int i = 0; i < polys.size(); i++) {
-			for (int j = 0; j < polys.get(i).size(); j++) {
-				polys.get(i).get(j).add(new Vector2(bb.x,bb.y));
+		// Adjust the position of the generated paths by adding the offset (bbox x, y)
+		for (ArrayList<Vector2> path : polys) {
+			for (Vector2 point : path) {
+				point.add(new Vector2(bb.x, bb.y));  // Add the bounding box offset
 			}
 		}
-		return polys;
 
+		return polys;
 	}
 	/**
 	 *  Hatch a polygon with custom vector field
@@ -2970,33 +2973,61 @@ public class PEmbroiderGraphics {
 	 *  @param maxIter  maximum number of iterations (i.e. seeds to begin walking from). if the shape of polygon is weird, more seeds is needed to reach all the corners
 	 *  @return         the hatching as an array of polys
 	 */
+
 	public ArrayList<ArrayList<Vector2>> hatchCustomField(ArrayList<Vector2> poly, VectorField vf, float d, float len, int maxIter) {
 
+		// Create a bounding box (BBox) around the polygon
 		BBox bb = new BBox(poly);
 
-		ShapeRenderer pg = app.createGraphics((int)bb.w,(int)bb.h);
-		pg.beginDraw();
-		pg.background(0);
-		pg.noStroke();
-		pg.fill(255);
-		pg.beginShape();
+		// Create a Pixmap to represent the polygon
+		Pixmap pixmap = new Pixmap((int) bb.w, (int) bb.h,Pixmap.Format.RGBA8888);
+		pixmap.setColor(0, 0, 0, 1); // Set color to black (for drawing the polygon)
+		pixmap.fill(); // Fill the pixmap with the background color
+
+		// Draw the polygon onto the pixmap
+		pixmap.setColor(1, 1, 1, 1); // Set color to white (polygon mask)
 		for (int i = 0; i < poly.size(); i++) {
-			pg.vertex(poly.get(i).x-bb.x, poly.get(i).y-bb.y);
+			Vector2 p1 = poly.get(i);
+			Vector2 p2 = poly.get((i + 1) % poly.size());
+			drawLine(pixmap, (int)(p1.x - bb.x), (int)(p1.y - bb.y), (int)(p2.x - bb.x), (int)(p2.y - bb.y));
 		}
-		pg.endShape();
-		pg.endDraw();
 
-		ArrayList<ArrayList<Vector2>> polys = customField(pg, vf, d, 3, 100, maxIter);
+		// Call the customField method to generate the field based on the Pixmap
+		ArrayList<ArrayList<Vector2>> polys = customField(pixmap, vf, d, 3, 100, maxIter);
 
+		// Adjust the coordinates by adding the offset of the bounding box
 		for (int i = 0; i < polys.size(); i++) {
 			for (int j = 0; j < polys.get(i).size(); j++) {
-				polys.get(i).get(j).add(new Vector2(bb.x,bb.y));
+				polys.get(i).get(j).add(new Vector2(bb.x, bb.y));
 			}
 		}
+
 		return polys;
-
 	}
+	private void drawLine(Pixmap pixmap, int x1, int y1, int x2, int y2) {
+		// Use Bresenham's line algorithm or a simple line-drawing method
+		int dx = Math.abs(x2 - x1);
+		int dy = Math.abs(y2 - y1);
+		int sx = x1 < x2 ? 1 : -1;
+		int sy = y1 < y2 ? 1 : -1;
+		int err = dx - dy;
 
+		while (true) {
+			if (x1 >= 0 && x1 < pixmap.getWidth() && y1 >= 0 && y1 < pixmap.getHeight()) {
+				pixmap.drawPixel(x1, y1);
+			}
+			if (x1 == x2 && y1 == y2) break;
+			int e2 = err * 2;
+			if (e2 > -dy) {
+				err -= dy;
+				x1 += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y1 += sy;
+			}
+		}
+	}
 	/**
 	 *  Hatch a polygon with PARALLEL mode (using vector math)
 	 *  @param poly     the polygon
@@ -3135,10 +3166,9 @@ public class PEmbroiderGraphics {
 	 *  @param maxIter  maximum number of iterations to do the drunk walk
 	 *  @return         the hatching as an array of polys
 	 */
-	public ArrayList<ArrayList<Vector2>> hatchDrunkWalkRaster(Texture texture, int rad, int maxIter) {
+	public ArrayList<ArrayList<Vector2>> hatchDrunkWalkRaster(Pixmap pixmap, int rad, int maxIter) {
 		// for polygons already rendered as an image. this is usually more robust for complex polygons and is the default most of the time
 
-		Pixmap pixmap = textureToPixmap(texture);
 		ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(pixmap); // find the polygons in the raster image
 		ArrayList<ArrayList<Vector2>> hatch = new ArrayList<ArrayList<Vector2>>(); // this is the set of polylines representing the hatches
 
@@ -3171,10 +3201,6 @@ public class PEmbroiderGraphics {
 		return hatch; // done! now go register this hatch method in hatchRaster()
 	}
 
-	private Pixmap textureToPixmap(Texture texture) {
-		texture.getTextureData().prepare();
-		return texture.getTextureData().consumePixmap();
-	}
 	/**
 	 *  Resample a polyline to make it stitchable
 	 *  @param poly                the polyline
@@ -3210,7 +3236,7 @@ public class PEmbroiderGraphics {
 				Vector2 c = poly.get((i+2)%poly.size());
 				Vector2 u = b.cpy().sub(a);
 				Vector2 v = c.cpy().sub(b);
-				float ang = Math.abs(Vector2.angleBetween(u, v));
+				float ang = Math.abs(angleBetween(u, v));
 				if (ang<maxTurn) {
 					clen += l;
 					continue;
@@ -3229,7 +3255,7 @@ public class PEmbroiderGraphics {
 //				randomizeOffsetPrevious = rr;
 				float r = (Math.max(1,maxLen*randomizeOffset*rr))/l;
 //				    			System.out.println(r,randomizeOffset);
-				Vector2 p = p0.cpy().mul(1-r).add(p1.cpy().mul(r));
+				Vector2 p = p0.cpy().scl(1-r).add(p1.cpy().scl(r));
 				poly2.add(p);
 				p0 = p;
 				l = p0.dst(p1);
@@ -3265,15 +3291,15 @@ public class PEmbroiderGraphics {
 //					float rr = MathUtils.random(-1f,1f);
 					float rr = 0;
 					if (MathUtils.random(0f,1f)<0.5f) {
-						rr = MathUtils.randomGaussian()-1;
+						rr = randomGaussian()-1;
 					}else {
-						rr = MathUtils.randomGaussian()+1;
+						rr = randomGaussian()+1;
 					}
 					rr = min(Math.max(rr, -1), 1);
 					lin[j-1] = (float)j/(float)n + rr*randomize*(1f/(float)n)*0.5f;
 				}
 				for (int j = 0; j < n-1; j++) {
-					poly2.add(p0.cpy().mul(1-lin[j]).add(p1.cpy().mul(lin[j])));
+					poly2.add(p0.cpy().scl(1-lin[j]).add(p1.cpy().scl(lin[j])));
 				}
 			}
 			poly2.add(p1);
@@ -3286,7 +3312,12 @@ public class PEmbroiderGraphics {
 
 		return poly2;
 	}
-
+	public float randomGaussian() {
+		double u1 = Math.random();
+		double u2 = Math.random();
+		double z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2); // Standard normal distribution
+		return (float) z0;
+	}
 	/**
 	 *  Resample a polyline to make it have N vertices. Can be an upsample or a downsample.
 	 *  Each resultant segment will be the same length, +/- floating point percision errors
@@ -3315,7 +3346,7 @@ public class PEmbroiderGraphics {
 			float d0 = p0.dst(p1);
 			float pc = (d-clen)/(d0);
 
-			Vector2 p2 = p0.cpy().mul(1-pc).add(p1.cpy().mul(pc));
+			Vector2 p2 = p0.cpy().scl(1-pc).add(p1.cpy().scl(pc));
 
 			float d1 = d0;
 			while (pc < 1) {
@@ -3323,7 +3354,7 @@ public class PEmbroiderGraphics {
 				d1 = d1-(d-clen);
 				clen = 0;
 				pc = d/d1;
-				p2 = p2.cpy().mul(1-pc).add(p1.cpy().mul(pc));
+				p2 = p2.cpy().scl(1-pc).add(p1.cpy().scl(pc));
 
 			}
 			clen += d1;
@@ -3385,12 +3416,12 @@ public class PEmbroiderGraphics {
 			int n0 = ns.get(i);
 			for (int j = 0; j < n0; j++) {
 				float t = (float)(j+1)/(float)n0;
-				Vector2 p = poly.get(i).cpy().mul(1-t).add(poly.get(i+1).cpy().mul(t));
+				Vector2 p = poly.get(i).cpy().scl(1-t).add(poly.get(i+1).cpy().scl(t));
 				poly2.add(p);
 			}
 		}
 
-		System.out.println(poly2.size(),n);
+		System.out.println(poly2.size() + n);
 		return poly2;
 	}
 
@@ -3483,7 +3514,7 @@ public class PEmbroiderGraphics {
 				for (int k = 0; k < iparams.size(); k++) {
 					iparamsArr[k] = (float)iparams.get(k);
 				}
-				iparamsArr = Collections.sort(iparamsArr);
+				Arrays.sort(iparamsArr);
 
 				for (int k = 0; k < iparams.size(); k++) {
 					Vector2 _p0 = a.cpy();
@@ -3491,8 +3522,8 @@ public class PEmbroiderGraphics {
 					float t0 = iparamsArr[k];
 					float t1 = iparamsArr[Math.min(k+1,iparams.size()-1)];
 					float tr = MathUtils.random(t0,t1);
-					float t = Math.lerp(t0, tr, randomize);
-					resamped.add( _p0.mul(1-t).add(_p1.mul(t)) );
+					float t = MathUtils.lerp(t0, tr, randomize);
+					resamped.add( _p0.scl(1-t).add(_p1.scl(t)) );
 				}
 				resamped.add(b);
 			}
@@ -3522,7 +3553,7 @@ public class PEmbroiderGraphics {
 				if (is0 != null && is1 != null) {
 					float t = is0.x*0.5f+is1.x*0.5f;
 					dh = (is0.x-is1.x)*a.dst(b);
-					mid = a.cpy().mul(1-t).add(b.cpy().mul(t));
+					mid = a.cpy().scl(1-t).add(b.cpy().scl(t));
 					break;
 				}
 			}
@@ -3557,7 +3588,7 @@ public class PEmbroiderGraphics {
 		float alpha = bigang/2;
 		float d = (dh/2 * MathUtils.sin(alpha))*2;
 
-		float mult = Math.max(1f,Math.floor(len/dh));
+		float mult = (float) Math.max(1f,Math.floor(len/dh));
 //		System.out.println(d);
 		d*= mult;
 
@@ -3627,7 +3658,7 @@ public class PEmbroiderGraphics {
 				for (int k = 0; k < iparams.size(); k++) {
 					iparamsArr[k] = (float)iparams.get(k);
 				}
-				iparamsArr = Collections.sort(iparamsArr);
+				Arrays.sort(iparamsArr);
 
 				for (int k = 0; k < iparams.size(); k++) {
 					Vector2 _p0 = a.cpy();
@@ -3635,8 +3666,8 @@ public class PEmbroiderGraphics {
 					float t0 = iparamsArr[k];
 					float t1 = iparamsArr[Math.min(k+1,iparams.size()-1)];
 					float tr = MathUtils.random(t0,t1);
-					float t = Math.lerp(t0, tr, randomize);
-					resamped.add( _p0.mul(1-t).add(_p1.mul(t)) );
+					float t = MathUtils.lerp(t0, tr, randomize);
+					resamped.add( _p0.scl(1-t).add(_p1.scl(t)) );
 				}
 				resamped.add(b);
 			}
@@ -3810,7 +3841,7 @@ public class PEmbroiderGraphics {
 	 *  @param x    x coordinate of upper left corner to start drawing
 	 *  @param y    y coordinate of upper left corner to start drawing
 	 */
-	public void hatchRaster(Image im, float x, float y) {
+	public void hatchRaster(Pixmap im, float x, float y) {
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 
 		float hatch_angle = HATCH_ANGLE;
@@ -3852,7 +3883,7 @@ public class PEmbroiderGraphics {
 				didit = true;
 				NO_RESAMPLE = true;
 			}
-			polys = processing.embroider.PEmbroiderHatchSatin.hatchSatinAngledRaster(im,hatch_angle,HATCH_SPACING,Math.max(1,(int)MathUtils.ceil(STITCH_LENGTH/2)));
+			polys = PEmbroiderHatchSatin.hatchSatinAngledRaster(im,hatch_angle,HATCH_SPACING,Math.max(1,(int)MathUtils.ceil(STITCH_LENGTH/2)));
 		}else if (HATCH_MODE == DRUNK) {
 			polys = hatchDrunkWalkRaster(im,10,999);
 		}
@@ -3873,7 +3904,7 @@ public class PEmbroiderGraphics {
 	 *  Simplified version of hatchRaster(3), draws at 0,0
 	 *  @param im   a processing image, ShapeRenderer also qualify
 	 */
-	public void hatchRaster(Image im) {
+	public void hatchRaster(Pixmap im) {
 		hatchRaster(im,0,0);
 	}
 
@@ -3903,8 +3934,12 @@ public class PEmbroiderGraphics {
 	 *  @param t    the interpolation parameter (generally 0-1)
 	 */
 	Vector2 quadraticBezier(Vector2 p0, Vector2 p1, Vector2 p2, float t) {
-		return p0.cpy().mul(Math.pow(1-t,2)).add(p1.cpy().mul(2*(1-t)*t)).add(p2.cpy().mul(t*t));
+		float u = 1 - t;
+		return p0.cpy().scl(u * u)      // (1-t)² * p0
+				.add(p1.cpy().scl(2 * u * t)) // 2(1-t)t * p1
+				.add(p2.cpy().scl(t * t));    // t² * p2
 	}
+
 	/**
 	 *  Compute a point on a cubic bezier curve
 	 *  @param p0   first point
@@ -3914,7 +3949,11 @@ public class PEmbroiderGraphics {
 	 *  @param t    the interpolation parameter (generally 0-1)
 	 */
 	Vector2 cubicBezier(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t) {
-		return p0.cpy().mul(Math.pow(1-t, 3)).add(p1.cpy().mul(t*3*Math.pow(1-t, 2))).add(p2.cpy().mul(3*(1-t)*t*t)).add(p3.cpy().mul(t*t*t));
+		float u = 1 - t;
+		return p0.cpy().scl(u * u * u)          // (1-t)³ * p0
+				.add(p1.cpy().scl(3 * u * u * t))    // 3(1-t)²t * p1
+				.add(p2.cpy().scl(3 * u * t * t))    // 3(1-t)t² * p2
+				.add(p3.cpy().scl(t * t * t));       // t³ * p3
 	}
 
 	/**
@@ -3933,8 +3972,8 @@ public class PEmbroiderGraphics {
 		}
 	}
 	public float catmullromSplineGetT(float t, Vector2 p0, Vector2 p1, float alpha){
-	    float a = Math.pow((p1.x-p0.x), 2.0f) + Math.pow((p1.y-p0.y), 2.0f);
-	    float b = Math.pow(a, alpha * 0.5f);
+	    float a = (float) (Math.pow((p1.x-p0.x), 2.0f) + Math.pow((p1.y-p0.y), 2.0f));
+	    float b = (float) Math.pow(a, alpha * 0.5f);
 
 	    return (b + t);
 	}
@@ -3960,13 +3999,13 @@ public class PEmbroiderGraphics {
 
 		for (float t=t1; t<t2; t+=((t2-t1)/(float)numberOfPoints))
 		{
-		    Vector2 A1 = p0.cpy().mul((t1-t)/(t1-t0)) .add( p1.cpy().mul((t-t0)/(t1-t0)) );
-		    Vector2 A2 = p1.cpy().mul((t2-t)/(t2-t1)) .add( p2.cpy().mul((t-t1)/(t2-t1)) );
-		    Vector2 A3 = p2.cpy().mul((t3-t)/(t3-t2)) .add( p3.cpy().mul((t-t2)/(t3-t2)) );
+		    Vector2 A1 = p0.cpy().scl((t1-t)/(t1-t0)) .add( p1.cpy().scl((t-t0)/(t1-t0)) );
+		    Vector2 A2 = p1.cpy().scl((t2-t)/(t2-t1)) .add( p2.cpy().scl((t-t1)/(t2-t1)) );
+		    Vector2 A3 = p2.cpy().scl((t3-t)/(t3-t2)) .add( p3.cpy().scl((t-t2)/(t3-t2)) );
 
-		    Vector2 B1 = A1.cpy().mul((t2-t)/(t2-t0)) .add( A2.cpy().mul((t-t0)/(t2-t0)) );
-		    Vector2 B2 = A2.cpy().mul((t3-t)/(t3-t1)) .add( A3.cpy().mul((t-t1)/(t3-t1)) );
-		    Vector2 C = B1.cpy().mul((t2-t)/(t2-t1)) .add( B2.cpy().mul((t-t1)/(t2-t1)) );
+		    Vector2 B1 = A1.cpy().scl((t2-t)/(t2-t0)) .add( A2.cpy().scl((t-t0)/(t2-t0)) );
+		    Vector2 B2 = A2.cpy().scl((t3-t)/(t3-t1)) .add( A3.cpy().scl((t-t1)/(t3-t1)) );
+		    Vector2 C = B1.cpy().scl((t2-t)/(t2-t1)) .add( B2.cpy().scl((t-t1)/(t2-t1)) );
 //		    System.out.println(C);
 		    newPoints.add(C);
 		}
@@ -4165,11 +4204,16 @@ public class PEmbroiderGraphics {
 	 *  @param w   weight of the rational bezier curve, higher the pointier
 	 */
 	public void rationalVertex(float x1, float y1, float x2, float y2, float w) {
-		Vector2 p0 = polyBuff.get(polyBuff.size()-1).get(polyBuff.get(polyBuff.size()-1).size()-1);
+		Vector3 p0 = new Vector3(polyBuff.get(polyBuff.size() - 1).get(polyBuff.get(polyBuff.size() - 1).size() - 1), 0);
 		for (int i = 1; i < BEZIER_DETAIL; i++) {
-			float t = (float)i/(float)(BEZIER_DETAIL-1);
-			Vector2 p = rationalQuadraticBezier(p0, new Vector2(x1,y1), new Vector2(x2,y2), w, t);
-			polyBuff.get(polyBuff.size()-1).add(p);
+			float t = (float) i / (float) (BEZIER_DETAIL - 1);
+			Vector3 p = rationalQuadraticBezier(p0, new Vector3(x1, y1, 0), new Vector3(x2, y2, 0), w, t);
+
+			// Convert Vector3 to Vector2
+			Vector2 p2 = new Vector2(p.x, p.y);  // Use x and y from Vector3 to create a Vector2
+
+			// Add the Vector2 to the polyBuff
+			polyBuff.get(polyBuff.size() - 1).add(p2);
 		}
 		curveBuff.clear();
 	}
@@ -4291,113 +4335,111 @@ public class PEmbroiderGraphics {
 	 */
 	public void endShape(boolean close) {
 		curveBuff.clear();
+
 		if (polyBuff.size() == 0) {
 			return;
 		}
+
 		if (polyBuff.size() == 1 && polyBuff.get(0).size() == 0) {
 			return;
 		}
+
 		if (polyBuff.size() == 1 && (HATCH_BACKEND == FORCE_VECTOR || HATCH_MODE == SPIRAL) && HATCH_MODE != SATIN) {
 			if (isStroke && FIRST_STROKE_THEN_FILL) {
-				_stroke(polyBuff,close);
+				_stroke(polyBuff, close);
 			}
+
 			if (isFill) {
 				hatch(polyBuff.get(0));
 			}
+
 			if (isStroke && !FIRST_STROKE_THEN_FILL) {
-				_stroke(polyBuff,close);
-//				if (close) {
-//					polyBuff.get(0).add(polyBuff.get(0).get(0));
-//				}
-//				pushPolyline(polyBuff.get(0),currentStroke);
+				_stroke(polyBuff, close);
 			}
 
-		}else {
+		} else {
 			if (isStroke && FIRST_STROKE_THEN_FILL) {
-//				_stroke(polyBuff,close);
-
-				_stroke((ArrayList<ArrayList<Vector2>>)deepClone(polyBuff),close);
-
-//				for (int i = 0; i < polyBuff.size(); i++) {
-//					if (close) {
-//						polyBuff.get(i).add(polyBuff.get(i).get(0));
-//					}
-//					pushPolyline(polyBuff.get(i),currentStroke);
-//				}
+				_stroke((ArrayList<ArrayList<Vector2>>) deepClone(polyBuff), close);
 			}
+
 			if (isFill) {
 				if ((HATCH_MODE == PARALLEL || HATCH_MODE == CROSS) && (HATCH_BACKEND != FORCE_RASTER)) {
-//					HATCH_MODE = CROSS;
 					float hatch_angle = HATCH_ANGLE;
 					float hatch_angle2 = HATCH_ANGLE2;
+
 					if (AUTO_HATCH_ANGLE) {
 						hatch_angle = calcPolygonTilt(polyBuff.get(0));
-						hatch_angle2 = hatch_angle+PConstants.HALF_PI;
+						hatch_angle2 = hatch_angle + MathUtils.PI / 2;
 					}
+
 					hatch_angle = calcAxisAngleForParallel(hatch_angle);
 					hatch_angle2 = calcAxisAngleForParallel(hatch_angle2);
 
-					ArrayList<ArrayList<Vector2>> polys = hatchParallelComplex(polyBuff,hatch_angle,HATCH_SPACING);
+					ArrayList<ArrayList<Vector2>> polys = hatchParallelComplex(polyBuff, hatch_angle, HATCH_SPACING);
 
 					boolean didit = false;
 					if (HATCH_MODE == PARALLEL && !NO_RESAMPLE) {
-						polys = resampleCrossIntersection(polys,hatch_angle,HATCH_SPACING,STITCH_LENGTH/getCurrentScale(hatch_angle+PConstants.HALF_PI), PARALLEL_RESAMPLING_OFFSET_FACTOR, RESAMPLE_NOISE);
+						polys = resampleCrossIntersection(polys, hatch_angle, HATCH_SPACING, STITCH_LENGTH / getCurrentScale(hatch_angle + MathUtils.PI / 2), PARALLEL_RESAMPLING_OFFSET_FACTOR, RESAMPLE_NOISE);
 						NO_RESAMPLE = true;
 						didit = true;
 					}
 
 					if (HATCH_MODE == CROSS) {
 						if (EXPERIMENTAL_CROSS_RESAMPLE && !NO_RESAMPLE) {
-
-							ArrayList<ArrayList<Vector2>> polys2 =hatchParallelComplex(polyBuff,hatch_angle2,HATCH_SPACING);
-							polys = resampleCrossIntersection2(polys,polys2,hatch_angle,hatch_angle2,HATCH_SPACING,STITCH_LENGTH/getCurrentScale(hatch_angle+PConstants.HALF_PI), RESAMPLE_NOISE);
+							ArrayList<ArrayList<Vector2>> polys2 = hatchParallelComplex(polyBuff, hatch_angle2, HATCH_SPACING);
+							polys = resampleCrossIntersection2(polys, polys2, hatch_angle, hatch_angle2, HATCH_SPACING, STITCH_LENGTH / getCurrentScale(hatch_angle + MathUtils.PI / 2), RESAMPLE_NOISE);
 
 							NO_RESAMPLE = true;
 							didit = true;
-						}else {
-							polys.addAll(hatchParallelComplex(polyBuff,hatch_angle2,HATCH_SPACING));
+						} else {
+							polys.addAll(hatchParallelComplex(polyBuff, hatch_angle2, HATCH_SPACING));
 						}
 					}
-					for (int i = 0; i < polys.size(); i++) {
-						pushPolyline(polys.get(i),currentFill,1f);
-					}
+
+                    for (ArrayList<Vector2> poly : polys) {
+                        pushPolyline(poly, currentFill, 1f);
+                    }
+
 					if (didit) {
 						NO_RESAMPLE = false;
 					}
-				}else {
-					BBox bb = new BBox(polyBuff,0);
+				} else {
+					BBox bb = new BBox(polyBuff, 0);
 					bb.x -= 10;
 					bb.y -= 10;
 					bb.w += 20;
 					bb.h += 20;
-					ShapeRenderer pg = app.createGraphics((int)bb.w, (int)bb.h);
-					pg.beginDraw();
-					pg.background(0);
-					pg.noStroke();
-					pg.fill(255);
-					pg.beginShape();
+
+					// Create a Pixmap for rasterization
+					Pixmap pixmap = new Pixmap((int)bb.w, (int)bb.h, Pixmap.Format.RGBA8888);
+					pixmap.setColor(1, 1, 1, 1); // Set color to white for filling
+					pixmap.fill(); // Fill the Pixmap with white color
+
+					// Draw on the Pixmap using the lines from polyBuff
 					for (int i = 0; i < polyBuff.size(); i++) {
 						if (i > 0) {
-							pg.beginContour();
+							pixmap.setColor(1, 0, 0, 1); // Change color for contours if needed (red for example)
 						}
-						for (int j = 0; j < polyBuff.get(i).size(); j++) {
-							pg.vertex(polyBuff.get(i).get(j).x -bb.x,polyBuff.get(i).get(j).y -bb.y);
-						}
-						if (i > 0) {
-							pg.endContour();
+
+						for (int j = 0; j < polyBuff.get(i).size() - 1; j++) {
+							Vector2 start = polyBuff.get(i).get(j);
+							Vector2 end = polyBuff.get(i).get(j + 1);
+							pixmap.drawLine((int)start.x - (int)bb.x, (int)start.y - (int)bb.y,
+									(int)end.x - (int)bb.x, (int)end.y - (int)bb.y);
 						}
 					}
-					pg.endShape();
-					pg.endDraw();
-					hatchRaster(pg, bb.x, bb.y);
+
+					// Now pass the Pixmap to hatchRaster
+					hatchRaster(pixmap, bb.x, bb.y);
 				}
 			}
+
 			if (isStroke && !FIRST_STROKE_THEN_FILL) {
-				_stroke((ArrayList<ArrayList<Vector2>>)deepClone(polyBuff),close);
+				_stroke((ArrayList<ArrayList<Vector2>>) deepClone(polyBuff), close);
 			}
 		}
-		currentCullGroup++;
 
+		currentCullGroup++;
 	}
 
 	/**
@@ -4467,26 +4509,37 @@ public class PEmbroiderGraphics {
 		matStack.get(matStack.size() - 1).rotate(a);
 	}
 	/**
-	 *  Shear subsequent drawing calls along x-axis
-	 *  @param x  shear amount
+	 * Shear subsequent drawing calls along x-axis
+	 * @param x shear amount
 	 */
 	public void shearX(float x) {
-		matStack.get(matStack.size() - 1).shearX(x);
+		Matrix3 shearMatrix = new Matrix3();
+		shearMatrix.idt(); // Identity matrix
+		shearMatrix.val[Matrix3.M01] = x; // Apply shear to X-axis
+
+		matStack.get(matStack.size() - 1).mul(shearMatrix); // Apply transformation
 	}
+
 	/**
-	 *  Shear subsequent drawing calls along y-axis
-	 *  @param x  shear amount
+	 * Shear subsequent drawing calls along y-axis
+	 * @param y shear amount
 	 */
-	public void shearY(float x) {
-		matStack.get(matStack.size() - 1).shearY(x);
+	public void shearY(float y) {
+		Matrix3 shearMatrix = new Matrix3();
+		shearMatrix.idt(); // Identity matrix
+		shearMatrix.val[Matrix3.M10] = y; // Apply shear to Y-axis
+
+		matStack.get(matStack.size() - 1).mul(shearMatrix); // Apply transformation
 	}
+
 	/**
-	 *  Scale subsequent drawing calls proportionally
-	 *  @param x  multiplier on both axes
+	 * Scale subsequent drawing calls proportionally
+	 * @param x multiplier on both axes
 	 */
 	public void scale(float x) {
-		matStack.get(matStack.size() - 1).scale(x);
+		matStack.get(matStack.size() - 1).scale(new Vector2(x, x));
 	}
+
 	/**
 	 *  Scale subsequent drawing calls disproportionally
 	 *  @param x  multiplier on x axis
@@ -4505,21 +4558,30 @@ public class PEmbroiderGraphics {
 	 *  @param stitches  whether to visualize stitches, i.e. little dots on end of segments
 	 *  @param route     whether to visualize the path between polylines that will be taken by embroidery machine/plotter. To be able to not see a mess when enabling this option, try optimize()
 	 */
-	public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight , float offsetX , float offsetY) {
+	public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight, float offsetX, float offsetY) {
 		float scaleX = targetWidth / width;
 		float scaleY = targetHeight / height;
-		float scale = max(scaleX, scaleY);
+		float scale = Math.max(scaleX, scaleY);
 		int n = 0;
+
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
 		for (int i = 0; i < polylines.size(); i++) {
 			List<Vector2> polyline = polylines.get(i);
 			if (polyline != null && polyline.size() > 1) {
 				if (color) {
-					app.stroke(app.red(colors.get(i)), app.green(colors.get(i)), app.blue(colors.get(i)));
+					int colorInt = colors.get(i);
+					float r = ((colorInt >> 16) & 0xFF) / 255f;
+					float g = ((colorInt >> 8) & 0xFF) / 255f;
+					float b = (colorInt & 0xFF) / 255f;
+					shapeRenderer.setColor(r, g, b, 1);
 				} else if (stitches) {
-					app.stroke(0);
+					shapeRenderer.setColor(0, 0, 0, 1);
 				} else {
-					app.stroke(MathUtils.random(200), MathUtils.random(200), MathUtils.random(200));
+					shapeRenderer.setColor(MathUtils.random(200) / 255f, MathUtils.random(200) / 255f, MathUtils.random(200) / 255f, 1);
 				}
+
 				for (int j = 0; j < polyline.size() - 1; j++) {
 					Vector2 p0 = polyline.get(j);
 					Vector2 p1 = polyline.get(j + 1);
@@ -4527,8 +4589,8 @@ public class PEmbroiderGraphics {
 					float scaledP0Y = p0.y * scale + offsetY;
 					float scaledP1X = p1.x * scale + offsetX;
 					float scaledP1Y = p1.y * scale + offsetY;
-					app.strokeWeight(1);
-					app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
+
+					shapeRenderer.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
 
 					n++;
 					if (n >= nStitches) {
@@ -4541,13 +4603,14 @@ public class PEmbroiderGraphics {
 			}
 		}
 
+		shapeRenderer.end();
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
 		n = 0;
 		for (int i = 0; i < polylines.size(); i++) {
 			if (route) {
 				if (i != 0 && !polylines.get(i - 1).isEmpty() && !polylines.get(i).isEmpty()) {
-					app.stroke(255, 0, 0);
-					app.strokeWeight(1);
+					shapeRenderer.setColor(1, 0, 0, 1); // Red
 					Vector2 p0 = polylines.get(i - 1).get(polylines.get(i - 1).size() - 1);
 					Vector2 p1 = polylines.get(i).get(0);
 
@@ -4556,7 +4619,7 @@ public class PEmbroiderGraphics {
 					float scaledP1X = p1.x * scale + offsetX;
 					float scaledP1Y = p1.y * scale + offsetY;
 
-					app.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
+					shapeRenderer.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
 				}
 			}
 			if (stitches) {
@@ -4570,13 +4633,14 @@ public class PEmbroiderGraphics {
 						float scaledP1X = p1.x * scale + offsetX;
 						float scaledP1Y = p1.y * scale + offsetY;
 
-						app.noStroke();
 						if (j == 0) {
-							app.fill(0, 255, 0);
-							app.rect(scaledP0X - 1, scaledP0Y - 1, 2, 2);
+							shapeRenderer.setColor(0, 1, 0, 1); // Green for start
+							shapeRenderer.rect(scaledP0X - 1, scaledP0Y - 1, 2, 2);
 						}
-						app.fill(255, 0, 255);
-						app.rect(scaledP1X - 1, scaledP1Y - 1, 2, 2);
+
+						shapeRenderer.setColor(1, 0, 1, 1); // Magenta for stitches
+						shapeRenderer.rect(scaledP1X - 1, scaledP1Y - 1, 2, 2);
+
 						n++;
 						if (n >= nStitches) {
 							break;
@@ -4588,7 +4652,10 @@ public class PEmbroiderGraphics {
 				}
 			}
 		}
+
+		shapeRenderer.end();
 	}
+
 	/**
 	 *  Visualize the current design on the main Processing canvas,
 	 *  using default set of options
@@ -4611,7 +4678,7 @@ public class PEmbroiderGraphics {
 		generatedColors.clear();
 		if (popyLineMulticolor) {
 			for (int i = 0; i < maxColors; i++) {
-				int randomColor = app.color(MathUtils.random(255), MathUtils.random(255), MathUtils.random(255));
+				int randomColor = (255 << 24) | (MathUtils.random(255) << 16) | (MathUtils.random(255) << 8) | MathUtils.random(255);
 				generatedColors.add(randomColor);
 			}
 		}
@@ -4642,7 +4709,7 @@ public class PEmbroiderGraphics {
 		for (int i = 0; i < poly.size()-1; i++) {
 			Vector2 p0 = poly.get(i);
 			Vector2 p1 = poly.get(i+1);
-			Vector2 p2 = p0.cpy().mul(0.5f).add(p1.cpy().mul(0.5f));
+			Vector2 p2 = p0.cpy().scl(0.5f).add(p1.cpy().scl(0.5f));
 			poly2.add(p2);
 			poly2.add(p1);
 		}
@@ -4692,7 +4759,7 @@ public class PEmbroiderGraphics {
 			Vector2 c = poly.get((i+1)%poly.size());
 			Vector2 u = b.cpy().sub(a);
 			Vector2 v = c.cpy().sub(b);
-			float ang = Math.abs(Vector2.angleBetween(u, v));
+			float ang = Math.abs(angleBetween(u, v));
 			if (ang > PConstants.PI) {
 				ang = PConstants.TWO_PI - ang;
 			}
@@ -4956,22 +5023,28 @@ public class PEmbroiderGraphics {
 	 * @param maxVertices  maximum number of vertices for each stroke
 	 * @param maxIter      maximum number of iterations (i.e. seeds to begin walking from). if the shape of polygon is weird, more seeds is needed to reach all the corners
 	 */
-	public ArrayList<ArrayList<Vector2>> perlinField(Image mask, float d,
-			float perlinScale /*0.01f*/, float deltaX /*20*/, int minVertices /*2*/, int maxVertices /*100*/, int maxIter) {
+	public ArrayList<ArrayList<Vector2>> perlinField(Pixmap mask, float d,
+													 float perlinScale, float deltaX,
+													 int minVertices, int maxVertices, int maxIter) {
 
-		class PerlinVectorField implements VectorField{
+		// Define a Perlin vector field to generate vectors based on noise
+		class PerlinVectorField implements VectorField {
 			@Override
-            public Vector2 get(float x, float y) {
-				float a = app.noise(x*perlinScale,y*perlinScale,1f)*2*PConstants.PI-PConstants.PI;
-				float r = app.noise(x*perlinScale,y*perlinScale,2f)*deltaX;
-				float dx = MathUtils.cos(a)*r;
-				float dy = MathUtils.sin(a)*r;
-				return new Vector2(dx,dy);
-
+			public Vector2 get(float x, float y) {
+				// Generate Perlin noise-based direction and distance
+				float a = MathUtils.noise(x * perlinScale, y * perlinScale, 1f) * 2 * MathUtils.PI - MathUtils.PI;
+				float r = MathUtils.noise(x * perlinScale, y * perlinScale, 2f) * deltaX;
+				float dx = MathUtils.cos(a) * r;
+				float dy = MathUtils.sin(a) * r;
+				return new Vector2(dx, dy);
 			}
 		}
+
+		// Create the Perlin vector field instance
 		PerlinVectorField vf = new PerlinVectorField();
-		return customField(mask,vf,d,minVertices,maxVertices,maxIter);
+
+		// Call the customField method, assuming it's implemented elsewhere
+		return customField(mask, vf, d, minVertices, maxVertices, maxIter);
 	}
 	/**
 	 * Signature for a vector field
@@ -4993,47 +5066,46 @@ public class PEmbroiderGraphics {
 	 * @param maxVertices  maximum number of vertices for each stroke
 	 * @param maxIter      maximum number of iterations (i.e. seeds to begin walking from). if the shape of polygon is weird, more seeds is needed to reach all the corners
 	 */
-	public ArrayList<ArrayList<Vector2>> customField(Image mask, VectorField vf, float d, int minVertices, int maxVertices, int maxIter){
-		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
-		ShapeRenderer pg = app.createGraphics(mask.width,mask.height);
-		pg.beginDraw();
-		pg.background(255);
-		pg.image(mask,0,0);
-		pg.noFill();
-		pg.stroke(0);
-		pg.strokeWeight(d);
 
+	public ArrayList<ArrayList<Vector2>> customField(Pixmap mask, VectorField vf, float d, int minVertices, int maxVertices, int maxIter) {
+		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
+
+		// Iterate for the maximum number of iterations
 		for (int i = 0; i < maxIter; i++) {
-			float x = MathUtils.random(pg.width);
-			float y = MathUtils.random(pg.height);
-			if ((pg.get((int)x,(int)y)>>16&0xFF)<128) {
+			// Random starting point
+			float x = MathUtils.random(mask.getWidth());
+			float y = MathUtils.random(mask.getHeight());
+
+			// Check if the pixel is within the mask (non-transparent)
+			if ((mask.getPixel((int) x, (int) y) >> 24 & 0xFF) < 128) {
 				continue;
 			}
+
 			ArrayList<Vector2> poly = new ArrayList<Vector2>();
+
+			// Iterate for the maximum number of vertices
 			for (int j = 0; j < maxVertices; j++) {
-				poly.add(new Vector2(x,y));
+				poly.add(new Vector2(x, y));
+
+				// Get the vector field direction at this point
 				Vector2 v = vf.get(x, y);
 				x += v.x;
 				y += v.y;
-				if (x < 0 || x >= pg.width || y < 0 || y >= pg.height) {
-					break;
-				}
-				if ((pg.get((int)x,(int)y)>>16&0xFF)<128) {
-					break;
-				}
-			}
-			if (poly.size() < minVertices) {
-				continue;
-			}
-			pg.beginShape();
-			for (int j = 0; j < poly.size();j ++) {
-				pg.vertex(poly.get(j).x, poly.get(j).y);
-			}
-			pg.endShape();
-			polys.add(poly);
 
+				// Check bounds and if the new pixel is within the mask
+				if (x < 0 || x >= mask.getWidth() || y < 0 || y >= mask.getHeight()) {
+					break;
+				}
+				if ((mask.getPixel((int) x, (int) y) >> 24 & 0xFF) < 128) {
+					break;
+				}
+			}
+
+			// Only add the poly if it meets the minimum vertex count
+			if (poly.size() >= minVertices) {
+				polys.add(poly);
+			}
 		}
-		pg.endDraw();
 
 		return polys;
 	}
@@ -5045,10 +5117,10 @@ public class PEmbroiderGraphics {
 	 * @param step         step size, smaller the more accurate
 	 * @return             the hatching as a list of polylines
 	 */
-	public ArrayList<ArrayList<Vector2>> hatchParallelRaster(Image mask, float ang, float d, float step) {
+	public ArrayList<ArrayList<Vector2>> hatchParallelRaster(Pixmap mask, float ang, float d, float step) {
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 
-		float r = Math.sqrt(mask.getWidth()*mask.getWidth()+mask.getHeight()*mask.getHeight())*1.05f;
+		float r = (float) (Math.sqrt(mask.getWidth()*mask.getWidth()+mask.getHeight()*mask.getHeight())*1.05f);
 		BCircle bcirc = new BCircle(mask.getWidth()/2,mask.getHeight()/2,r);
 
 		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
@@ -5267,7 +5339,7 @@ public class PEmbroiderGraphics {
 	  * @param d      luminance distance between adjacent thresholds
 	  * @return       an array of isolines as polylines
 	  */	
-	public ArrayList<ArrayList<Vector2>> isolines(Image im, float d){
+	public ArrayList<ArrayList<Vector2>> isolines(Pixmap im, float d){
 		ArrayList<ArrayList<ArrayList<Vector2>>> isos = PEmbroiderTrace.findIsolines(im, -1, d);
 		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
 		for (int i = 0; i < isos.size(); i++) {
@@ -5287,7 +5359,7 @@ public class PEmbroiderGraphics {
 								Vector2 c = pp.get((k+1)%pp.size());
 								Vector2 u = b.cpy().sub(a);
 								Vector2 v = c.cpy().sub(b);
-								float ang = Math.abs(Vector2.angleBetween(u, v));
+								float ang = Math.abs(angleBetween(u, v));
 								if (ang > PConstants.PI) {
 									ang = PConstants.TWO_PI - ang;
 								}
@@ -5296,7 +5368,7 @@ public class PEmbroiderGraphics {
 								}
 							}
 							
-							Vector2 p = pp.get(k%pp.size()).cpy().mul(0.5f).add(pp.get((k+1)%pp.size()).cpy().mul(0.5f));
+							Vector2 p = pp.get(k%pp.size()).cpy().scl(0.5f).add(pp.get((k+1)%pp.size()).cpy().scl(0.5f));
 							qq.add(p);
 						}
 						polys.add(qq);
@@ -5718,7 +5790,7 @@ public class PEmbroiderGraphics {
 			 Vector2 a = polylines.get(i).get(0).cpy();
 			 float l = polylines.get(i).get(0).dst(polylines.get(i).get(1));
 			 float t = x/l;
-			 Vector2 b = polylines.get(i).get(0).cpy().mul(1-t).add(polylines.get(i).get(1).cpy().mul(t));
+			 Vector2 b = polylines.get(i).get(0).cpy().scl(1-t).add(polylines.get(i).get(1).cpy().scl(t));
 
 //			 a.x += MathUtils.random(10);
 //			 b.x += MathUtils.random(10);
@@ -5729,7 +5801,7 @@ public class PEmbroiderGraphics {
 			 Vector2 c = polylines.get(i).get(polylines.get(i).size()-1).cpy();
 			 float m = polylines.get(i).get(polylines.get(i).size()-1).dst(polylines.get(i).get(polylines.get(i).size()-2));
 			 float s = x/m;
-			 Vector2 d = polylines.get(i).get(polylines.get(i).size()-1).cpy().mul(1-s).add(polylines.get(i).get(polylines.get(i).size()-2).cpy().mul(s));
+			 Vector2 d = polylines.get(i).get(polylines.get(i).size()-1).cpy().scl(1-s).add(polylines.get(i).get(polylines.get(i).size()-2).cpy().scl(s));
 			 polylines.get(i).add(d);
 			 
 //			 c.x += MathUtils.random(10);
