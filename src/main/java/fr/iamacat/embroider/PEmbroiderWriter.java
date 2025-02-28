@@ -4,16 +4,15 @@
 
 package fr.iamacat.embroider;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import fr.iamacat.utils.PConstants;
+import com.badlogic.gdx.utils.Array;
+import fr.iamacat.utils.ColorUtil;
 
-import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -115,14 +114,14 @@ public class PEmbroiderWriter {
 		}
 
 
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title, ArrayList<Boolean> jumps) throws IOException {
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title, Array<Boolean> jumps) throws IOException {
 
 
 			OutputStream stream = new FileOutputStream(name+".dst");
 
-			int pointsize = stitches.size();
+			int pointsize = stitches.size;
 			int count_color_blocks_total = 1;
-			for (int i = 1; i < colors.size(); i++) {
+			for (int i = 1; i < colors.size; i++) {
 				if (!colors.get(i).equals(colors.get(i-1))) {
 					count_color_blocks_total ++;
 				}
@@ -138,8 +137,8 @@ public class PEmbroiderWriter {
 
 			int ax = 0;
 			int ay = 0;
-			if (stitches.size() > 0) {
-				int last = stitches.size() - 1;
+			if (stitches.size > 0) {
+				int last = stitches.size - 1;
 				ax = (int) (stitches.get(last).x);
 				ay = -(int) (stitches.get(last).y);
 			}
@@ -164,7 +163,7 @@ public class PEmbroiderWriter {
 			byte[] command = new byte[COMMANDSIZE];
 
 			double xx = 0, yy = 0;
-			for (int i = 0; i < stitches.size(); i++) {
+			for (int i = 0; i < stitches.size; i++) {
 				if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 					encodeRecord(command, 0, 0, COLOR_CHANGE & COMMAND_MASK);
 					stream.write(command);
@@ -213,10 +212,10 @@ public class PEmbroiderWriter {
 	
 	public static class EXP {
 
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException {
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException {
 			OutputStream stream = new FileOutputStream(name+".exp");
 			double xx = 0, yy = 0;
-			for (int i = 0, ie = stitches.size(); i < ie; i++) {
+			for (int i = 0, ie = stitches.size; i < ie; i++) {
 				int data = STITCH & COMMAND_MASK;
 				if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 					stream.write((byte) 0x80);
@@ -298,7 +297,7 @@ public class PEmbroiderWriter {
 	
 
 	public static class VP3 {
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException {
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException {
 
 			class _BinWriter{
 				int position = 0;
@@ -389,7 +388,7 @@ public class PEmbroiderWriter {
 					vp3_write_string_16(""); //this is global notes and settings string.
 
 					int count_color_blocks_total = 1;
-					for (int i = 1; i < colors.size(); i++) {
+					for (int i = 1; i < colors.size; i++) {
 						if (!colors.get(i).equals(colors.get(i-1))) {
 							count_color_blocks_total ++;
 						}
@@ -401,7 +400,7 @@ public class PEmbroiderWriter {
 					writeInt32BE((int) (bounds[0] * 100)); //left
 					writeInt32BE((int) (bounds[3] * -100)); //-bottom
 					int count_just_stitches = 0;
-					for (int i = 0, ie = stitches.size(); i < ie; i++) {
+					for (int i = 0, ie = stitches.size; i < ie; i++) {
 						int data = STITCH & COMMAND_MASK;
 						if (data == END) {
 							continue;
@@ -474,18 +473,25 @@ public class PEmbroiderWriter {
 					writeInt16BE(count_color_blocks_total);
 					boolean first = true;
 					int lastIdx = 0;
-
-					for (int i = 1; i < colors.size(); i++) {
-
+					for (int i = 1; i < colors.size; i++) {
 						if (!colors.get(i).equals(colors.get(i-1))) {
-							write_vp3_colorblock(new ArrayList<Vector2>(stitches.subList(lastIdx, i)), first, center_x, center_y,  colors.get(i-1));
+							// Manually creating a sublist of stitches
+							Array<Vector2> colorStitches = new Array<>();
+							for (int j = lastIdx; j < i; j++) {
+								colorStitches.add(stitches.get(j)); // Add stitches from lastIdx to i
+							}
+							write_vp3_colorblock(colorStitches, first, center_x, center_y, colors.get(i-1));
 							first = false;
 							lastIdx = i;
 						}
 					}
-					write_vp3_colorblock(new ArrayList<Vector2>(stitches.subList(lastIdx, colors.size())), first, center_x, center_y,  colors.get(colors.size()-1));
+					Array<Vector2> colorStitches = new Array<>();
+					for (int j = lastIdx; j < stitches.size; j++) {
+						colorStitches.add(stitches.get(j)); // Add the remaining stitches
+					}
+					write_vp3_colorblock(colorStitches, first, center_x, center_y, colors.get(colors.size-1));
 
-					//			        write_vp3_colorblock(stitches, first, center_x, center_y,  colors.get(colors.size()-1));
+					//			        write_vp3_colorblock(stitches, first, center_x, center_y,  colors.get(colors.size-1));
 
 					int current_pos = tell();
 					writeSpaceHolder32BE(
@@ -495,7 +501,7 @@ public class PEmbroiderWriter {
 							);
 				}
 
-				public void write_vp3_colorblock(ArrayList<Vector2> stitches, boolean first, double center_x, double center_y, int color) throws IOException {
+				public void write_vp3_colorblock(Array<Vector2> stitches, boolean first, double center_x, double center_y, int color) throws IOException {
 					writeInt8(0x00);
 					writeInt8(0x05);
 					writeInt8(0x00);
@@ -505,15 +511,15 @@ public class PEmbroiderWriter {
 					double first_pos_y = 0;
 					double last_pos_x = 0;
 					double last_pos_y = 0;
-					if (stitches.size() > 0) {
+					if (stitches.size > 0) {
 						first_pos_x = stitches.get(0).x;
 						first_pos_y = stitches.get(0).y;
 						if (first) {
 							first_pos_x = 0;
 							first_pos_y = 0;
 						}
-						last_pos_x = stitches.get(stitches.size() - 1).x;
-						last_pos_y = stitches.get(stitches.size() - 1).y;
+						last_pos_x = stitches.get(stitches.size - 1).x;
+						last_pos_y = stitches.get(stitches.size - 1).y;
 					}
 					double start_position_from_center_x = first_pos_x - center_x;
 					double start_position_from_center_y = -(first_pos_y - center_y);
@@ -556,7 +562,7 @@ public class PEmbroiderWriter {
 					vp3_write_string_8("brand");
 				}
 
-				public void write_stitches_block(ArrayList<Vector2> stitches, double first_pos_x, double first_pos_y) throws IOException {
+				public void write_stitches_block(Array<Vector2> stitches, double first_pos_x, double first_pos_y) throws IOException {
 					writeInt8(0x00);
 					writeInt8(0x01);
 					writeInt8(0x00);
@@ -568,7 +574,7 @@ public class PEmbroiderWriter {
 					writeInt8(0x00);
 					double last_x = first_pos_x;
 					double last_y = first_pos_y;
-					for (int i = 0, ie = stitches.size(); i < ie; i++) {
+					for (int i = 0, ie = stitches.size; i < ie; i++) {
 						float x = stitches.get(i).x;
 						float y = stitches.get(i).y;
 						int flags = STITCH & COMMAND_MASK;
@@ -637,7 +643,7 @@ public class PEmbroiderWriter {
 	    static final int PEC_ICON_WIDTH = 48;
 	    static final int PEC_ICON_HEIGHT = 38;
 
-	    public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title, ArrayList<Boolean> jumps) throws IOException {
+	    public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title, Array<Boolean> jumps) throws IOException {
 
 			class _BinWriter{
 				int position = 0;
@@ -736,7 +742,7 @@ public class PEmbroiderWriter {
 			        write_pec_block();
 			        write_pec_graphics();
 			        write_pec_graphics();
-			        for (int i = 0; i < colors.size(); i++) {
+			        for (int i = 0; i < colors.size; i++) {
 			        	if (i > 0 && !colors.get(i-1).equals(colors.get(i))) {
 			        		write_pec_graphics();
 			        	}
@@ -772,7 +778,7 @@ public class PEmbroiderWriter {
 			    }
 			    
 			    public Object[] write_pec_header() throws IOException {
-			    	ArrayList<Integer> color_index_list = new ArrayList<>();
+			    	Array<Integer> color_index_list = new Array<>();
 
 			        write(String.format(Locale.ENGLISH, "LA:%-16s\r", title).getBytes());
 			        for (int i = 0; i < 12; i++) {
@@ -785,8 +791,8 @@ public class PEmbroiderWriter {
 			        writeInt8(PEC_ICON_HEIGHT);
 
 			        
-					ArrayList<Integer> palette = new ArrayList<Integer>();
-					for (int i = 0; i < colors.size(); i++) {
+					Array<Integer> palette = new Array<Integer>();
+					for (int i = 0; i < colors.size; i++) {
 						if (i==0 || (!colors.get(i).equals(colors.get(i-1)))) {
 //							if (!palette.contains(colors.get(i))) {
 								palette.add(colors.get(i));
@@ -797,15 +803,15 @@ public class PEmbroiderWriter {
 		            for (int i = 0; i < 12; i++) {
 		                writeInt8(0x20);
 		            }
-		            color_index_list.add(palette.size()-1);
-		            writeInt8(palette.size()-1);
-		            for (int i = 0; i < palette.size(); i++) {
+		            color_index_list.add(palette.size-1);
+		            writeInt8(palette.size-1);
+		            for (int i = 0; i < palette.size; i++) {
 		            	int idx = find_color(palette.get(i));
 		            	color_index_list.add(idx);
 		            	writeInt8(idx);
 		            }
 		            
-			        for (int i = 0; i < (463-palette.size()); i++) {
+			        for (int i = 0; i < (463-palette.size); i++) {
 			            writeInt8(0x20);
 			        }
 			        return new Object[] {color_index_list, palette};
@@ -897,7 +903,7 @@ public class PEmbroiderWriter {
 			        boolean jumping = false;
 			        double xx = 0, yy = 0;
 
-			        for (int i = 0, ie = stitches.size(); i < ie; i++) {
+			        for (int i = 0, ie = stitches.size; i < ie; i++) {
 
 			        	if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 			        		// color change
@@ -970,8 +976,8 @@ public class PEmbroiderWriter {
 			    }
 
 
-			    public ArrayList<Integer> write_pes_blocks(float left, float top, float right, float bottom, float cx, float cy) throws IOException {
-			        if (stitches.size() == 0) {
+			    public Array<Integer> write_pes_blocks(float left, float top, float right, float bottom, float cx, float cy) throws IOException {
+			        if (stitches.size == 0) {
 			            return null;
 			        }
 			        writePesString16("CEmbOne");
@@ -982,14 +988,14 @@ public class PEmbroiderWriter {
 			        writePesString16("CSewSeg");
 			        Object[] data = write_pes_embsewseg_segments(left, bottom, cx, cy);
 			        Integer sections = (Integer) data[0];
-			        ArrayList<Integer> colorlog = (ArrayList<Integer>) data[1];
+			        Array<Integer> colorlog = (Array<Integer>) data[1];
 			        writeSpaceHolder16LE(sections);
 			        return colorlog;
 			    }
 
 			    public Object[] write_pes_embsewseg_segments(float left, float bottom, float cx, float cy) throws IOException {
-			        ArrayList<Integer> segment = new ArrayList<>();
-			        ArrayList<Integer> colorlog = new ArrayList<>();
+			        Array<Integer> segment = new Array<>();
+			        Array<Integer> colorlog = new Array<>();
 			        int section = 0;
 			        int flag = -1;
 
@@ -1019,14 +1025,14 @@ public class PEmbroiderWriter {
                     flag = 1;
                     writeInt16LE(flag);
 	                writeInt16LE((short) colorCode);
-	                writeInt16LE((short) segment.size() / 2);
+	                writeInt16LE((short) segment.size / 2);
 	                for (Integer v : segment) {
 	                    writeInt16LE(v);
 	                }
 	                section++;
 	                segment.clear();
                     
-			        for (int i = 0, ie = stitches.size(); i < ie; i++) {
+			        for (int i = 0, ie = stitches.size; i < ie; i++) {
 			        	int thisColor = colors.get(i);
 			        	mode = STITCH & COMMAND_MASK;
 			        	if (i > 0 && !colors.get(i-1).equals(thisColor)) {	
@@ -1056,10 +1062,10 @@ public class PEmbroiderWriter {
 			                    flag = 0;
 			                    break;
 			            }
-			            if (segment.size() != 0) {
+			            if (segment.size != 0) {
 			                writeInt16LE(flag);
 			                writeInt16LE((short) colorCode);
-			                writeInt16LE((short) segment.size() / 2);
+			                writeInt16LE((short) segment.size / 2);
 			                for (Integer v : segment) {
 //			                	processing.core.PApplet.println(v);
 			                    writeInt16LE(v);
@@ -1070,7 +1076,7 @@ public class PEmbroiderWriter {
 			            }
 			            segment.clear();
 			        }
-			        int count = colorlog.size() / 2;
+			        int count = colorlog.size / 2;
 			        writeInt16LE(count);
 			        for (Integer v : colorlog) {
 			            writeInt16LE(v);
@@ -1164,9 +1170,9 @@ public class PEmbroiderWriter {
 			        writeInt16LE(0);//int numberOfProgrammableFillPatterns = readInt16LE();
 			        writeInt16LE(0);//int numberOfMotifPatterns = readInt16LE();
 			        writeInt16LE(0);//int featherPatternCount = readInt16LE();
-			        ArrayList<Integer> chart = new ArrayList<Integer>();
+			        Array<Integer> chart = new Array<Integer>();
 					int color_count = 1;
-					for (int i = 1; i < colors.size(); i++) {
+					for (int i = 1; i < colors.size; i++) {
 						if (!colors.get(i).equals(colors.get(i-1))) {
 							color_count ++;
 						}
@@ -1189,9 +1195,9 @@ public class PEmbroiderWriter {
 			        writePesString8("chart");
 			    }
 			    void write_pes_addendum(Object[] color_info) throws IOException {
-			        ArrayList<Integer> color_index_list = (ArrayList<Integer>) color_info[0];
-			        ArrayList<Integer> rgb_list = (ArrayList<Integer>) color_info[1];
-			        int count = color_index_list.size();
+			        Array<Integer> color_index_list = (Array<Integer>) color_info[0];
+			        Array<Integer> rgb_list = (Array<Integer>) color_info[1];
+			        int count = color_index_list.size;
 			        for (int i = 0, ie = count; i < ie; i++) {
 			            writeInt8(color_index_list.get(i));
 			        }
@@ -1199,12 +1205,12 @@ public class PEmbroiderWriter {
 			            writeInt8(0x20);
 			        }
 
-			        for (int s = 0, se = rgb_list.size(); s < se; s++) {
+			        for (int s = 0, se = rgb_list.size; s < se; s++) {
 			            for (int i = 0, ie = 0x90; i < ie; i++) {
 			                writeInt8(0x00);
 			            }
 			        }
-			        for (int s = 0, se = rgb_list.size(); s < se; s++) {
+			        for (int s = 0, se = rgb_list.size; s < se; s++) {
 			            writeInt24LE(rgb_list.get(s));
 			        }
 			    }
@@ -1235,7 +1241,7 @@ public class PEmbroiderWriter {
 			        int placeholder_pec_block = tell();
 			        space_holder(4);
 
-			        if (stitches.size() == 0) {
+			        if (stitches.size == 0) {
 			            write_pes_header_v1(0);
 			            writeInt16LE(0x0000);
 			            writeInt16LE(0x0000);
@@ -1295,7 +1301,7 @@ public class PEmbroiderWriter {
 			        int placeholder_pec_block = tell();
 			        space_holder(4);
 
-			        if (stitches.size() == 0) {
+			        if (stitches.size == 0) {
 			            write_pes_header_v6( 0);
 			            writeInt16LE(0x0000);
 			            writeInt16LE(0x0000);
@@ -1303,11 +1309,11 @@ public class PEmbroiderWriter {
 			            write_pes_header_v6( 1);
 			            writeInt16LE(0xFFFF);
 			            writeInt16LE(0x0000);
-			            ArrayList<Integer> log = write_pes_blocks(left, top, right, bottom, cx, cy);
+			            Array<Integer> log = write_pes_blocks(left, top, right, bottom, cx, cy);
 			            //In version 6 there is some node, tree, order thing.
 			            writeInt32LE(0);
 			            writeInt32LE(0);
-			            for (int i = 0, ie = log.size(); i < ie; i++) {
+			            for (int i = 0, ie = log.size; i < ie; i++) {
 			                writeInt32LE(i);
 			                writeInt32LE(0);
 			            }
@@ -1343,7 +1349,7 @@ public class PEmbroiderWriter {
 	
 	public static class XXX {
 		
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException {
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException {
 
 			class _BinWriter{
 
@@ -1409,12 +1415,12 @@ public class PEmbroiderWriter {
 			            writeInt8(0x00);
 			        }
 					int color_count = 1;
-					for (int i = 1; i < colors.size(); i++) {
+					for (int i = 1; i < colors.size; i++) {
 						if (!colors.get(i).equals(colors.get(i-1))) {
 							color_count ++;
 						}
 					}
-					int command_count = stitches.size();
+					int command_count = stitches.size;
 
 			        writeInt32LE(command_count); //end is not a command.
 			        for (int i = 0, ie = 0x0C; i < ie; i++) {
@@ -1429,7 +1435,7 @@ public class PEmbroiderWriter {
 			        writeInt16LE((int) width);
 			        writeInt16LE((int) height);
 
-			        int last = stitches.size() - 1;
+			        int last = stitches.size - 1;
 
 			        writeInt16LE((int) stitches.get(last).x); // correct
 			        writeInt16LE((int) stitches.get(last).y); // correct
@@ -1453,7 +1459,7 @@ public class PEmbroiderWriter {
 			    
 			    public void write_xxx_stitches() throws IOException {
 			        double xx = 0, yy = 0;
-			        for (int i = 0, ie = stitches.size(); i < ie; i++) {
+			        for (int i = 0, ie = stitches.size; i < ie; i++) {
 			            int data = STITCH & COMMAND_MASK;
 						if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 							data = TRIM & COMMAND_MASK;
@@ -1526,13 +1532,13 @@ public class PEmbroiderWriter {
 			        writeInt8(0x00);
 			        writeInt8(0x00);
 			        int current_color = 0;
-					ArrayList<Integer> threadlist = new ArrayList<Integer>();
-					for (int i = 0; i < colors.size(); i++) {
+					Array<Integer> threadlist = new Array<Integer>();
+					for (int i = 0; i < colors.size; i++) {
 						if (i == 0 || !colors.get(i).equals(colors.get(i-1))) {
 							threadlist.add(colors.get(i));
 						}
 					}
-			        for (int i = 0; i < threadlist.size(); i++) {
+			        for (int i = 0; i < threadlist.size; i++) {
 			            writeInt8(0x00);
 			            writeInt8((threadlist.get(i)>>16)&255);
 			            writeInt8((threadlist.get(i)>>8)&255);
@@ -1583,7 +1589,7 @@ public class PEmbroiderWriter {
 	    static final int PEC_ICON_WIDTH = 48;
 	    static final int PEC_ICON_HEIGHT = 38;
 
-	    public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException {
+	    public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException {
 
 			class _BinWriter{
 				int position = 0;
@@ -1708,19 +1714,19 @@ public class PEmbroiderWriter {
 			            writeInt8(0x20);
 			            writeInt8(0x20);
 
-						ArrayList<Integer> palette = new ArrayList<Integer>();
-						for (int i = 0; i < colors.size(); i++) {
+						Array<Integer> palette = new Array<Integer>();
+						for (int i = 0; i < colors.size; i++) {
 							if (i==0 || (!colors.get(i).equals(colors.get(i-1)))) {
 								palette.add(colors.get(i));
 							}
 						}
-					System.out.println(logPrefix+"Color count: "+palette.size());
-						writeInt8(palette.size()-1);
+					System.out.println(logPrefix+"Color count: "+palette.size);
+						writeInt8(palette.size-1);
 //			        
-						for (int i = 0; i < palette.size(); i++) {
+						for (int i = 0; i < palette.size; i++) {
 							writeInt8(find_color(palette.get(i)));
 						}
-			        for (int i = 0; i < (463-palette.size()); i++) {
+			        for (int i = 0; i < (463-palette.size); i++) {
 			            writeInt8(0x20);
 			        }
 			    }
@@ -1809,7 +1815,7 @@ public class PEmbroiderWriter {
 			        boolean jumping = false;
 			        double xx = 0, yy = 0;
 
-			        for (int i = 0, ie = stitches.size(); i < ie; i++) {
+			        for (int i = 0, ie = stitches.size; i < ie; i++) {
 
 			        	if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 			        		// color change
@@ -1991,7 +1997,7 @@ public class PEmbroiderWriter {
 	    	return mi;
 	    }
 	    
-	    public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException {
+	    public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException {
 
 			class _BinWriter{
 
@@ -2038,7 +2044,7 @@ public class PEmbroiderWriter {
 					String date_string = new SimpleDateFormat("yyyyMMddHHmmss").format(date);
 
 					int color_count = 1;
-					for (int i = 1; i < colors.size(); i++) {
+					for (int i = 1; i < colors.size; i++) {
 						if (!colors.get(i).equals(colors.get(i-1))) {
 							color_count ++;
 						}
@@ -2053,7 +2059,7 @@ public class PEmbroiderWriter {
 					writeInt32LE(color_count);
 
 					int command_count = 1; // 1 command for END;
-					for (int i = 0, ie = stitches.size(); i < ie; i++) {
+					for (int i = 0, ie = stitches.size; i < ie; i++) {
 						if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 							command_count += 2;
 						}else {
@@ -2095,14 +2101,14 @@ public class PEmbroiderWriter {
 					y_hoop_edge = 1000 - half_height;
 					write_hoop_edge_distance(x_hoop_edge, y_hoop_edge);
 
-					ArrayList<Integer> threadSet = new ArrayList<Integer>();
-					for (int i = 0; i < colors.size(); i++) {
+					Array<Integer> threadSet = new Array<Integer>();
+					for (int i = 0; i < colors.size; i++) {
 						if (i == 0 || !colors.get(i).equals(colors.get(i-1))) {
 							threadSet.add(colors.get(i));
 						}
 					}
 
-					for (int i = 0; i < threadSet.size(); i++) {
+					for (int i = 0; i < threadSet.size; i++) {
 						int thread_index = find_thread_nearest_index(threadSet.get(i));
 						writeInt32LE(thread_index);
 					}
@@ -2111,7 +2117,7 @@ public class PEmbroiderWriter {
 					}
 
 					double xx = 0, yy = 0;
-					for (int i = 0, ie = stitches.size(); i < ie; i++) {
+					for (int i = 0, ie = stitches.size; i < ie; i++) {
 						int data = STITCH & COMMAND_MASK;
 						if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
 							data = COLOR_CHANGE & COMMAND_MASK;
@@ -2190,13 +2196,13 @@ public class PEmbroiderWriter {
 	
 
 	public static class SVG {
-		public static String svgString(float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, ArrayList<Boolean> jumps) {
+		public static String svgString(float[] bounds, Array<Vector2> stitches, Array<Integer> colors, Array<Boolean> jumps) {
 			String svg = "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" width=\""+(bounds[2]-bounds[0])+"\" height=\""+(bounds[3]-bounds[1])+"\" viewBox=\""+bounds[0]+" "+bounds[1]+" "+(bounds[2]-bounds[0])+" "+(bounds[3]-bounds[1])+"\">";
-			if (stitches.size() == 0) {
+			if (stitches.size == 0) {
 				return svg+"</svg>";
 			}
 
-			for (int i = 0; i < stitches.size(); i++) {
+			for (int i = 0; i < stitches.size; i++) {
 				if (i == 0 || (!colors.get(i).equals(colors.get(i-1))) || (jumps!=null && jumps.get(i))) {
 					int r = (colors.get(i) >> 16) & 0xFF;
 					int g = (colors.get(i) >> 8) & 0xFF;
@@ -2215,7 +2221,7 @@ public class PEmbroiderWriter {
 			return svg+"\"/></svg>";
 			
 		}
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title, ArrayList<Boolean> jumps) throws IOException{
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title, Array<Boolean> jumps) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".svg");
 			String svg = svgString(bounds,stitches,colors,jumps);
 //			println(svg);
@@ -2226,14 +2232,14 @@ public class PEmbroiderWriter {
 	}
 	
 	public static class PDF{
-		public static String pdfString(float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, ArrayList<Boolean> jumps) {
+		public static String pdfString(float[] bounds, Array<Vector2> stitches, Array<Integer> colors, Array<Boolean> jumps) {
 			String pdf0 = "%PDF-1.1\n%%¥±ë\n1 0 obj\n<< /Type /Catalog\n/Pages 2 0 R\n>>endobj\n"
 			    + "2 0 obj\n<< /Type /Pages\n/Kids [3 0 R]\n/Count 1\n/MediaBox [0 0 "+(bounds[2]-bounds[0])+" "+(bounds[3]-bounds[1])+"]\n>>\nendobj\n"
 				+  "3 0 obj\n<< /Type /Page\n/Parent 2 0 R\n/Resources\n<< /Font\n<< /F1\n<< /Type /Font\n/Subtype /Type1\n/BaseFont /Times-Roman\n>>\n>>\n>>\n/Contents [";
 
 			String pdf = "";
 			int cnt = 4;
-			for (int i = 0; i < stitches.size(); i++) {
+			for (int i = 0; i < stitches.size; i++) {
 				boolean first = (i == 0 || (!colors.get(i).equals(colors.get(i-1))) || (jumps!=null && jumps.get(i)) );
 				if (first) {
 					float r = (float)((int)((colors.get(i) >> 16)&0xFF)*1f)/255f;
@@ -2254,7 +2260,7 @@ public class PEmbroiderWriter {
 					pdf += " l ";
 				}
 			}
-			if (stitches.size()>0) {
+			if (stitches.size>0) {
 				pdf +=  "\nS\nendstream\nendobj\n";
 			}
 			pdf0 += "]\n>>\nendobj\n";
@@ -2263,7 +2269,7 @@ public class PEmbroiderWriter {
 			return pdf0+pdf;
 			
 		}
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String titles, ArrayList<Boolean> jumps) throws IOException{
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String titles, Array<Boolean> jumps) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".pdf");
 			String pdf = pdfString(bounds,stitches,colors,jumps);
 //			println(svg);
@@ -2274,7 +2280,7 @@ public class PEmbroiderWriter {
 	}
 
 	public static class PNG {
-		public static void write(String filename, String extension, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors) {
+		public static void write(String filename, String extension, Array<Array<Vector2>> polylines, Array<Color> colors) {
 			int width = 1000;
 			int height = 1000;
 
@@ -2285,7 +2291,7 @@ public class PEmbroiderWriter {
 			float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
 			float maxX = Float.MIN_VALUE, maxY = Float.MIN_VALUE;
 
-			for (ArrayList<Vector2> polyline : polylines) {
+			for (Array<Vector2> polyline : polylines) {
 				for (Vector2 point : polyline) {
 					if (point.x < minX) minX = point.x;
 					if (point.y < minY) minY = point.y;
@@ -2300,14 +2306,14 @@ public class PEmbroiderWriter {
 			float offsetX = (float) width / 2 - centerX;
 			float offsetY = (float) height / 2 - centerY;
 
-			for (int i = 0; i < polylines.size(); i++) {
-				ArrayList<Vector2> polyline = polylines.get(i);
-				int col = colors.get(i);
+			for (int i = 0; i < polylines.size; i++) {
+				Array<Vector2> polyline = polylines.get(i);
+				int col = colors.get(i).toIntBits();
 
 				float[] hsb = new float[3];
-				Color.RGBtoHSB((col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, hsb);
+				ColorUtil.RGBtoHSB((col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, hsb);
 				hsb[1] = Math.min(1.0f, hsb[1] * 1.5f); // Augment saturation of 50 %
-				col = Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
+				col = ColorUtil.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
 
 				pixmap.setColor(col);
 
@@ -2315,7 +2321,7 @@ public class PEmbroiderWriter {
 					continue;
 				}
 
-				for (int j = 0; j < polyline.size() - 1; j++) {
+				for (int j = 0; j < polyline.size - 1; j++) {
 					Vector2 p0 = polyline.get(j);
 					Vector2 p1 = polyline.get(j + 1);
 
@@ -2354,15 +2360,23 @@ public class PEmbroiderWriter {
 				}
 			}
 
-			PixmapIO.writePNG(Gdx.files.local(filename + "." + extension), pixmap);
-			pixmap.dispose();
+			try {
+				FileHandle fileHandle = Gdx.files.absolute(filename + "." + extension);
+				System.out.println("Saving file to: " + fileHandle.path()); // Debugging output
+				PixmapIO.writePNG(fileHandle, pixmap);
+			} catch (Exception e) {
+				System.err.println("Error writing PNG: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				pixmap.dispose();
+			}
 		}
 	}
 
 	public static class GCODE{
-		public static String gcodeString(float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors) {
+		public static String gcodeString(float[] bounds, Array<Vector2> stitches, Array<Integer> colors) {
 			String g = "M3\nS1000\nG21\n";
-			for (int i = 0; i < stitches.size(); i++) {
+			for (int i = 0; i < stitches.size; i++) {
 				boolean first = (i == 0 || (!colors.get(i).equals(colors.get(i-1))));
 				if (first) {
 					g += "G0 "+String.format("X%.1f Y%.1f",stitches.get(i).x,-stitches.get(i).y)+" Z5\n";
@@ -2373,7 +2387,7 @@ public class PEmbroiderWriter {
 			return g;
 			
 		}
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException{
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".gcode");
 			String g = gcodeString(bounds,stitches,colors);
 //			println(svg);
@@ -2384,13 +2398,13 @@ public class PEmbroiderWriter {
 	
 	
 	public static class TSV{
-		public static String tsvString(float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors) {
+		public static String tsvString(float[] bounds, Array<Vector2> stitches, Array<Integer> colors) {
 			String tsv = "";
 			tsv += "XMIN\t"+bounds[0]+"\n";
 			tsv += "YMIN\t"+bounds[1]+"\n";
 			tsv += "XMAX\t"+bounds[2]+"\n";
 			tsv += "YMAX\t"+bounds[3]+"\n";
-			for (int i = 0; i < stitches.size(); i++) {
+			for (int i = 0; i < stitches.size; i++) {
 				if (i == 0 || (!colors.get(i).equals(colors.get(i-1)))) {
 					int r = (colors.get(i) >> 16) & 0xFF;
 					int g = (colors.get(i) >> 8) & 0xFF;
@@ -2401,7 +2415,7 @@ public class PEmbroiderWriter {
 			}
 			return tsv+"";
 		}
-		public static void write(String name, float[] bounds, ArrayList<Vector2> stitches, ArrayList<Integer> colors, String title) throws IOException{
+		public static void write(String name, float[] bounds, Array<Vector2> stitches, Array<Integer> colors, String title) throws IOException{
 			OutputStream stream = new FileOutputStream(name+".tsv");
 			String tsv = tsvString(bounds,stitches,colors);
 //			println(svg);
@@ -2411,10 +2425,10 @@ public class PEmbroiderWriter {
 	}
 	
 
-	public static void write(String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height){
+	public static void write(String filename, Array<Array<Vector2>> polylines, Array<Color> colors, int width, int height){
 		write(filename,polylines,colors,width,height,false);
 	}
-	public static void write(String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height, boolean noConnect) {
+	public static void write(String filename, Array<Array<Vector2>> polylines, Array<Color> colors, int width, int height, boolean noConnect) {
 		System.out.println(filename);
 		boolean isCustomMatrix = true;
 		boolean isCustomBounds = true;
@@ -2426,15 +2440,15 @@ public class PEmbroiderWriter {
 			TRANSFORM.translate(-width / 2f, -height / 2f);
 		}
 
-		ArrayList<Vector2> stitches = new ArrayList<>();
-		ArrayList<Integer> flatColors = new ArrayList<>();
-		ArrayList<Boolean> jumps = new ArrayList<>();
-		for (int i = 0; i < polylines.size(); i++) {
-			for (int j = 0; j < polylines.get(i).size(); j++) {
+		Array<Vector2> stitches = new Array<>();
+		Array<Integer> flatColors = new Array<>();
+		Array<Boolean> jumps = new Array<>();
+		for (int i = 0; i < polylines.size; i++) {
+			for (int j = 0; j < polylines.get(i).size; j++) {
 				Vector2 p = polylines.get(i).get(j).cpy();
 				p = p.mul(TRANSFORM);
 				stitches.add(p);
-				flatColors.add(colors.get(i));
+				flatColors.add(Color.rgba8888(colors.get(i)));
 				jumps.add(j == 0);
 			}
 		}
@@ -2494,10 +2508,10 @@ public class PEmbroiderWriter {
 					GCODE.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
 					break;
 				case "PNG":
-				case "JPG":
-				case "JPEG":
-				case "BMP":
-				case "GIF":
+				//case "JPG": // TODO
+				//case "JPEG": // TODO
+				//case "BMP": // TODO
+				//case "GIF":// TODO
 					PNG.write(tokens[0], tokens[1], polylines, colors);
 					break;
 				default:
@@ -2518,9 +2532,5 @@ public class PEmbroiderWriter {
 		if (!isCustomTitle) {
 			TITLE = null;
 		}
-	}
-	
-	public static void write(PEmbroiderGraphics E) {
-		write((PATH != null) ? PATH : E.path, E.polylines, E.colors, E.width, E.height);
 	}
 }

@@ -4699,7 +4699,7 @@ public class PEmbroiderGraphics {
 			return;
 		}
 		checkOutOfBounds();
-		PEmbroiderWriter.write(path, polylines, colors, width, height, NO_CONNECT);
+		//PEmbroiderWriter.write(path, polylines, colors, width, height, NO_CONNECT);
 	}
 
 
