@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
@@ -46,6 +47,7 @@ import static java.lang.Math.min;
 
 @SuppressWarnings("unchecked") // shut up
 public class PEmbroiderGraphics {
+	private Batch batch; // TODO
 	private Screen app;
 	private Skin TRUE_FONT;
 	//public ShapeRenderer preview;
@@ -4697,7 +4699,7 @@ public class PEmbroiderGraphics {
 			return;
 		}
 		checkOutOfBounds();
-		PEmbroiderWriter.write(app,path, polylines, colors, width, height, NO_CONNECT);
+		PEmbroiderWriter.write(path, polylines, colors, width, height, NO_CONNECT);
 	}
 
 

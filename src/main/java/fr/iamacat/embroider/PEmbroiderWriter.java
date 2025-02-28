@@ -7,6 +7,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -2410,86 +2411,104 @@ public class PEmbroiderWriter {
 	}
 	
 
-	public static void write(Screen app, String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height){
-		write(app,filename,polylines,colors,width,height,false);
+	public static void write(String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height){
+		write(filename,polylines,colors,width,height,false);
 	}
-	public static void write(Screen app,String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height, boolean noConnect){
+	public static void write(String filename, ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height, boolean noConnect) {
 		System.out.println(filename);
 		boolean isCustomMatrix = true;
 		boolean isCustomBounds = true;
 		boolean isCustomTitle = true;
-		
+
 		if (TRANSFORM == null) {
 			isCustomMatrix = false;
 			TRANSFORM = new Matrix3();
-			TRANSFORM.translate(-width/2, -height/2);	
+			TRANSFORM.translate(-width / 2f, -height / 2f);
 		}
-		
-		ArrayList<Vector2> stitches = new ArrayList<Vector2>();
-		ArrayList<Integer> flatColors = new ArrayList<Integer>();
-		ArrayList<Boolean> jumps = new ArrayList<Boolean>();
+
+		ArrayList<Vector2> stitches = new ArrayList<>();
+		ArrayList<Integer> flatColors = new ArrayList<>();
+		ArrayList<Boolean> jumps = new ArrayList<>();
 		for (int i = 0; i < polylines.size(); i++) {
 			for (int j = 0; j < polylines.get(i).size(); j++) {
-				Vector2 p = TRANSFORM.mul(polylines.get(i).get(j).cpy(),null);
+				Vector2 p = polylines.get(i).get(j).cpy();
+				p = p.mul(TRANSFORM);
 				stitches.add(p);
 				flatColors.add(colors.get(i));
-				jumps.add(j==0);
+				jumps.add(j == 0);
 			}
 		}
 
 		if (BOUNDS == null) {
 			isCustomBounds = false;
-			Vector2 TL = TRANSFORM.mul(new Vector2(0,0),null);
-			Vector2 BR = TRANSFORM.mul(new Vector2(width,height),null);
-			BOUNDS = new float[] {TL.x,TL.y,BR.x,BR.y};
+			Vector2 TL = new Vector2(0, 0).mul(TRANSFORM);
+			Vector2 BR = new Vector2(width, height).mul(TRANSFORM);
+			BOUNDS = new float[]{TL.x, TL.y, BR.x, BR.y};
 		}
-		
+
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
-		System.out.println(logPrefix+"BASENAME :"+tokens[0]);
-		System.out.println(logPrefix+"EXTENSION:"+tokens[1]);
-		
+		System.out.println(logPrefix + "BASENAME :" + tokens[0]);
+		System.out.println(logPrefix + "EXTENSION:" + tokens[1]);
+
 		if (TITLE == null) {
 			isCustomTitle = false;
 			String[] strs = tokens[0].split("/|\\\\");
-        	TITLE = strs[strs.length-1];
+			TITLE = strs[strs.length - 1];
 		}
 		System.out.println(TITLE);
-        TITLE = TITLE.substring(0, Math.min(8, TITLE.length()));
-        
+		TITLE = TITLE.substring(0, Math.min(8, TITLE.length()));
+
 		try {
-			if       (tokens[1].equalsIgnoreCase("DST")) {
-				DST.write(tokens[0], BOUNDS, stitches, flatColors,TITLE,jumps);
-			}else if (tokens[1].equalsIgnoreCase("EXP")) {
-				EXP.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
-			}else if (tokens[1].equalsIgnoreCase("VP3")) {
-				VP3.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
-			}else if (tokens[1].equalsIgnoreCase("PEC")) {
-				PEC.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
-			}else if (tokens[1].equalsIgnoreCase("PES")) {
-				PES.write(tokens[0], BOUNDS, stitches, flatColors,TITLE,jumps);
-			}else if (tokens[1].equalsIgnoreCase("JEF")) {
-				JEF.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
-			}else if (tokens[1].equalsIgnoreCase("XXX")) {
-				XXX.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
-			}else if (tokens[1].equalsIgnoreCase("SVG")) {
-				SVG.write(tokens[0], BOUNDS, stitches, flatColors,TITLE,noConnect?jumps:null);
-			}else if (tokens[1].equalsIgnoreCase("PDF")) {
-				PDF.write(tokens[0], BOUNDS, stitches, flatColors,TITLE,noConnect?jumps:null);	
-			}else if (tokens[1].equalsIgnoreCase("TSV")) {
-				TSV.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);	
-			}else if (tokens[1].equalsIgnoreCase("GCODE")) {
-				GCODE.write(tokens[0], BOUNDS, stitches, flatColors,TITLE);
-			}else if (tokens[1].equalsIgnoreCase("PNG") || tokens[1].equalsIgnoreCase("JPG") || tokens[1].equalsIgnoreCase("JPEG")|| tokens[1].equalsIgnoreCase("BMP")|| tokens[1].equalsIgnoreCase("GIF")) {
-				PNG.write(tokens[0],tokens[1], polylines, colors);
-			}else {
-				System.out.println(logPrefix+"Unsupported format. Try dst, exp, pdf, pec, pes, svg, tsv, vp3, xxx,png,jpg,jpeg,bmp,gif or gcode.");
-				throw new IOException("Unimplemented");
+			switch (tokens[1].toUpperCase()) {
+				case "DST":
+					DST.write(tokens[0], BOUNDS, stitches, flatColors, TITLE, jumps);
+					break;
+				case "EXP":
+					EXP.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "VP3":
+					VP3.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "PEC":
+					PEC.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "PES":
+					PES.write(tokens[0], BOUNDS, stitches, flatColors, TITLE, jumps);
+					break;
+				case "JEF":
+					JEF.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "XXX":
+					XXX.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "SVG":
+					SVG.write(tokens[0], BOUNDS, stitches, flatColors, TITLE, noConnect ? jumps : null);
+					break;
+				case "PDF":
+					PDF.write(tokens[0], BOUNDS, stitches, flatColors, TITLE, noConnect ? jumps : null);
+					break;
+				case "TSV":
+					TSV.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "GCODE":
+					GCODE.write(tokens[0], BOUNDS, stitches, flatColors, TITLE);
+					break;
+				case "PNG":
+				case "JPG":
+				case "JPEG":
+				case "BMP":
+				case "GIF":
+					PNG.write(tokens[0], tokens[1], polylines, colors);
+					break;
+				default:
+					System.out.println(logPrefix + "Unsupported format. Try dst, exp, pdf, pec, pes, svg, tsv, vp3, xxx, png, jpg, jpeg, bmp, gif or gcode.");
+					throw new IOException("Unimplemented");
 			}
-			System.out.println(logPrefix+"Written!");
-		}catch(IOException e) {
-			System.out.println(logPrefix+" IO Error.");
+			System.out.println(logPrefix + "Written!");
+		} catch (IOException e) {
+			System.out.println(logPrefix + " IO Error.");
 		}
-		
+
 		if (!isCustomMatrix) {
 			TRANSFORM = null;
 		}
@@ -2501,7 +2520,7 @@ public class PEmbroiderWriter {
 		}
 	}
 	
-	public static void write(Screen app,PEmbroiderGraphics E) {
-		write(app,(PATH != null) ? PATH : E.path, E.polylines, E.colors, E.width, E.height);
+	public static void write(PEmbroiderGraphics E) {
+		write((PATH != null) ? PATH : E.path, E.polylines, E.colors, E.width, E.height);
 	}
 }
