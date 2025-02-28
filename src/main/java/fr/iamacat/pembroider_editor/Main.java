@@ -1,28 +1,25 @@
 package fr.iamacat.pembroider_editor;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisScrollPane;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import fr.iamacat.pembroider_editor.enums.Tool;
 import fr.iamacat.utils.MainBase;
 import fr.iamacat.utils.UIUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.BitSet;
 import java.util.List;
 
 public class Main extends MainBase {
     private final VisTable leftTable;
     private final VisTable rightTable;
-    private final HashMap<String, Boolean> buttonStates = new HashMap<>();
+    private final BitSet buttonStates = new BitSet(Tool.values().length);
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerCount = 0;
     private VisTextButton addLayerButton;
@@ -109,26 +106,30 @@ public class Main extends MainBase {
 
     private void addRadioButtonsToTable(VisTable table) {
         ButtonGroup<VisTextButton> buttonGroup = new ButtonGroup<>();
-        String[] buttonNames = {"S", "Z", "o", "O", "FL", "T", "E"};
+        Tool[] tools = Tool.values();
         table.add().height(100).row();
-        table.defaults().width(40).height(40).pad(5);
+        table.defaults().size(40).pad(5);
         table.top();
-        for (String name : buttonNames) {
-            VisTextButton button = new VisTextButton(name);
+        final Tool[] currentTool = {null};
+        for (Tool tool : tools) {
+            VisTextButton button = new VisTextButton(tool.name());
             buttonGroup.add(button);
             button.setColor(Color.LIGHT_GRAY);
             table.add(button).row();
-            buttonStates.put(name, false);
             button.addListener(new ChangeListener() {
                 @Override
-                public void changed(ChangeListener.ChangeEvent event, Actor actor) {
-                    buttonGroup.getButtons().forEach(b ->
-                            buttonStates.put(b.getText().toString(), b.isChecked())
-                    );
+                public void changed(ChangeEvent event, Actor actor) {
+                    VisTextButton clickedButton = (VisTextButton) actor;
+                    if (clickedButton.isChecked()) {
+                        Tool selectedTool = Tool.valueOf(clickedButton.getText().toString());
+                        if (currentTool[0] != selectedTool) {
+                            currentTool[0] = selectedTool;
+                            buttonStates.set(selectedTool.ordinal(), true);
+                        }
+                    }
                 }
             });
         }
-
         buttonGroup.setMaxCheckCount(1);
         buttonGroup.setMinCheckCount(0);
         buttonGroup.setUncheckLast(true);
