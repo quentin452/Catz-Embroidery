@@ -127,6 +127,5 @@ public class PEmbroiderLauncher extends Game {
                 (Gdx.graphics.getWidth() - displayedImage.getWidth()) / 2,
                 (Gdx.graphics.getHeight() - displayedImage.getHeight()) / 2
         );
-        stage.addActor(displayedImage);
     }
 }
