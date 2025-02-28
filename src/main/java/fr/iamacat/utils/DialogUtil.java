@@ -10,10 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -144,42 +141,36 @@ public class DialogUtil {
         stage.addActor(fileChooser.fadeIn());
     }
 
-    public static void showSaveDialog(final SaveLocallyType saveType, final Stage stage, final Image imageToSave) {
-        // Créer un FileChooser en mode SAVE
+    public static void showSaveDialog(final SaveLocallyType saveType, final Stage stage, final Image imageToSave, Consumer<Boolean> onResult) {
         final FileChooser fileChooser = new FileChooser(FileChooser.Mode.SAVE);
         fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
-
-        // Filtrer les fichiers selon l'extension correspondant au type de sauvegarde
-        String ext = saveType.toString().toLowerCase();  // par exemple "png" ou "pes"
+        String ext = saveType.toString().toLowerCase();
         fileChooser.setFileFilter(file -> {
             FileHandle fh = new FileHandle(file);
-            return file.isDirectory() || fh.extension().toLowerCase().equals(ext);
+            return file.isDirectory() || fh.extension().equalsIgnoreCase(ext);
         });
-
-        // Définir un nom de fichier par défaut
-        fileChooser.setDefaultFileName("embroidery" + "." + ext);
-
-        // Écouteur de sélection
+        fileChooser.setDefaultFileName("embroidery." + ext);
         fileChooser.setListener(new FileChooserAdapter() {
             @Override
             public void selected(Array<FileHandle> files) {
-                // Save to local files
-                FileHandle selectedFile = files.first();
-                if (selectedFile != null) {
-                    String filePath = selectedFile.file().getAbsolutePath();
-                    System.out.println("Fichier sélectionné pour sauvegarde : " + filePath);
-                    saveImageToFile(stage,selectedFile,saveType,imageToSave);
+                if (files.size > 0) {
+                    FileHandle file = files.first();
+                    boolean success = saveImageToFile(stage, file, saveType, imageToSave);
+                    if (onResult != null) {
+                        onResult.accept(success);
+                    }
+                } else {
+                    if (onResult != null) {
+                        onResult.accept(false);
+                    }
                 }
             }
         });
-
-        // Définir taille et position du FileChooser
         fileChooser.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);
         fileChooser.setPosition(Gdx.graphics.getWidth() * 0.125f, Gdx.graphics.getHeight() * 0.125f);
-
-        // Afficher le FileChooser
         stage.addActor(fileChooser.fadeIn());
     }
+
 
     // Méthode pour sauvegarder l'image dans le fichier sélectionné
     private static boolean saveImageToFile(Stage stage, FileHandle file, SaveLocallyType saveType, Image imageToSave) {
@@ -218,24 +209,34 @@ public class DialogUtil {
     }
 
     // Méthode qui affiche une boîte de dialogue pour uploader sur Dropbox
-    public static void showUploadDialog(final SaveDropboxType saveType, final Stage stage, final Image imageToSave) {
+    public static void showUploadDialog(final SaveDropboxType saveType, final Stage stage, final Image imageToSave, Consumer<Boolean> onResult) {
         final TextField fileNameField = new TextField("", UIUtils.visSkin);
-
         VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
             @Override
             protected void result(Object object) {
                 if ("DROPBOX".equals(object)) {
-                    // Récupérer le nom du fichier saisi par l'utilisateur
-                    String fileName = fileNameField.getText(); // Assurez-vous que fileNameField est la référence au champ texte
+                    String fileName = fileNameField.getText();
                     if (fileName.isEmpty()) {
-                        Gdx.app.postRunnable(() -> showMessage(stage, UIUtils.visSkin, "Le nom du fichier ne peut pas être vide."));
+                        showMessage(stage, UIUtils.visSkin, "Filename cannot be empty.");
+                        if (onResult != null) {
+                            onResult.accept(false);
+                        }
                     } else {
                         File imageFile = convertImageToFile(imageToSave, saveType, fileName);
                         if (imageFile != null) {
-                            DropboxUtil.uploadToDropbox(stage, imageFile);
+                            boolean success = DropboxUtil.uploadToDropbox(stage, imageFile);
+                            if (onResult != null) {
+                                onResult.accept(success);
+                            }
                         } else {
-                            Gdx.app.postRunnable(() -> showMessage(stage, UIUtils.visSkin, "Erreur lors de la conversion de l'image."));
+                            if (onResult != null) {
+                                onResult.accept(false);
+                            }
                         }
+                    }
+                } else {
+                    if (onResult != null) {
+                        onResult.accept(false);
                     }
                 }
             }
@@ -273,6 +274,40 @@ public class DialogUtil {
             return null;
         }
     }
+    public static void showExitConfirmationDialog(Stage stage, Runnable onExit, Runnable onSaveLocally, Runnable onUpload) {
+        VisDialog dialog = new VisDialog("Exit Application") {
+            @Override
+            protected void result(Object object) {
+                if (object instanceof String) {
+                    String result = (String) object;
+                    switch (result) {
+                        case "SAVE_LOCALLY":
+                            onSaveLocally.run();
+                            break;
+                        case "UPLOAD":
+                            onUpload.run();
+                            break;
+                        case "EXIT":
+                            onExit.run();
+                            break;
+                        case "CANCEL":
+                            // Do nothing
+                            break;
+                    }
+                    hide();
+                }
+            }
+        };
+
+        dialog.text("Do you want to save your work before exiting?");
+        dialog.button("Save Locally", "SAVE_LOCALLY");
+        dialog.button("Upload to Dropbox", "UPLOAD");
+        dialog.button("Exit", "EXIT");
+        dialog.button("Cancel", "CANCEL");
+
+        dialog.show(stage);
+    }
+
     public static void showEmptyDialog(Stage stage,String title, String message) {
         new Dialog(title, UIUtils.visSkin) {{
             text(message);

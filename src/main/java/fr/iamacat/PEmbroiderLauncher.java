@@ -104,9 +104,26 @@ public class PEmbroiderLauncher extends Game {
                 for (String path : files) {
                     FileHandle file = Gdx.files.absolute(path);
                     if (isImageFile(file)) {
+                        fr.iamacat.pembroider_converter.Main.enableEscapeMenu = true;
                         loadAndDisplayImage(file, fr.iamacat.pembroider_converter.Main.getStage());
                     }
                 }
+            }
+            @Override
+            public boolean closeRequested() {
+                PEmbroiderLauncher launcher = (PEmbroiderLauncher) Gdx.app.getApplicationListener();
+                if (launcher.getScreen() instanceof fr.iamacat.pembroider_converter.Main mainScreen) {
+                    if (!fr.iamacat.pembroider_converter.Main.enableEscapeMenu) {
+                        return true;
+                    }
+                    if (mainScreen.isExitConfirmed()) {
+                        return true;
+                    } else {
+                        Gdx.app.postRunnable(mainScreen::handleExitRequest);
+                        return false;
+                    }
+                }
+                return true;
             }
         });
         new Lwjgl3Application(new PEmbroiderLauncher(), config);

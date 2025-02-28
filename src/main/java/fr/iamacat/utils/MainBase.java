@@ -1,14 +1,11 @@
 package fr.iamacat.utils;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import fr.iamacat.pembroider_converter.Main;
 
-public class MainBase implements Screen, Translatable , InputProcessor {
+public class MainBase implements Screen, Translatable , InputProcessor, ApplicationListener {
 
     private static Stage stage;
 
@@ -81,9 +78,20 @@ public class MainBase implements Screen, Translatable , InputProcessor {
     }
 
     @Override
+    public void create() {
+
+    }
+
+    @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
     }
+
+    @Override
+    public void render() {
+
+    }
+
     @Override
     public void pause() {
 

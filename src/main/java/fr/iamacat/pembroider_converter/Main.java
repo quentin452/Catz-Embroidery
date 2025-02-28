@@ -20,7 +20,7 @@ import fr.iamacat.utils.enums.SaveLocallyType;
 import javax.swing.*;
 
 import static fr.iamacat.utils.UIUtils.*;
-
+// TODO update progressBar during file loading/saving
 public class Main extends MainBase {
     private PEmbroiderGraphics embroidery;
     private PopupMenu fileMenu,editMenu,colorModeMenu,hatchModeMenu,saveLocallyTypeMenu,saveToDropboxTypeMenu;
@@ -34,11 +34,11 @@ public class Main extends MainBase {
     public boolean FillB = false;
     private VisTable rootTable;
     private boolean showPreview = false;
-    private boolean enableEscapeMenu = false;
+    public static boolean enableEscapeMenu = false;
     private Slider progressBar;
     private float visualizationWidth = 95;
     private float visualizationHeight = 95;
-
+    private static boolean exitConfirmed = false;
     public Main() {
         rootTable = new VisTable();
         rootTable.setFillParent(true);
@@ -139,7 +139,8 @@ public class Main extends MainBase {
 
     public void refreshPreview(){
         if (displayedImage != null) {
-            processImageWithProgress();
+            enableEscapeMenu = true;
+            //processImageWithProgress(); // TODO
         }
     }
 
@@ -246,14 +247,6 @@ public class Main extends MainBase {
         }
     }
 
-    @Override
-    public boolean keyDown(int keycode) {
-        Texture texture =  ApplicationUtil.copyImage(keycode);
-        if (texture != null) {
-            updateDisplayedImage(texture);
-        }
-        return false;
-    }
     private void showLoadDialog() {
         DialogUtil.showFileChooserDialog(getStage(), selectedImage -> {
             if (selectedImage != null) {
@@ -261,19 +254,76 @@ public class Main extends MainBase {
                     displayedImage.remove();
                 }
                 displayedImage = selectedImage;
-                if (displayedImage != null) {
-                    refreshPreview();
+                refreshPreview();
+            }
+        });
+    }
+    @Override
+    public boolean keyDown(int keycode) {
+        if (keycode == Input.Keys.ESCAPE && enableEscapeMenu) {
+            // Show exit confirmation dialog
+            DialogUtil.showExitConfirmationDialog(
+                    getStage(),
+                    () -> Gdx.app.exit(), // Exit immediately
+                    () -> showSaveLocallyDialog(currentSaveLocallyType, () -> Gdx.app.exit()), // Save locally then exit
+                    () -> showDropboxDialog(currentSaveDropboxType, () -> Gdx.app.exit()) // Upload then exit
+            );
+            return true; // Consume the event
+        }
+        // Existing key handling for image copy
+        Texture texture = ApplicationUtil.copyImage(keycode);
+        if (texture != null) {
+            updateDisplayedImage(texture);
+        }
+        return false;
+    }
+
+    private void showSaveLocallyDialog(SaveLocallyType type, Runnable onSuccess) {
+        currentSaveLocallyType = type;
+        DialogUtil.showSaveDialog(currentSaveLocallyType, getStage(), displayedImage, success -> {
+            if (success) {
+                enableEscapeMenu = false;
+                if (onSuccess != null) {
+                    onSuccess.run();
                 }
             }
         });
     }
 
+    private void showDropboxDialog(SaveDropboxType type, Runnable onSuccess) {
+        currentSaveDropboxType = type;
+        DialogUtil.showUploadDialog(currentSaveDropboxType, getStage(), displayedImage, success -> {
+            if (success) {
+                enableEscapeMenu = false;
+                if (onSuccess != null) {
+                    onSuccess.run();
+                }
+            }
+        });
+    }
     private void showSaveLocallyDialog(SaveLocallyType type) {
         currentSaveLocallyType = type;
-        DialogUtil.showSaveDialog(currentSaveLocallyType,getStage(),displayedImage);
+        showSaveLocallyDialog(currentSaveLocallyType, null);
     }
     private void showDropboxDialog(SaveDropboxType type) {
         currentSaveDropboxType = type;
-        DialogUtil.showUploadDialog(currentSaveDropboxType,getStage(),displayedImage);
+        showDropboxDialog(currentSaveDropboxType, null);
+    }
+    public boolean isExitConfirmed() {
+        return exitConfirmed;
+    }
+
+    public static void confirmExit() {
+        exitConfirmed = true;
+        Gdx.app.exit(); // Relance la fermeture, cette fois autorisée
+    }
+
+    public void handleExitRequest() {
+        DialogUtil.showExitConfirmationDialog(
+                getStage(),
+                () -> confirmExit(), // Exit direct
+                () -> showSaveLocallyDialog(currentSaveLocallyType, Main::confirmExit), // Sauvegarde locale puis exit
+                () -> showDropboxDialog(currentSaveDropboxType, Main::confirmExit) // Upload puis exit
+        );
     }
 }

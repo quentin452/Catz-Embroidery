@@ -164,7 +164,7 @@ public class DropboxUtil {
         messageDialog.show(stage);
     }
 
-    public static void uploadToDropbox(Stage stage,File localFile) {
+    public static boolean uploadToDropbox(Stage stage, File localFile) {
         String fileName = localFile.getName();
         String dropboxPath = "/Catz-Embroidery/" + fileName;
         try {
@@ -180,10 +180,12 @@ public class DropboxUtil {
                         .withMode(WriteMode.ADD)
                         .uploadAndFinish(inputStream);
                 Gdx.app.postRunnable(() -> showMessage(stage, UIUtils.visSkin, t("file_uploaded_dropbox") + metadata.getPathDisplay()));
+                return true;  // Retourne true si l'upload est réussi
             }
         } catch (DbxException | IOException e) {
             Logger.getInstance().log(Logger.Project.Launcher, "Erreur lors de l'upload sur Dropbox : " + e.getMessage());
             Gdx.app.postRunnable(() -> showMessage(stage, UIUtils.visSkin, t("error_uploading_dropbox")));
+            return false;  // Retourne false en cas d'erreur
         }
     }
 
