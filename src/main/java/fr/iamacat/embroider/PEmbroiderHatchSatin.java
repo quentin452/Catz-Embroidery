@@ -2,9 +2,11 @@ package fr.iamacat.embroider;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import fr.iamacat.utils.PConstants;
 
 public class PEmbroiderHatchSatin {
 	public static PEmbroiderGraphics G;
@@ -38,14 +40,23 @@ public class PEmbroiderHatchSatin {
 			w = _w;
 			h = _h;
 		}
-		public Im(Image im){
-			data = new int[im.width*im.height];
-			im.loadPixels();
-			for (int i = 0; i < im.width*im.height; i++){
-				data[i] = ((im.pixels[i]&255) > 128) ? 1 : 0;
+		public Im(Pixmap pixmap) {
+			w = pixmap.getWidth();
+			h = pixmap.getHeight();
+			data = new int[w * h];
+
+			// Loop through all pixels in the pixmap and convert them to binary data
+			for (int y = 0; y < h; y++) {
+				for (int x = 0; x < w; x++) {
+					// Get pixel at (x, y)
+					int pixel = pixmap.getPixel(x, y);
+
+					// Check the brightness of the pixel (using red, green, blue values)
+					// Convert to binary: 0 if dark, 1 if bright
+					int brightness = (pixel & 0xFF);  // Extract the red component (or use any channel)
+					data[y * w + x] = (brightness > 128) ? 1 : 0;  // Binary thresholding
+				}
 			}
-			w = im.width;
-			h = im.height;
 		}
 		Im (Im im){
 			w = im.w;
@@ -76,15 +87,26 @@ public class PEmbroiderHatchSatin {
 		void set(Pt p, int v){
 			set(p.x,p.y,v);
 		}
-		Image toImage(){
-			Image im = G.app.createImage(w,h,PConstants.RGB);
-			im.loadPixels();
-			for (int i = 0; i < data.length; i++){
-				int g = (data[i]*127+128) & 255;
-				im.pixels[i] = (g << 16) | (g << 8) | (g);
+		public Pixmap toPixmap() {
+			// Create a Pixmap with width and height
+			Pixmap pixmap = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+
+			// Loop through each pixel in the data array
+			for (int i = 0; i < data.length; i++) {
+				// Convert the data value to a grayscale intensity (0-255)
+				int g = (data[i] * 127 + 128) & 255;
+
+				// Set the pixel at position (x, y)
+				int x = i % w;
+				int y = i / w;
+
+				// Set the pixel color in the Pixmap (ARGB format)
+				Color color = new Color(g / 255f, g / 255f, g / 255f, 1f); // Normalize to 0-1 for each color channel
+				pixmap.setColor(color);
+				pixmap.drawPixel(x, y);  // Draw the pixel
 			}
-			im.updatePixels();
-			return im;
+
+			return pixmap;
 		}
 
 	}
@@ -857,15 +879,15 @@ public class PEmbroiderHatchSatin {
 				ret.get(0).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				continue;
 			}
-			if (i != pts.size()-1 && pts.get(i).y == pts.get(i-1).y && pts.get(i).y == pts.get(i+1).y && PApplet.abs(pts.get(i).x-pts.get(i-1).x) == 1 && pts.get(i+1).x-pts.get(i).x == pts.get(i).x-pts.get(i-1).x) {
-				int hn = (int)PApplet.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * ((float)pts.get(i).y * 2) * (float)n);
+			if (i != pts.size()-1 && pts.get(i).y == pts.get(i-1).y && pts.get(i).y == pts.get(i+1).y && Math.abs(pts.get(i).x-pts.get(i-1).x) == 1 && pts.get(i+1).x-pts.get(i).x == pts.get(i).x-pts.get(i-1).x) {
+				int hn = (int)Math.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * ((float)pts.get(i).y * 2) * (float)n);
 				if ((pts.get(i).x+hn) % n == 0) {
 					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
-			}else if (PApplet.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i-1).x-pts.get(i).x > 2) {
+			}else if (Math.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i-1).x-pts.get(i).x > 2) {
 //
 				for (int j = pts.get(i-1).x-1; j > pts.get(i).x; j--) {
-					int hn = (int)PApplet.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * ((float)pts.get(i).y * 2 + 1) * (float)n);
+					int hn = (int)Math.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * ((float)pts.get(i).y * 2 + 1) * (float)n);
 					if ((j+hn)%n == 0) {
 						float t = 0.5f;
 						if (G.SATIN_MODE != PEmbroiderGraphics.SIGSAG) {
@@ -876,11 +898,11 @@ public class PEmbroiderHatchSatin {
 					}
 				}
 				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
-			}else if (i != pts.size()-1 && PApplet.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i+1).y - pts.get(i).y == pts.get(i).y - pts.get(i-1).y) {
+			}else if (i != pts.size()-1 && Math.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i+1).y - pts.get(i).y == pts.get(i).y - pts.get(i-1).y) {
 				if (pts.get(i).y % 2 == 0) {
 					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
-			}else if (PApplet.abs(pts.get(i).y - pts.get(i-1).y) > 8 || PApplet.abs(pts.get(i).x - pts.get(i-1).x) > 8){
+			}else if (Math.abs(pts.get(i).y - pts.get(i-1).y) > 8 || Math.abs(pts.get(i).x - pts.get(i-1).x) > 8){
 //				ret.add(new ArrayList<Vector2>());
 				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}else {
@@ -901,18 +923,18 @@ public class PEmbroiderHatchSatin {
 				ret.get(0).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				continue;
 			}
-			if (i != pts.size()-1 && pts.get(i).y == pts.get(i-1).y && pts.get(i).y == pts.get(i+1).y && PApplet.abs(pts.get(i).x-pts.get(i-1).x) == 1 && pts.get(i+1).x-pts.get(i).x == pts.get(i).x-pts.get(i-1).x) {
-				int hn = (int)PApplet.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * (float)pts.get(i).y * (float)n);
+			if (i != pts.size()-1 && pts.get(i).y == pts.get(i-1).y && pts.get(i).y == pts.get(i+1).y && Math.abs(pts.get(i).x-pts.get(i-1).x) == 1 && pts.get(i+1).x-pts.get(i).x == pts.get(i).x-pts.get(i-1).x) {
+				int hn = (int)Math.ceil(G.SATIN_RESAMPLING_OFFSET_FACTOR * (float)pts.get(i).y * (float)n);
 				
 				if ((pts.get(i).x+hn) % n == 0) {
 					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
 				
-			}else if (i != pts.size()-1 && PApplet.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i+1).y - pts.get(i).y == pts.get(i).y - pts.get(i-1).y) {
+			}else if (i != pts.size()-1 && Math.abs(pts.get(i).y - pts.get(i-1).y) == 1 && pts.get(i+1).y - pts.get(i).y == pts.get(i).y - pts.get(i-1).y) {
 				if (pts.get(i).y % 2 == 0) {
 					ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 				}
-			}else if (PApplet.abs(pts.get(i).y - pts.get(i-1).y) > 8 || PApplet.abs(pts.get(i).x - pts.get(i-1).x) > 8){
+			}else if (Math.abs(pts.get(i).y - pts.get(i-1).y) > 8 || Math.abs(pts.get(i).x - pts.get(i-1).x) > 8){
 //				ret.add(new ArrayList<Vector2>());
 				ret.get(ret.size()-1).add(new Vector2(pts.get(i).x, pts.get(i).y));
 			}else {
