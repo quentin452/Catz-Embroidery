@@ -19,6 +19,7 @@ public class MainBase implements Screen, Translatable , InputProcessor {
         multiplexer.addProcessor(stage);
         multiplexer.addProcessor(this);
         Gdx.input.setInputProcessor(multiplexer);
+        Translator.getInstance().registerTranslatable(this);
     }
 
     @Override

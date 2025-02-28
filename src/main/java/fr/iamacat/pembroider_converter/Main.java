@@ -2,19 +2,27 @@ package fr.iamacat.pembroider_converter;
 
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
+import fr.iamacat.embroider.PEmbroiderGraphics;
 import fr.iamacat.utils.*;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import fr.iamacat.utils.enums.SaveDropboxType;
 import fr.iamacat.utils.enums.SaveLocallyType;
 
+import javax.swing.*;
+
 import static fr.iamacat.utils.UIUtils.*;
 
 public class Main extends MainBase {
+    private PEmbroiderGraphics embroidery;
     private PopupMenu fileMenu,editMenu,colorModeMenu,hatchModeMenu,saveLocallyTypeMenu,saveToDropboxTypeMenu;
     private ColorType currentColorType = ColorType.MultiColor;
     private HatchModeType currentHatchModeType = HatchModeType.Parallel;
@@ -25,11 +33,18 @@ public class Main extends MainBase {
     private MenuItem saveLocallyButton , saveToDropboxButton;
     public boolean FillB = false;
     private VisTable rootTable;
+    private boolean showPreview = false;
+    private boolean enableEscapeMenu = false;
+    private Slider progressBar;
+    private float visualizationWidth = 95;
+    private float visualizationHeight = 95;
+
     public Main() {
         rootTable = new VisTable();
         rootTable.setFillParent(true);
         getStage().addActor(rootTable);
         createMenu();
+        embroidery = new PEmbroiderGraphics(this, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), visSkin);
     }
 
     private void createMenu() {
@@ -58,18 +73,39 @@ public class Main extends MainBase {
 
         // OTHER
         createSettingsPanel();
+        progressBar = new VisSlider(0, 100, 1, false); // Min: 0, Max: 100, Step: 1, Horizontal
+        progressBar.setValue(0);
+        progressBar.setVisible(false);
+
+        VisTable sliderContainer = new VisTable();
+        sliderContainer.add(new VisLabel(Translator.getInstance().translate("progress"))).padRight(10);
+        sliderContainer.add(progressBar).width(300).height(20);
+        sliderContainer.setPosition(Gdx.graphics.getWidth() / 2 - 150, 240);
     }
     private void createSettingsPanel() {
         VisTable settingsTable = new VisTable();
         settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
         settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
-
-        createSettingsTable(settingsTable,"Space Between Points", String.valueOf(spaceBetweenPoints), 50, value -> spaceBetweenPoints = value);
-        createSettingsTable(settingsTable,"WIDTH (MM)", String.valueOf(exportWidth), 50, value -> exportWidth = value);
-        createSettingsTable(settingsTable,"HEIGHT (MM)", String.valueOf(exportHeight), 50, value -> exportHeight = value);
-        createSettingsTable(settingsTable,"STROKE WEIGHT", String.valueOf(strokeWeight), 50, value -> strokeWeight = value);
-        createSettingsTable(settingsTable,"MAX COLORS", String.valueOf(maxColors), 50, value -> maxColors = value);
-
+        createSettingsTable(settingsTable, "Space Between Points", String.valueOf(spaceBetweenPoints), 50, value -> {
+            spaceBetweenPoints = value;
+            refreshPreview();
+        });
+        createSettingsTable(settingsTable, "WIDTH (MM)", String.valueOf(exportWidth), 50, value -> {
+            exportWidth = value;
+            refreshPreview();
+        });
+        createSettingsTable(settingsTable, "HEIGHT (MM)", String.valueOf(exportHeight), 50, value -> {
+            exportHeight = value;
+            refreshPreview();
+        });
+        createSettingsTable(settingsTable, "STROKE WEIGHT", String.valueOf(strokeWeight), 50, value -> {
+            strokeWeight = value;
+            refreshPreview();
+        });
+        createSettingsTable(settingsTable, "MAX COLORS", String.valueOf(maxColors), 50, value -> {
+            maxColors = value;
+            refreshPreview();
+        });
         VisCheckBox checkBox = new VisCheckBox(t("fill_mode"));
         checkBox.setChecked(FillB);
         checkBox.addListener(event -> FillB = checkBox.isChecked());
@@ -101,6 +137,93 @@ public class Main extends MainBase {
         setMenuItemChecked(colorModeMenu, type.toString());
     }
 
+    public void refreshPreview(){
+        if (displayedImage != null) {
+            processImageWithProgress();
+        }
+    }
+
+    private void processImageWithProgress() {
+        enableEscapeMenu = true;
+        showPreview = false;
+        updateProgress(0, true);
+        new Thread(() -> {
+            try {
+                embroidery.popyLineMulticolor = currentColorType == ColorType.MultiColor;
+                embroidery.beginDraw();
+                embroidery.clear();
+                displayedImage.setSize(1000, 1000);
+                embroidery.colorizeEmbroideryFromImage = currentColorType == ColorType.Realistic;
+                if (embroidery.colorizeEmbroideryFromImage) {
+                    Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
+                    embroidery.extractedColors = embroidery.extractColorsFromImage(texture);
+                }
+                updateProgress(10);
+                embroidery.beginCull();
+
+                switch (currentHatchModeType) {
+                    case Cross:
+                        embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                        break;
+                    case Parallel:
+                        embroidery.hatchMode(PEmbroiderGraphics.PARALLEL);
+                        break;
+                    case Concentric:
+                        embroidery.hatchMode(PEmbroiderGraphics.CONCENTRIC);
+                        break;
+                    case Spiral:
+                        embroidery.hatchMode(PEmbroiderGraphics.SPIRAL);
+                        break;
+                    case PerlinNoise:
+                        embroidery.hatchMode(PEmbroiderGraphics.PERLIN);
+                        break;
+                    default:
+                        embroidery.hatchMode(PEmbroiderGraphics.CROSS);
+                }
+                embroidery.hatchSpacing(spaceBetweenPoints);
+                embroidery.strokeWeight(strokeWeight);
+                embroidery.strokeMode(PEmbroiderGraphics.PERPENDICULAR);
+                embroidery.strokeSpacing(spaceBetweenPoints);
+                embroidery.stroke(0, 0, 0);
+                updateProgress(40);
+                if (!FillB) {
+                    embroidery.noFill();
+                } else {
+                    embroidery.fill(0, 0, 0);
+                }
+                Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
+                texture.getTextureData().prepare();
+                Pixmap pixmap = texture.getTextureData().consumePixmap();
+                embroidery.image(pixmap, 860, 70);
+                pixmap.dispose();
+                embroidery.endCull();
+                updateProgress(80);
+                SwingUtilities.invokeLater(() -> {
+                    showPreview = true;
+                    updateProgress(100, false);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                SwingUtilities.invokeLater(() -> {
+                    progressBar.setVisible(false);
+                });
+            }
+        }).start();
+    }
+    private void updateProgress(int value) {
+        SwingUtilities.invokeLater(() -> {
+            progressBar.setValue(value);
+        });
+    }
+
+    // Surcharge pour gérer la visibilité
+    private void updateProgress(int value, boolean visible) {
+        SwingUtilities.invokeLater(() -> {
+            progressBar.setValue(value);
+            progressBar.setVisible(visible);
+        });
+    }
+
     @Override
     public void render(float delta) {
         super.render(delta);
@@ -113,6 +236,13 @@ public class Main extends MainBase {
         }
         if (saveToDropboxButton != null) {
             saveToDropboxButton.setDisabled(!isImageAvailable);
+        }
+        if (showPreview && embroidery != null) {
+            if (displayedImage != null && embroidery.polylines != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
+                embroidery.visualize(true, false, false, Integer.MAX_VALUE,
+                        visualizationWidth * 2.71430f,
+                        visualizationHeight * 2.71430f, +550, 250);
+            }
         }
     }
 
@@ -131,6 +261,9 @@ public class Main extends MainBase {
                     displayedImage.remove();
                 }
                 displayedImage = selectedImage;
+                if (displayedImage != null) {
+                    refreshPreview();
+                }
             }
         });
     }

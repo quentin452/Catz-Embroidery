@@ -109,7 +109,6 @@ public class Main extends MainBase {
         Tool[] tools = Tool.values();
         table.add().height(100).row();
         table.defaults().size(40).pad(5);
-        table.top();
         final Tool[] currentTool = {null};
         for (Tool tool : tools) {
             VisTextButton button = new VisTextButton(tool.name());
