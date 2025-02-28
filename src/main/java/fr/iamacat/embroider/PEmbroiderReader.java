@@ -1,6 +1,8 @@
 package fr.iamacat.embroider;
 
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -101,9 +103,9 @@ public class PEmbroiderReader {
     public static EmbroideryData read(String filename, int canvasWidth, int canvasHeight) {
         // Séparer le nom du fichier et son extension
         String[] tokens = filename.split("\\.(?=[^\\.]+$)");
-        println("Reading file: " + filename);
-        println("Base name: " + tokens[0]);
-        println("Extension: " + tokens[1]);
+        System.out.println("Reading file: " + filename);
+        System.out.println("Base name: " + tokens[0]);
+        System.out.println("Extension: " + tokens[1]);
 
         // Créer des listes pour stocker les données lues (polylines et couleurs)
         ArrayList<ArrayList<Vector2>> polylines = new ArrayList<>();
@@ -120,7 +122,7 @@ public class PEmbroiderReader {
             } else if (tokens[1].equalsIgnoreCase("PES")) {
                 PES.read(filename, polylines, colors,canvasWidth,canvasHeight);
             } else {
-                println("Unsupported format: " + tokens[1]);
+                System.out.println("Unsupported format: " + tokens[1]);
             }
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());
@@ -130,64 +132,61 @@ public class PEmbroiderReader {
         return new EmbroideryData(polylines, colors);
     }
 
-    public static Image createImageFromPolylines(ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height, Screen p) {
-        Image image = new Image(width, height, PConstants.RGB);
-        image.loadPixels();
+    public static Pixmap createImageFromPolylines(ArrayList<ArrayList<Vector2>> polylines, ArrayList<Integer> colors, int width, int height) {
+        // Create a Pixmap with the given width and height
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGB888);
 
-        // Effacer l'image pour obtenir un fond blanc
-        for (int i = 0; i < image.pixels.length; i++) {
-            image.pixels[i] = p.color(255);
-        }
+        // Clear the image to make the background white
+        pixmap.setColor(Color.WHITE);
+        pixmap.fill();  // Fill the pixmap with the background color (white)
 
-        // Dessiner les polylines sur l'image
+        // Draw the polylines on the pixmap
         for (int i = 0; i < polylines.size(); i++) {
             ArrayList<Vector2> polyline = polylines.get(i);
-            int color = colors.get(i);
+            int colorInt = colors.get(i); // Get the color for the polyline
 
+            // Set the drawing color for the current polyline
+            pixmap.setColor(new Color((colorInt >> 16) & 0xFF, (colorInt >> 8) & 0xFF, colorInt & 0xFF, 1));
+
+            // Draw the polyline on the pixmap
             for (int j = 0; j < polyline.size() - 1; j++) {
                 Vector2 p1 = polyline.get(j);
                 Vector2 p2 = polyline.get(j + 1);
-                drawLineOnImage(image, p1, p2, color, width, height);
+                drawLineOnPixmap(pixmap, p1, p2);
             }
         }
 
-        image.updatePixels();
-        return image;
+        return pixmap;
     }
 
-    private static void drawLineOnImage(Image image, Vector2 p1, Vector2 p2, int color, int width, int height) {
-        int x1 = (int) MathUtils.map(p1.x, 0, width, 0, image.getWidth());
-        int y1 = (int) MathUtils.map(p1.y, 0, height, 0, image.getHeight());
-        int x2 = (int) MathUtils.map(p2.x, 0, width, 0, image.getWidth());
-        int y2 = (int) MathUtils.map(p2.y, 0, height, 0, image.getHeight());
+    private static void drawLineOnPixmap(Pixmap pixmap, Vector2 p1, Vector2 p2) {
+        int x0 = (int) p1.x;
+        int y0 = (int) p1.y;
+        int x1 = (int) p2.x;
+        int y1 = (int) p2.y;
 
-        // Algorithme de tracé de ligne de Bresenham
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
+        int dx = Math.abs(x1 - x0);
+        int dy = Math.abs(y1 - y0);
+        int sx = (x0 < x1) ? 1 : -1;
+        int sy = (y0 < y1) ? 1 : -1;
         int err = dx - dy;
 
         while (true) {
-            if (x1 >= 0 && x1 < image.getWidth() && y1 >= 0 && y1 < image.getHeight()) {
-                image.set(x1, y1, color);
-            }
+            pixmap.drawPixel(x0, y0);
 
-            if (x1 == x2 && y1 == y2) {
-                break;
-            }
-            int e2 = 2 * err;
+            if (x0 == x1 && y0 == y1) break;
+
+            int e2 = err * 2;
             if (e2 > -dy) {
                 err -= dy;
-                x1 += sx;
+                x0 += sx;
             }
             if (e2 < dx) {
                 err += dx;
-                y1 += sy;
+                y0 += sy;
             }
         }
     }
-
 
     // Classe pour encapsuler les données d'embroidery
     public static class EmbroideryData {
