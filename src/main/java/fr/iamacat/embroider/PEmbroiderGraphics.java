@@ -1145,6 +1145,7 @@ public class PEmbroiderGraphics {
 	 *  @param resampleRandomOffset   whether to add a random offset during resample step to prevent alignment patterns
 	 */
 	public void pushPolyline(ArrayList<Vector2> poly, int color, float resampleRandomizeOffset) {
+		System.out.println("Called pushPolyline");
 		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
 		for (int i = 0; i < poly.size(); i++) {
 			poly2.add(poly.get(i).cpy());
@@ -2392,7 +2393,6 @@ public class PEmbroiderGraphics {
 	 *  @param close whether the polyline is considered as closed (polygon) or open (polyline)
 	 */
 	public void _stroke(ArrayList<ArrayList<Vector2>> polys, boolean close) {
-
 		if (STROKE_WEIGHT <= 1) {
 			if (close) {
 				for (int i = 0; i < polys.size(); i++) {
@@ -4950,90 +4950,103 @@ public class PEmbroiderGraphics {
 	 * @param h    height
 	 */
 	public void image(Pixmap im, int x, int y, int w, int h) {
-		// Convert Pixmap to Texture
-		Texture texture = new Texture(im);
+		System.out.println("Called image from pembroidergraphics");
+		Gdx.app.postRunnable(() -> {
+			System.out.println("Called image Gdx.app.postRunnable from pembroidergraphics");
+			// Create a deep copy of the Pixmap to avoid modifying the original image
+			Pixmap pixmapCopy = new Pixmap(im.getWidth(), im.getHeight(), Pixmap.Format.RGBA8888);
+			pixmapCopy.drawPixmap(im, 0, 0);
 
-		// Create a framebuffer for image processing
-		FrameBuffer frameBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, w, h, false);
-		SpriteBatch spriteBatch = new SpriteBatch();
+			// Convert the copied Pixmap to Texture
+			Texture texture = new Texture(pixmapCopy);
 
-		// Draw image to framebuffer
-		frameBuffer.begin();
-		Gdx.gl.glClearColor(0, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+			// Create a framebuffer for image processing
+			FrameBuffer frameBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, w, h, false);
+			SpriteBatch spriteBatch = new SpriteBatch();
 
-		spriteBatch.begin();
-		spriteBatch.draw(texture, 0, 0, w, h);  // Now using a Texture, not Pixmap
-		spriteBatch.end();
-		frameBuffer.end();
+			// Draw image to framebuffer
+			frameBuffer.begin();
+			Gdx.gl.glClearColor(0, 0, 0, 1);
+			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		// Convert framebuffer to pixmap for processing
-		Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, w, h);
+			spriteBatch.begin();
+			spriteBatch.draw(texture, 0, 0, w, h);  // Now using the copy of Pixmap
+			spriteBatch.end();
+			frameBuffer.end();
 
-		// Apply threshold filter (replacing Processing's PConstants.THRESHOLD)
-		for (int i = 0; i < pixmap.getWidth(); i++) {
-			for (int j = 0; j < pixmap.getHeight(); j++) {
-				int pixel = pixmap.getPixel(i, j);
-				int r = (pixel >> 24) & 0xFF;
-				int g = (pixel >> 16) & 0xFF;
-				int b = (pixel >> 8) & 0xFF;
-				int brightness = (r + g + b) / 3;
-				int threshold = 128;  // Modify as needed
-				pixmap.drawPixel(i, j, brightness > threshold ? Color.rgba8888(Color.WHITE) : Color.rgba8888(Color.BLACK));
-			}
-		}
-		pixmap.dispose();
-		texture.dispose();
-		// Find contours (assuming PEmbroiderTrace.findContours works in LibGDX)
-		ArrayList<ArrayList<Vector2>> polys = PEmbroiderTrace.findContours(pixmap);
+			// Convert framebuffer to pixmap for processing
+			Pixmap processedPixmap = Pixmap.createFromFrameBuffer(0, 0, w, h);
 
-		for (int i = polys.size() - 1; i >= 0; i--) {
-			if (polys.get(i).size() < 3) {
-				polys.remove(i);
-				continue;
-			}
-
-			// Approximate polygon
-			polys.set(i, PEmbroiderTrace.approxPolyDP(polys.get(i), 1));
-		}
-
-		// Draw the processed shape
-		ShapeRenderer shapeRenderer = new ShapeRenderer();
-		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-
-		// Adjust for translation (replacing Processing's pushMatrix/translate/popMatrix)
-		for (ArrayList<Vector2> polyline : polys) {
-			for (int i = 0; i < polyline.size() - 1; i++) {
-				shapeRenderer.line(x + polyline.get(i).x, y + polyline.get(i).y,
-						x + polyline.get(i + 1).x, y + polyline.get(i + 1).y);
-			}
-		}
-
-		shapeRenderer.end();
-
-		// Fill & Stroke logic
-		if (isStroke && FIRST_STROKE_THEN_FILL) {
-			_stroke(polys, true);
-		}
-		if (isFill) {
-			if (!isStroke && HATCH_MODE == CONCENTRIC) {
-				for (ArrayList<Vector2> polyline : polys) {
-					pushPolyline(polyline, currentFill);
+			// Apply threshold filter (replacing Processing's PConstants.THRESHOLD)
+			for (int i = 0; i < processedPixmap.getWidth(); i++) {
+				for (int j = 0; j < processedPixmap.getHeight(); j++) {
+					int pixel = processedPixmap.getPixel(i, j);
+					int r = (pixel >> 24) & 0xFF;
+					int g = (pixel >> 16) & 0xFF;
+					int b = (pixel >> 8) & 0xFF;
+					int brightness = (r + g + b) / 3;
+					int threshold = 128;  // Modify as needed
+					processedPixmap.drawPixel(i, j, brightness > threshold ? Color.rgba8888(Color.WHITE) : Color.rgba8888(Color.BLACK));
 				}
 			}
-			hatchRaster(pixmap);
-		}
-		if (isStroke && !FIRST_STROKE_THEN_FILL) {
-			_stroke(polys, true);
-		}
 
-		// Cleanup
-		spriteBatch.dispose();
-		shapeRenderer.dispose();
-		frameBuffer.dispose();
+			// Find contours (assuming PEmbroiderTrace.findContours works in LibGDX)
+			ArrayList<ArrayList<Vector2>> polys = PEmbroiderTrace.findContours(processedPixmap);
 
-		currentCullGroup++;
+			for (int i = polys.size() - 1; i >= 0; i--) {
+				if (polys.get(i).size() < 3) {
+					polys.remove(i);
+					continue;
+				}
+
+				// Approximate polygon
+				polys.set(i, PEmbroiderTrace.approxPolyDP(polys.get(i), 1));
+			}
+
+			// Draw the processed shape
+			ShapeRenderer shapeRenderer = new ShapeRenderer();
+			shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+			// Adjust for translation (replacing Processing's pushMatrix/translate/popMatrix)
+			for (ArrayList<Vector2> polyline : polys) {
+				for (int i = 0; i < polyline.size() - 1; i++) {
+					shapeRenderer.line(x + polyline.get(i).x, y + polyline.get(i).y,
+							x + polyline.get(i + 1).x, y + polyline.get(i + 1).y);
+				}
+			}
+
+			shapeRenderer.end();
+
+			// Fill & Stroke logic
+			if (isStroke && FIRST_STROKE_THEN_FILL) {
+				_stroke(polys, true);
+			}
+			if (isFill) {
+				if (!isStroke && HATCH_MODE == CONCENTRIC) {
+					for (ArrayList<Vector2> polyline : polys) {
+						pushPolyline(polyline, currentFill);
+					}
+				}
+				hatchRaster(processedPixmap);
+			}
+			if (isStroke && !FIRST_STROKE_THEN_FILL) {
+				_stroke(polys, true);
+			}
+
+			// Cleanup
+			spriteBatch.dispose();
+			shapeRenderer.dispose();
+			frameBuffer.dispose();
+
+			// Dispose of the copied Pixmap and processed Pixmap
+			pixmapCopy.dispose();
+			processedPixmap.dispose();
+			texture.dispose();
+
+			currentCullGroup++;
+		});
 	}
+
 
 	public void image(Pixmap im, int x, int y) {
 		image(im, x, y, im.getWidth(), im.getHeight());

@@ -31,7 +31,7 @@ public class Main extends MainBase {
     private int spaceBetweenPoints = 10 , exportHeight = 95 , exportWidth = 95 , maxColors = 10 , strokeWeight = 20;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
-    public boolean FillB = false;
+    public boolean FillB = true;
     private VisTable rootTable;
     private boolean showPreview = false;
     public static boolean enableEscapeMenu = false;
@@ -139,8 +139,7 @@ public class Main extends MainBase {
 
     public void refreshPreview(){
         if (displayedImage != null) {
-            enableEscapeMenu = true;
-            //processImageWithProgress(); // TODO
+            processImageWithProgress(); // TODO
         }
     }
 
@@ -153,7 +152,7 @@ public class Main extends MainBase {
                 embroidery.popyLineMulticolor = currentColorType == ColorType.MultiColor;
                 embroidery.beginDraw();
                 embroidery.clear();
-                displayedImage.setSize(1000, 1000);
+               //displayedImage.setSize(1000, 1000);
                 embroidery.colorizeEmbroideryFromImage = currentColorType == ColorType.Realistic;
                 if (embroidery.colorizeEmbroideryFromImage) {
                     Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
@@ -196,7 +195,6 @@ public class Main extends MainBase {
                 texture.getTextureData().prepare();
                 Pixmap pixmap = texture.getTextureData().consumePixmap();
                 embroidery.image(pixmap, 860, 70);
-                pixmap.dispose();
                 embroidery.endCull();
                 updateProgress(80);
                 SwingUtilities.invokeLater(() -> {
@@ -239,10 +237,16 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-            if (displayedImage != null && embroidery.polylines != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
+            if (embroidery.polylines != null && !embroidery.polylines.isEmpty() && !embroidery.colors.isEmpty()) {
                 embroidery.visualize(true, false, false, Integer.MAX_VALUE,
                         visualizationWidth * 2.71430f,
                         visualizationHeight * 2.71430f, +550, 250);
+            }
+            if (embroidery.polylines.isEmpty()) {
+                //System.out.println("polylines is empty"); // TODO FIX THIS BUG
+            }
+            if (embroidery.colors.isEmpty()) {
+                //System.out.println("colors is empty"); // TODO FIX THIS BUG
             }
         }
     }
