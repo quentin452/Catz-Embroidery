@@ -13,7 +13,8 @@ import fr.iamacat.embroider.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.utils.*;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
-import fr.iamacat.utils.enums.SaveType;
+import fr.iamacat.utils.enums.SaveDropboxType;
+import fr.iamacat.utils.enums.SaveLocallyType;
 
 import javax.swing.*;
 
@@ -22,9 +23,9 @@ import static fr.iamacat.utils.UIUtils.*;
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
     private PopupMenu fileMenu,editMenu;
-    private SaveType currentSaveLocallyType = SaveType.JPG;
-    private SaveType currentSaveDropboxType = SaveType.JPG;
-    private int exportHeight = 95 , exportWidth = 95,broderyHeight = 320 , broderyWidth = 320;
+    private SaveLocallyType currentSaveLocallyType = SaveLocallyType.JPG;
+    private SaveDropboxType currentSaveDropboxType = SaveDropboxType.JPG;
+    private int exportHeight = 95 , exportWidth = 95,broderyHeight = 95 , broderyWidth = 95;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     private VisTable rootTable;
@@ -51,9 +52,9 @@ public class Main extends MainBase {
 
         // FILE MENU
         fileMenu = new PopupMenu();
-        saveLocallyButton = addMenuItem(fileMenu, t("save_locally"), SaveType.class, this::showSaveLocallyDialog);
+        saveLocallyButton = addMenuItem(fileMenu, t("save_locally"), SaveLocallyType.class, this::showSaveLocallyDialog);
         if (DropboxUtil.dropboxClient != null) {
-            saveToDropboxButton = addMenuItem(fileMenu, t("save_to_dropbox"), SaveType.class, this::showDropboxDialog);
+            saveToDropboxButton = addMenuItem(fileMenu, t("save_to_dropbox"), SaveDropboxType.class, this::showDropboxDialog);
         }
         addMenuItem(fileMenu, t("load_file"), this::showLoadDialog);
         addMenuItem(fileMenu, t("exit"), Gdx.app::exit);
@@ -137,14 +138,14 @@ public class Main extends MainBase {
         showPreview = false;
         updateProgress(0, true);
         embroidery.beginDraw();
-        embroidery.setHatchMode(HatchModeType.Cross);
+        embroidery.setHatchMode(HatchModeType.Parallel);
         embroidery.setHatchSpacing(embroidery.getHatchSpacing());
         updateProgress(10);
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
         embroidery.setColorMode(ColorType.Realistic);
-        embroidery.image(pixmap, 400, -139,broderyWidth,broderyHeight);
+        embroidery.image(pixmap, 0, 0,broderyWidth,broderyHeight);
 
         embroidery.endDraw();
 
@@ -218,9 +219,9 @@ public class Main extends MainBase {
         return false;
     }
 
-    private void showSaveLocallyDialog(SaveType type, Runnable onSuccess) {
+    private void showSaveLocallyDialog(SaveLocallyType type, Runnable onSuccess) {
         currentSaveLocallyType = type;
-        DialogUtil.showSaveDialog(currentSaveLocallyType, getStage(), embroidery, broderyWidth,broderyHeight, success -> {
+        DialogUtil.showSaveDialog(currentSaveLocallyType, getStage(), displayedImage, success -> {
             if (success) {
                 enableEscapeMenu = false;
                 if (onSuccess != null) {
@@ -230,9 +231,9 @@ public class Main extends MainBase {
         });
     }
 
-    private void showDropboxDialog(SaveType type, Runnable onSuccess) {
+    private void showDropboxDialog(SaveDropboxType type, Runnable onSuccess) {
         currentSaveDropboxType = type;
-        DialogUtil.showUploadDialog(currentSaveDropboxType, getStage(), embroidery, broderyWidth,broderyHeight, success -> {
+        DialogUtil.showUploadDialog(currentSaveDropboxType, getStage(), displayedImage, success -> {
             if (success) {
                 enableEscapeMenu = false;
                 if (onSuccess != null) {
@@ -241,11 +242,11 @@ public class Main extends MainBase {
             }
         });
     }
-    private void showSaveLocallyDialog(SaveType type) {
+    private void showSaveLocallyDialog(SaveLocallyType type) {
         currentSaveLocallyType = type;
         showSaveLocallyDialog(currentSaveLocallyType, null);
     }
-    private void showDropboxDialog(SaveType type) {
+    private void showDropboxDialog(SaveDropboxType type) {
         currentSaveDropboxType = type;
         showDropboxDialog(currentSaveDropboxType, null);
     }

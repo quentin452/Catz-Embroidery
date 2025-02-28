@@ -1,6 +1,6 @@
 package fr.iamacat.utils.enums;
 
-public enum SaveType {
+public enum SaveLocallyType {
     PNG,
     JPG,
     JPEG,

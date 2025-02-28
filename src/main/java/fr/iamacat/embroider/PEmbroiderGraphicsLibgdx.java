@@ -119,14 +119,12 @@ public class PEmbroiderGraphicsLibgdx {
     }
 
     public void image(Pixmap pixmap, float x, float y, int width, int height) {
-        System.out.println("Color mode" + colorMode);
-        System.out.println("Hatch mode" + hatchMode);
         this.width = width;
         this.height = height;
 
         // Compute scaled width and height
-        int scaledWidth = (int) (this.width * this.embroideryScale);
-        int scaledHeight = (int) (this.height * this.embroideryScale);
+        int scaledWidth = (int) (pixmap.getWidth() * this.embroideryScale);
+        int scaledHeight = (int) (pixmap.getHeight() * this.embroideryScale);
 
         // Check if the scaled image is outside the window
         if (x < 0 || y < 0 || x + scaledWidth > Gdx.graphics.getWidth() || y + scaledHeight > Gdx.graphics.getHeight()) {
@@ -268,20 +266,19 @@ public class PEmbroiderGraphicsLibgdx {
     /**
      * Ajoute un point de broderie si le pixel est visible.
      */
-    // TODO FIX THIS METHOD
     private void addStitchIfVisible(Pixmap pixmap, float px, float py) {
-        int originalX = (int) ((px - (float) this.width / 2) / this.embroideryScale);
-        int originalY = (int) ((py - (float) this.height / 2) / this.embroideryScale);
+        int originalX = (int) ((px - this.width) / this.embroideryScale);
+        int originalY = (int) ((py - this.height) / this.embroideryScale);
 
-       // if (originalX >= 0 && originalY >= 0 && originalX < this.width && originalY < this.height) {
+        if (originalX >= 0 && originalY >= 0 && originalX < pixmap.getWidth() && originalY < pixmap.getHeight()) {
             int pixel = pixmap.getPixel(originalX, originalY);
             Color pixelColor = getColorForPixel(pixel);
 
-            //if (pixelColor.a > 0) { // Ensure the pixel is not transparent
+            if (pixelColor.a > 0) { // Vérifie si le pixel n'est pas transparent
                 this.currentColor = pixelColor;
                 vertex(px, py);
-            //}
-        //}
+            }
+        }
     }
 
 
