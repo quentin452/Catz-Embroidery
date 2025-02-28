@@ -12,7 +12,7 @@ import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.VisDialog;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
-import fr.iamacat.embroider.PEmbroiderGraphicsLibgdx;
+import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.PEmbroiderWriter;
 import fr.iamacat.utils.enums.SaveType;
 

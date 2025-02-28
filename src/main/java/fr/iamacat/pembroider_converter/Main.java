@@ -9,7 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
-import fr.iamacat.embroider.PEmbroiderGraphicsLibgdx;
+import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.utils.*;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
@@ -62,8 +62,14 @@ public class Main extends MainBase {
 
         // EDIT MENU
         editMenu = new PopupMenu();
-        addSubmenu(editMenu, t("color_mode"), ColorType.class, embroidery::setColorMode);
-        addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, embroidery::setHatchMode);
+        addSubmenu(editMenu, t("color_mode"), ColorType.class, value -> {
+            embroidery.colorMode = value;
+            refreshPreview();
+        });
+        addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, value -> {
+            embroidery.hatchMode = value;
+            refreshPreview();
+        });
         VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
         menuBar.add(editButton).expandX().fillX().pad(0).left();
 
@@ -82,12 +88,12 @@ public class Main extends MainBase {
         VisTable settingsTable = new VisTable();
         settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
         settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
-        createSettingsTable(settingsTable, "Space Between Strokes", String.valueOf(embroidery.getStrokeSpacing()), 50, value -> {
-            embroidery.setStrokeSpacing(value);
+        createSettingsTable(settingsTable, "Space Between Strokes", String.valueOf(embroidery.strokeSpacing), 50, value -> {
+            embroidery.strokeSpacing = value;
             refreshPreview();
         });
-        createSettingsTable(settingsTable, "Space Between Points", String.valueOf(embroidery.getHatchSpacing()), 50, value -> {
-            embroidery.setHatchSpacing(value);
+        createSettingsTable(settingsTable, "Space Between Points", String.valueOf(embroidery.hatchSpacing), 50, value -> {
+            embroidery.hatchSpacing = value;
             refreshPreview();
         });
         createSettingsTable(settingsTable, "WIDTH (MM)", String.valueOf(exportWidth), 50, value -> {
@@ -98,17 +104,17 @@ public class Main extends MainBase {
             exportHeight = value;
             refreshPreview();
         });
-        createSettingsTable(settingsTable, "STROKE WEIGHT", String.valueOf(embroidery.getStrokeWeight()), 50, value -> {
-            embroidery.setStrokeWeight(value);
+        createSettingsTable(settingsTable, "STROKE WEIGHT", String.valueOf(embroidery.strokeWeight), 50, value -> {
+            embroidery.strokeWeight = value;
             refreshPreview();
         });
-        createSettingsTable(settingsTable, "MAX COLORS", String.valueOf(embroidery.getMaxColors()), 50, value -> {
-            embroidery.setMaxColors(value);
+        createSettingsTable(settingsTable, "MAX COLORS", String.valueOf(embroidery.maxColors), 50, value -> {
+            embroidery.maxColors = value;
             refreshPreview();
         });
         VisCheckBox checkBox = new VisCheckBox(t("fill_mode"));
-        checkBox.setChecked(embroidery.getFill());
-        checkBox.addListener(event -> {embroidery.setFill(checkBox.isChecked());return true;});
+        checkBox.setChecked(embroidery.fillEnabled);
+        checkBox.addListener(event -> {embroidery.fillEnabled = checkBox.isChecked(); refreshPreview(); return true;});
         settingsTable.add(checkBox).left().padLeft(10).padRight(10).row();
 
         ScrollPane scrollPane = new ScrollPane(settingsTable);
@@ -137,17 +143,12 @@ public class Main extends MainBase {
         showPreview = false;
         updateProgress(0, true);
         embroidery.beginDraw();
-        embroidery.setHatchMode(HatchModeType.Cross);
-        embroidery.setHatchSpacing(embroidery.getHatchSpacing());
         updateProgress(10);
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
-        embroidery.setColorMode(ColorType.Realistic);
         embroidery.image(pixmap, 400, -139,broderyWidth,broderyHeight);
-
         embroidery.endDraw();
-
         pixmap.dispose();
         updateProgress(100);
         showPreview = true;
