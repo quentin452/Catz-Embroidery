@@ -86,7 +86,7 @@ public class PEmbroiderBooleanShapeGraphics {
 		texture = frameBuffer.getColorBufferTexture();
 	}
 
-	private void clear() {
+	void clear() {
 		batch.begin();
 		batch.setColor(Color.BLACK);
 		batch.setBlendFunction(GL20.GL_ONE, GL20.GL_ZERO); // Set blend mode to overwrite
@@ -96,6 +96,13 @@ public class PEmbroiderBooleanShapeGraphics {
 	public Texture getTexture() {
 		return texture;
 	}
+	public Pixmap toPixmap() {
+		frameBuffer.begin();
+		Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, width, height);
+		frameBuffer.end();
+		return pixmap;
+	}
+
 
 	public void dispose() {
 		batch.dispose();

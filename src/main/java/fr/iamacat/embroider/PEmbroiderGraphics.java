@@ -11,7 +11,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix3;
@@ -19,6 +23,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.ScreenUtils;
 import fr.iamacat.utils.Logger;
 import fr.iamacat.utils.PConstants;
 import fr.iamacat.utils.PShape;
@@ -4791,95 +4796,102 @@ public class PEmbroiderGraphics {
 			return;
 		}
 
-		ArrayList<ArrayList<ArrayList<Vector2>>> groups = new ArrayList<ArrayList<ArrayList<Vector2>>>();
-		ArrayList<ArrayList<Integer>> groupColors = new ArrayList<ArrayList<Integer>>();
+		ArrayList<ArrayList<ArrayList<Vector2>>> groups = new ArrayList<>();
+		ArrayList<ArrayList<Integer>> groupColors = new ArrayList<>();
 
 		int last = cullGroups.get(beginCullIndex);
-		groups.add(new ArrayList<ArrayList<Vector2>>());
-		groups.get(groups.size()-1).add(resampleDouble(resampleDouble(polylines.get(beginCullIndex))));
+		groups.add(new ArrayList<>());
+		groups.get(groups.size() - 1).add(resampleDouble(resampleDouble(polylines.get(beginCullIndex))));
 
-		groupColors.add(new ArrayList<Integer>());
-		groupColors.get(groupColors.size()-1).add(colors.get(beginCullIndex));
+		groupColors.add(new ArrayList<>());
+		groupColors.get(groupColors.size() - 1).add(colors.get(beginCullIndex));
 
-		for (int i = beginCullIndex+1; i < polylines.size() && i < cullGroups.size(); i++) {
-
+		for (int i = beginCullIndex + 1; i < polylines.size() && i < cullGroups.size(); i++) {
 			if (!cullGroups.get(i).equals(last)) {
-				groups.add(new ArrayList<ArrayList<Vector2>>());
-				groupColors.add(new ArrayList<Integer>());
+				groups.add(new ArrayList<>());
+				groupColors.add(new ArrayList<>());
 			}
-			groups.get(groups.size()-1).add(resampleDouble(resampleDouble(polylines.get(i))));
-			groupColors.get(groupColors.size()-1).add(colors.get(i));
+			groups.get(groups.size() - 1).add(resampleDouble(resampleDouble(polylines.get(i))));
+			groupColors.get(groupColors.size() - 1).add(colors.get(i));
 			last = cullGroups.get(i);
 		}
 
+		// Replace Processing's PGraphics with LibGDX's FrameBuffer & ShapeRenderer
+		FrameBuffer[] buffers = new FrameBuffer[groups.size()];
+		ShapeRenderer renderer = new ShapeRenderer();
 
-		ShapeRenderer[] channels = new ShapeRenderer[groups.size()];
 		for (int i = 0; i < groups.size(); i++) {
-			channels[i] = app.createGraphics(width,height);
-			channels[i].beginDraw();
-			channels[i].background(0);
-			channels[i].stroke(255);
-			channels[i].strokeWeight(CULL_SPACING);
-			channels[i].strokeJoin(PConstants.ROUND);
-			channels[i].noFill();
+			buffers[i] = new FrameBuffer(Pixmap.Format.RGBA8888, width, height, false);
+			buffers[i].begin();
+
+			Gdx.gl.glClearColor(0, 0, 0, 1);
+			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+			renderer.begin(ShapeRenderer.ShapeType.Line);
+			renderer.setColor(Color.WHITE);
 
 			for (int j = 0; j < groups.get(i).size(); j++) {
-				channels[i].beginShape();
-				for (int k = 0; k < groups.get(i).get(j).size(); k++) {
-					channels[i].vertex(groups.get(i).get(j).get(k).x, groups.get(i).get(j).get(k).y);
+				ArrayList<Vector2> polyline = groups.get(i).get(j);
+				for (int k = 0; k < polyline.size() - 1; k++) {
+					renderer.line(polyline.get(k).x, polyline.get(k).y, polyline.get(k + 1).x, polyline.get(k + 1).y);
 				}
-				channels[i].endShape();
 			}
-			channels[i].endDraw();
+
+			renderer.end();
+			buffers[i].end();
 		}
 
-		for (int i = 0; i < groups.size()-1; i++) {
+		for (int i = 0; i < groups.size() - 1; i++) {
+			ArrayList<ArrayList<Vector2>> startStubs = new ArrayList<>();
+			ArrayList<ArrayList<Vector2>> endStubs = new ArrayList<>();
 
-			ArrayList<ArrayList<Vector2>> startStubs = new ArrayList<ArrayList<Vector2>>();
-			ArrayList<ArrayList<Vector2>> endStubs   = new ArrayList<ArrayList<Vector2>>();
 			for (int j = 0; j < groups.get(i).size(); j++) {
-				startStubs.add(new ArrayList<Vector2>());
-				endStubs.add(  new ArrayList<Vector2>());
+				startStubs.add(new ArrayList<>());
+				endStubs.add(new ArrayList<>());
 			}
 
 			int j = 0;
 			while (j < groups.get(i).size()) {
-
 				for (int k = 0; k < groups.get(i).get(j).size(); k++) {
 					Vector2 p = groups.get(i).get(j).get(k);
 					boolean ok = true;
-					for (int l = i+1; l < groups.size(); l++) {
-						int col = channels[l].get((int)p.x, (int)p.y);
-						int r = col >> 16 & 0xFF;
-					if (r > 250) {
-						ok = false;
-						break;
-					}
-					}
-					if (!ok) {
-						ArrayList<Vector2> lhs = new ArrayList<Vector2>(groups.get(i).get(j).subList(0, k));
-						ArrayList<Vector2> rhs = new ArrayList<Vector2>(groups.get(i).get(j).subList(k+1,groups.get(i).get(j).size()));
 
-						ArrayList<Vector2> s0 = new ArrayList<Vector2>(groups.get(i).get(j).subList(k, Math.min(k+1, groups.get(i).get(j).size())));
-						ArrayList<Vector2> s1 = new ArrayList<Vector2>(groups.get(i).get(j).subList(Math.max(k-3,0), k+1));
+					// Convert framebuffer to Pixmap and check pixel color
+					for (int l = i + 1; l < groups.size(); l++) {
+						buffers[l].begin();
+						Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, width, height);
+						int col = pixmap.getPixel((int) p.x, (int) p.y);
+						pixmap.dispose();
+						buffers[l].end();
+
+						int r = (col >> 24) & 0xFF;
+						if (r > 250) {
+							ok = false;
+							break;
+						}
+					}
+
+					if (!ok) {
+						ArrayList<Vector2> lhs = new ArrayList<>(groups.get(i).get(j).subList(0, k));
+						ArrayList<Vector2> rhs = new ArrayList<>(groups.get(i).get(j).subList(k + 1, groups.get(i).get(j).size()));
+
+						ArrayList<Vector2> s0 = new ArrayList<>(groups.get(i).get(j).subList(k, Math.min(k + 1, groups.get(i).get(j).size())));
+						ArrayList<Vector2> s1 = new ArrayList<>(groups.get(i).get(j).subList(Math.max(k - 3, 0), k + 1));
 
 						groups.get(i).remove(j);
-						groups.get(i).add(j,rhs); // rhs first
-						groups.get(i).add(j,lhs);
+						groups.get(i).add(j, rhs);
+						groups.get(i).add(j, lhs);
 
-						groupColors.get(i).add(j,groupColors.get(i).get(j));
+						groupColors.get(i).add(j, groupColors.get(i).get(j));
 
 						startStubs.remove(j);
 						endStubs.remove(j);
 
+						startStubs.add(j, s1);
+						endStubs.add(j, new ArrayList<>());
 
-						startStubs.add(j,s1);
-						endStubs.add(j,new ArrayList<Vector2>());
-
-						startStubs.add(j,new ArrayList<Vector2>());
-						endStubs.add(j,s0);
-
-
+						startStubs.add(j, new ArrayList<>());
+						endStubs.add(j, s0);
 
 						break;
 					}
@@ -4887,7 +4899,7 @@ public class PEmbroiderGraphics {
 				j++;
 			}
 
-			for (int k = groups.get(i).size()-1; k >= 0; k--) {
+			for (int k = groups.get(i).size() - 1; k >= 0; k--) {
 				if (groups.get(i).get(k).size() < 3) {
 					groups.get(i).remove(k);
 					groupColors.get(i).remove(k);
@@ -4896,19 +4908,15 @@ public class PEmbroiderGraphics {
 				startStubs.get(k).addAll(groups.get(i).get(k));
 				startStubs.get(k).addAll(endStubs.get(k));
 				groups.get(i).set(k, startStubs.get(k));
-
 			}
-
 		}
 
-		ArrayList<ArrayList<Vector2>> polylines2 = new ArrayList<ArrayList<Vector2>>();
-		ArrayList<Integer> colors2 = new ArrayList<Integer>();
-		ArrayList<Integer> cullGroups2 = new ArrayList<Integer>();
+		ArrayList<ArrayList<Vector2>> polylines2 = new ArrayList<>();
+		ArrayList<Integer> colors2 = new ArrayList<>();
+		ArrayList<Integer> cullGroups2 = new ArrayList<>();
 
 		for (int i = 0; i < groups.size(); i++) {
-			//			System.out.println(groups.get(i).size());
 			for (int j = 0; j < groups.get(i).size(); j++) {
-				//				System.out.println(groups.get(i).get(j));
 				polylines2.add(groups.get(i).get(j));
 				colors2.add(groupColors.get(i).get(j));
 				cullGroups2.add(currentCullGroup);
@@ -4916,96 +4924,176 @@ public class PEmbroiderGraphics {
 		}
 
 		for (int i = 0; i < polylines2.size(); i++) {
-			polylines2.set(i, resampleHalfKeepCorners(resampleHalfKeepCorners(polylines2.get(i),PConstants.PI*0.1f),PConstants.PI*0.1f));
+			polylines2.set(i, resampleHalfKeepCorners(resampleHalfKeepCorners(polylines2.get(i), MathUtils.PI * 0.1f), MathUtils.PI * 0.1f));
 		}
 
-		polylines.subList(beginCullIndex,polylines.size()).clear();
-		colors.subList(beginCullIndex,colors.size()).clear();
-		cullGroups.subList(beginCullIndex,cullGroups.size()).clear();
+		polylines.subList(beginCullIndex, polylines.size()).clear();
+		colors.subList(beginCullIndex, colors.size()).clear();
+		cullGroups.subList(beginCullIndex, cullGroups.size()).clear();
 
 		polylines.addAll(polylines2);
 		colors.addAll(colors2);
 		cullGroups.addAll(cullGroups2);
 
-		currentCullGroup ++;
-
+		currentCullGroup++;
 	}
+
 
 	/**
 	 * Draw an image
-	 * @param im   a Image, ShapeRenderer also qualify
+	 * @param im   a Texture or ShapeRenderer equivalent
 	 * @param x    left
 	 * @param y    top
 	 * @param w    width
 	 * @param h    height
 	 */
-	public void image(Image im, int x, int y, int w, int h) {
-		ShapeRenderer im2  = app.createGraphics(w,h);
-		im2.beginDraw();
-		im2.image(im,0,0,w,h);
-//		im2.filter(PConstants.INVERT);
-		im2.filter(PConstants.THRESHOLD);
-		im2.endDraw();
+	public void image(Pixmap im, int x, int y, int w, int h) {
+		// Convert Pixmap to Texture
+		Texture texture = new Texture(im);
 
-		ArrayList<ArrayList<Vector2>> polys = PEmbroiderTrace.findContours(im2);
+		// Create a framebuffer for image processing
+		FrameBuffer frameBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, w, h, false);
+		SpriteBatch spriteBatch = new SpriteBatch();
 
-		for (int i = polys.size()-1; i >= 0; i--) {
+		// Draw image to framebuffer
+		frameBuffer.begin();
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+		spriteBatch.begin();
+		spriteBatch.draw(texture, 0, 0, w, h);  // Now using a Texture, not Pixmap
+		spriteBatch.end();
+		frameBuffer.end();
+
+		// Convert framebuffer to pixmap for processing
+		Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, w, h);
+
+		// Apply threshold filter (replacing Processing's PConstants.THRESHOLD)
+		for (int i = 0; i < pixmap.getWidth(); i++) {
+			for (int j = 0; j < pixmap.getHeight(); j++) {
+				int pixel = pixmap.getPixel(i, j);
+				int r = (pixel >> 24) & 0xFF;
+				int g = (pixel >> 16) & 0xFF;
+				int b = (pixel >> 8) & 0xFF;
+				int brightness = (r + g + b) / 3;
+				int threshold = 128;  // Modify as needed
+				pixmap.drawPixel(i, j, brightness > threshold ? Color.rgba8888(Color.WHITE) : Color.rgba8888(Color.BLACK));
+			}
+		}
+		pixmap.dispose();
+		texture.dispose();
+		// Find contours (assuming PEmbroiderTrace.findContours works in LibGDX)
+		ArrayList<ArrayList<Vector2>> polys = PEmbroiderTrace.findContours(pixmap);
+
+		for (int i = polys.size() - 1; i >= 0; i--) {
 			if (polys.get(i).size() < 3) {
 				polys.remove(i);
 				continue;
 			}
 
-//			polys.set(i,resampleHalf(resampleHalf(resampleHalf(polys.get(i)))));
-			polys.set(i, PEmbroiderTrace.approxPolyDP(polys.get(i),1));
-
+			// Approximate polygon
+			polys.set(i, PEmbroiderTrace.approxPolyDP(polys.get(i), 1));
 		}
 
-		pushMatrix();
-		translate(x,y);
+		// Draw the processed shape
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+		// Adjust for translation (replacing Processing's pushMatrix/translate/popMatrix)
+		for (ArrayList<Vector2> polyline : polys) {
+			for (int i = 0; i < polyline.size() - 1; i++) {
+				shapeRenderer.line(x + polyline.get(i).x, y + polyline.get(i).y,
+						x + polyline.get(i + 1).x, y + polyline.get(i + 1).y);
+			}
+		}
+
+		shapeRenderer.end();
+
+		// Fill & Stroke logic
 		if (isStroke && FIRST_STROKE_THEN_FILL) {
 			_stroke(polys, true);
 		}
 		if (isFill) {
 			if (!isStroke && HATCH_MODE == CONCENTRIC) {
-				for (int i = 0; i < polys.size(); i++) {
-					pushPolyline(polys.get(i),currentFill);
+				for (ArrayList<Vector2> polyline : polys) {
+					pushPolyline(polyline, currentFill);
 				}
 			}
-			hatchRaster(im2);
+			hatchRaster(pixmap);
 		}
 		if (isStroke && !FIRST_STROKE_THEN_FILL) {
 			_stroke(polys, true);
 		}
-		popMatrix();
+
+		// Cleanup
+		spriteBatch.dispose();
+		shapeRenderer.dispose();
+		frameBuffer.dispose();
+
 		currentCullGroup++;
 	}
 
-	public void image(Image im, int x, int y) {
-		image(im, x, y, im.width, im.height);
+	public void image(Pixmap im, int x, int y) {
+		image(im, x, y, im.getWidth(), im.getHeight());
 	}
 
 	public void image(PEmbroiderBooleanShapeGraphics im, int x, int y, int w, int h) {
 		im.endOps();
-		image(im.get(),x,y,w,h);
+		image(im.toPixmap(), x, y, w, h);
 	}
 	public void image(PEmbroiderBooleanShapeGraphics im, int x, int y) {
 		im.endOps();
-		image(im.get(),x,y);
+		image(im.toPixmap(),x,y);
 	}
 	public void shape(PShape sh, int x, int y, int w, int h) {
 		int pad = 10;
-		sh.disableStyle();
-		ShapeRenderer pg = app.createGraphics(w+pad*2, h+pad*2);
-		pg.beginDraw();
-		pg.background(0);
-		pg.fill(255);
-		pg.noStroke();
-		pg.shape(sh,pad,pad,w,h);
-//		pg.filter(PConstants.INVERT);
-		pg.endDraw();
-//		app.image(pg,0,0);
-		image(pg,x-pad,y-pad);
+
+		// Create a FrameBuffer (equivalent to createGraphics in Processing)
+		FrameBuffer frameBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, w + pad * 2, h + pad * 2, false);
+		frameBuffer.begin();
+
+		// Create a SpriteBatch and ShapeRenderer for drawing shapes
+		SpriteBatch spriteBatch = new SpriteBatch();
+		ShapeRenderer shapeRenderer = new ShapeRenderer();
+
+		// Clear the frame buffer and prepare for drawing
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+		spriteBatch.begin();
+
+		// Background color
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.setColor(0, 0, 0, 1); // black background
+		shapeRenderer.rect(0, 0, w + pad * 2, h + pad * 2);
+		shapeRenderer.end();
+
+		// Now draw the shape (sh)
+		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+		shapeRenderer.setColor(1, 1, 1, 1); // white fill
+		sh.draw(shapeRenderer);
+		shapeRenderer.end();
+
+		spriteBatch.end();
+
+		frameBuffer.end();
+
+		// Now convert the framebuffer into a texture
+		Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, w + pad * 2, h + pad * 2);
+		Texture texture = new Texture(pixmap);
+
+		// Draw the texture to the screen
+		spriteBatch.begin();
+		spriteBatch.draw(texture, x - pad, y - pad, w + pad * 2, h + pad * 2);
+		spriteBatch.end();
+
+		// Dispose resources
+		pixmap.dispose();
+		texture.dispose();
+		spriteBatch.dispose();
+		frameBuffer.dispose();
 	}
+
 
 	public void shape(PShape sh, int x, int y) {
 		int w = (int)sh.width;
@@ -5032,8 +5120,9 @@ public class PEmbroiderGraphics {
 			@Override
 			public Vector2 get(float x, float y) {
 				// Generate Perlin noise-based direction and distance
-				float a = MathUtils.noise(x * perlinScale, y * perlinScale, 1f) * 2 * MathUtils.PI - MathUtils.PI;
-				float r = MathUtils.noise(x * perlinScale, y * perlinScale, 2f) * deltaX;
+				// LibGDX uses the MathUtils and PerlinNoise for 2D or 1D noise.
+				float a = MathUtils.random(0f, 1f) * 2 * MathUtils.PI - MathUtils.PI;  // You can substitute the noise logic for a better random if you wish
+				float r = MathUtils.random(0f, 1f) * deltaX;  // Same for distance generation
 				float dx = MathUtils.cos(a) * r;
 				float dy = MathUtils.sin(a) * r;
 				return new Vector2(dx, dy);
@@ -5046,6 +5135,7 @@ public class PEmbroiderGraphics {
 		// Call the customField method, assuming it's implemented elsewhere
 		return customField(mask, vf, d, minVertices, maxVertices, maxIter);
 	}
+
 	/**
 	 * Signature for a vector field
 	 */
@@ -5118,10 +5208,10 @@ public class PEmbroiderGraphics {
 	 * @return             the hatching as a list of polylines
 	 */
 	public ArrayList<ArrayList<Vector2>> hatchParallelRaster(Pixmap mask, float ang, float d, float step) {
-		ArrayList<ArrayList<Vector2>> polys = new ArrayList<ArrayList<Vector2>>();
+		ArrayList<ArrayList<Vector2>> polys = new ArrayList<>();
 
-		float r = (float) (Math.sqrt(mask.getWidth()*mask.getWidth()+mask.getHeight()*mask.getHeight())*1.05f);
-		BCircle bcirc = new BCircle(mask.getWidth()/2,mask.getHeight()/2,r);
+		float r = (float) (Math.sqrt(mask.getWidth() * mask.getWidth() + mask.getHeight() * mask.getHeight()) * 1.05f);
+		BCircle bcirc = new BCircle(mask.getWidth() / 2, mask.getHeight() / 2, r);
 
 		float x0 = bcirc.x - bcirc.r * MathUtils.cos(ang);
 		float y0 = bcirc.y - bcirc.r * MathUtils.sin(ang);
@@ -5129,49 +5219,52 @@ public class PEmbroiderGraphics {
 		float x1 = bcirc.x + bcirc.r * MathUtils.cos(ang);
 		float y1 = bcirc.y + bcirc.r * MathUtils.sin(ang);
 
-		float l = new Vector2(x0,y0).dst(new Vector2(x1,y1));
+		float l = new Vector2(x0, y0).dst(new Vector2(x1, y1));
 
-		int n = (int)Math.ceil(l/d);
+		int n = (int) Math.ceil(l / d);
 
 		for (int i = 0; i < n; i++) {
-			float t = (float)i/(float)(n-1);
-			float x = x0 * (1-t) + x1 * t;
-			float y = y0 * (1-t) + y1 * t;
+			float t = (float) i / (float) (n - 1);
+			float x = x0 * (1 - t) + x1 * t;
+			float y = y0 * (1 - t) + y1 * t;
 
+			float px = x + bcirc.r * MathUtils.cos(ang - PConstants.HALF_PI);
+			float py = y + bcirc.r * MathUtils.sin(ang - PConstants.HALF_PI);
 
-			float px = x + bcirc.r * MathUtils.cos(ang-PConstants.HALF_PI);
-			float py = y + bcirc.r * MathUtils.sin(ang-PConstants.HALF_PI);
+			float qx = x + bcirc.r * MathUtils.cos(ang + PConstants.HALF_PI);
+			float qy = y + bcirc.r * MathUtils.sin(ang + PConstants.HALF_PI);
 
-			float qx = x + bcirc.r * MathUtils.cos(ang+PConstants.HALF_PI);
-			float qy = y + bcirc.r * MathUtils.sin(ang+PConstants.HALF_PI);
-
-			int m = (int)MathUtils.ceil(bcirc.r / step);
+			int m = (int) MathUtils.ceil(bcirc.r / step);
 
 			boolean prev = false;
 			Float lx = null;
 			Float ly = null;
 			for (int j = 0; j <= m; j++) {
-				float s = (float)j/(float)m;
-				float xx = px * (1-s) + qx * s;
-				float yy = py * (1-s) + qy * s;
+				float s = (float) j / (float) m;
+				float xx = px * (1 - s) + qx * s;
+				float yy = py * (1 - s) + qy * s;
 				boolean add = false;
-				if (((mask.get((int)xx,(int)yy)>>16)&0xFF) > 127) {
+
+				// Check the pixel value using getPixel(x, y) instead of get(x, y)
+				int pixel = mask.getPixel((int) xx, (int) yy);  // get the pixel value as a packed int
+				if (((pixel >> 16) & 0xFF) > 127) {  // Checking the red channel (0xFF00)
 					if (!prev) {
 						polys.add(new ArrayList<Vector2>());
 						add = true;
 					}
 					prev = true;
-				}else {
+				} else {
 					if (prev) {
 						add = true;
 					}
 					prev = false;
 				}
+
 				if (add) {
 					if (lx == null || ly == null) {
-						polys.get(polys.size()-1).add(new Vector2(xx,yy));
-					}else {
-						polys.get(polys.size()-1).add(new Vector2((lx+xx)/2f,(ly+yy)/2f));
+						polys.get(polys.size() - 1).add(new Vector2(xx, yy));
+					} else {
+						polys.get(polys.size() - 1).add(new Vector2((lx + xx) / 2f, (ly + yy) / 2f));
 					}
 				}
 				lx = xx;
@@ -5180,6 +5273,7 @@ public class PEmbroiderGraphics {
 		}
 		return polys;
 	}
+
 	/**
 	 * Lerp a number around 360 degrees, meaning lerp360(358,2) gives 0 instead of 180
 	 * Useful for lerping hues and angles
@@ -5219,22 +5313,30 @@ public class PEmbroiderGraphics {
 	 * @param n   number of segments for each segment on the polyline
 	 * @return    the smoothed polyline
 	 */
-	 public ArrayList<Vector2> smoothen(ArrayList<Vector2> poly, float w, int n) {
-		 if (poly.size()<3) {
-			 return poly;
-		 }
-		 ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
-		 for (int j = 0; j < poly.size(); j++) {
-			 Vector2 p0 = poly.get(j).cpy().lerp(poly.get((j+1)%poly.size()),0.5f);
-			 Vector2 p1 = poly.get((j+1)%poly.size());
-			 Vector2 p2 = poly.get((j+1)%poly.size()).cpy().lerp(poly.get((j+2)%poly.size()),0.5f);
-			 for (int i = 0; i < n; i ++) {
-				 float t = (float)i/n;
-				 poly2.add(rationalQuadraticBezier(p0,p1,p2,w,t));
-			 }
-		 }
-		 return poly2;
-	 }
+	public ArrayList<Vector2> smoothen(ArrayList<Vector2> poly, float w, int n) {
+		if (poly.size() < 3) {
+			return poly;
+		}
+
+		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
+
+		for (int j = 0; j < poly.size(); j++) {
+			// Convert Vector2 points to Vector3 (with z = 0)
+			Vector3 p0 = new Vector3(poly.get(j).x, poly.get(j).y, 0); // p0
+			Vector3 p1 = new Vector3(poly.get((j + 1) % poly.size()).x, poly.get((j + 1) % poly.size()).y, 0); // p1
+			Vector3 p2 = new Vector3(poly.get((j + 1) % poly.size()).x, poly.get((j + 1) % poly.size()).y, 0); // p2
+			p2 = new Vector3(poly.get((j + 1) % poly.size()).x, poly.get((j + 2) % poly.size()).y, 0); // p2 (updated)
+
+			for (int i = 0; i < n; i++) {
+				float t = (float) i / n;
+				// Use the Vector3 result from the bezier function, then convert to Vector2
+				Vector3 bezierPoint = rationalQuadraticBezier(p0, p1, p2, w, t);
+				// Convert the resulting Vector3 back to Vector2 and add to poly2
+				poly2.add(new Vector2(bezierPoint.x, bezierPoint.y));
+			}
+		}
+		return poly2;
+	}
 
 	/**
 	 * Computes the accurate distance transform by actually mesuring distances (slow).
@@ -5271,69 +5373,79 @@ public class PEmbroiderGraphics {
 	  * @param polys  the polylines to consider
 	  * @param mask   a mask, black means off, white means on
 	  */
-	 public void clip(ArrayList<ArrayList<Vector2>> polys, Image mask) {
+	 public void clip(ArrayList<ArrayList<Vector2>> polys, Pixmap mask) {
+		 // Resample polygons before clipping
 		 for (int i = 0; i < polys.size(); i++) {
-			 polys.set(i,resample(polys.get(i),2,2,0,0));
+			 polys.set(i, resample(polys.get(i), 2, 2, 0, 0));
 		 }
-		ArrayList<ArrayList<Vector2>> startStubs = new ArrayList<ArrayList<Vector2>>();
-		ArrayList<ArrayList<Vector2>> endStubs   = new ArrayList<ArrayList<Vector2>>();
-		for (int j = 0; j < polys.size(); j++) {
-			startStubs.add(new ArrayList<Vector2>());
-			endStubs.add(  new ArrayList<Vector2>());
-		}
 
-		mask.loadPixels();
+		 // Initialize stubs for start and end points
+		 ArrayList<ArrayList<Vector2>> startStubs = new ArrayList<ArrayList<Vector2>>();
+		 ArrayList<ArrayList<Vector2>> endStubs = new ArrayList<ArrayList<Vector2>>();
 
-		int j = 0;
-		while (j < polys.size()) {
+		 // Initialize the stubs for each polygon
+		 for (int j = 0; j < polys.size(); j++) {
+			 startStubs.add(new ArrayList<Vector2>());
+			 endStubs.add(new ArrayList<Vector2>());
+		 }
 
-			for (int k = 0; k < polys.get(j).size(); k++) {
-				Vector2 p = polys.get(j).get(k);
-				boolean ok = true;
+		 // Iterate through the polygons and clip based on the mask
+		 int j = 0;
+		 while (j < polys.size()) {
 
-				int col = mask.get((int)p.x, (int)p.y);
-				int r = col >> 16 & 0xFF;
-				if (r < 128) {
-						ok = false;
+			 for (int k = 0; k < polys.get(j).size(); k++) {
+				 Vector2 p = polys.get(j).get(k);
+				 boolean ok = true;
 
-				}
+				 // Get pixel color from the mask using getPixel(x, y)
+				 int col = mask.getPixel((int)p.x, (int)p.y);
+				 int r = (col >> 16) & 0xFF;  // Extract red component
 
-				if (!ok) {
-					ArrayList<Vector2> lhs = new ArrayList<Vector2>(polys.get(j).subList(0, k));
-					ArrayList<Vector2> rhs = new ArrayList<Vector2>(polys.get(j).subList(k+1,polys.get(j).size()));
+				 if (r < 128) {
+					 ok = false;
+				 }
 
-					ArrayList<Vector2> s0 = new ArrayList<Vector2>(polys.get(j).subList(k, Math.min(k+1, polys.get(j).size())));
-					ArrayList<Vector2> s1 = new ArrayList<Vector2>(polys.get(j).subList(Math.max(k-1,0), k+1));
+				 // If the pixel color doesn't meet the criteria, split the polygon
+				 if (!ok) {
+					 ArrayList<Vector2> lhs = new ArrayList<Vector2>(polys.get(j).subList(0, k));
+					 ArrayList<Vector2> rhs = new ArrayList<Vector2>(polys.get(j).subList(k + 1, polys.get(j).size()));
 
-					polys.remove(j);
-					polys.add(j,rhs); // rhs first
-					polys.add(j,lhs);
+					 ArrayList<Vector2> s0 = new ArrayList<Vector2>(polys.get(j).subList(k, Math.min(k + 1, polys.get(j).size())));
+					 ArrayList<Vector2> s1 = new ArrayList<Vector2>(polys.get(j).subList(Math.max(k - 1, 0), k + 1));
 
-					startStubs.remove(j);
-					endStubs.remove(j);
+					 polys.remove(j);
+					 polys.add(j, rhs);  // Add rhs first
+					 polys.add(j, lhs);   // Then lhs
 
-					startStubs.add(j,s1);
-					endStubs.add(j,new ArrayList<Vector2>());
+					 // Update the stubs for the start and end of the polygon
+					 startStubs.remove(j);
+					 endStubs.remove(j);
 
-					startStubs.add(j,new ArrayList<Vector2>());
-					endStubs.add(j,s0);
-					break;
-				}
-			}
-			j++;
-		}
-		for (int k = polys.size()-1; k >= 0; k--) {
-			if (polys.get(k).size() < 2) {
-				polys.remove(k);
-				continue;
-			}
-			startStubs.get(k).addAll(polys.get(k));
-			startStubs.get(k).addAll(endStubs.get(k));
-			polys.set(k, startStubs.get(k));
-		}
+					 startStubs.add(j, s1);
+					 endStubs.add(j, new ArrayList<Vector2>());
+
+					 startStubs.add(j, new ArrayList<Vector2>());
+					 endStubs.add(j, s0);
+
+					 break;
+				 }
+			 }
+			 j++;
+		 }
+
+		 // Combine the stubs into the final polygons
+		 for (int k = polys.size() - 1; k >= 0; k--) {
+			 if (polys.get(k).size() < 2) {
+				 polys.remove(k);
+				 continue;
+			 }
+			 startStubs.get(k).addAll(polys.get(k));
+			 startStubs.get(k).addAll(endStubs.get(k));
+			 polys.set(k, startStubs.get(k));
+		 }
 	 }
-	 
-	 /**
+
+	/**
 	  * Compute isolines for a grayscale image using findContours on multiple thresholds.
 	  * @param im     the input grayscale image
 	  * @param d      luminance distance between adjacent thresholds
@@ -5604,70 +5716,61 @@ public class PEmbroiderGraphics {
 	  * @param x    x coordinate, meaning of which depends on textAlign
 	  * @param y    y coordinate, meaning of which depends on textAlign
 	  */
-	public void text(String str, float x, float y) {
-		if (FONT != null) {
-			ArrayList<ArrayList<Vector2>> polys = PEmbroiderFont.putText(FONT, str, x, y, FONT_SCALE, FONT_ALIGN);
-			for (int i = 0; i < polys.size(); i++) {
-				pushPolyline(polys.get(i), currentFill);
-			}
-		} else if (TRUE_FONT != null) {
-			ShapeRenderer pg0 = app.createGraphics(1, 1);
-			pg0.beginDraw();
-			pg0.textFont(TRUE_FONT);
-			pg0.textSize(FONT_SCALE);
-			float tw = pg0.textWidth(str);
-			float ta = pg0.textAscent();
-			float td = pg0.textDescent();
+	 public void text(String str, float x, float y) {
+		 if (FONT != null) {
+			 ArrayList<ArrayList<Vector2>> polys = PEmbroiderFont.putText(FONT, str, x, y, FONT_SCALE, FONT_ALIGN);
+			 for (int i = 0; i < polys.size(); i++) {
+				 pushPolyline(polys.get(i), currentFill);
+			 }
+		 } else if (TRUE_FONT != null) {
+			 SpriteBatch spriteBatch = new SpriteBatch();
+			 BitmapFont font = new BitmapFont(); // Load your BitmapFont here
+			 font.getData().setScale(FONT_SCALE);
 
-//			System.out.println(tw,ta,td);
-			pg0.endDraw();
+			 spriteBatch.begin();
+			 font.draw(spriteBatch, str, x, y);
+			 spriteBatch.end();
 
-			ShapeRenderer pg = app.createGraphics((int) MathUtils.ceil(tw), (int) MathUtils.ceil(ta + td));
-			pg.beginDraw();
-			pg.background(0);
-			pg.fill(255);
-			pg.noStroke();
+			 spriteBatch.dispose();
+			 font.dispose();
 
-			pg.textFont(TRUE_FONT);
-			pg.textSize(FONT_SCALE);
-			pg.textAlign(PConstants.LEFT, PConstants.TOP);
-			pg.text(str, 0, 0);
-			pg.endDraw();
-//			hatchRaster(pg,x,y);
-			ArrayList<Boolean> isHoles = new ArrayList<Boolean>();
-			ArrayList<Integer> parents = new ArrayList<Integer>();
-			ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(pg,isHoles,parents);
+			 // You can use Pixmap to get pixel data if necessary
+			 Pixmap pixmap = new Pixmap((int) Math.ceil(font.getRegion().getRegionWidth()), (int) Math.ceil(font.getRegion().getRegionHeight()), Pixmap.Format.RGBA8888);
 
-			for (int i = conts.size() - 1; i >= 0; i--) {
-//				if (conts.get(i).size() < 2) {
-//					conts.remove(i);
-//					continue;
-//				}
-				for (int j = 0; j < conts.get(i).size(); j++) {
-					conts.get(i).get(j).add(new Vector2(x, y));
-				}
-//				conts.set(i,resampleHalfKeepCorners(resampleHalf(resampleHalf(conts.get(i))),0.1f));
-				conts.set(i, PEmbroiderTrace.approxPolyDP(conts.get(i), 1));
-//				if (conts.get(i).get(conts.get(i).size() - 1).dst(conts.get(i).get(0)) < FONT_SCALE / 10f) {
-//					conts.get(i).add(conts.get(i).get(0));
-//				}
-			}
+			 // Draw text to Pixmap (requires a frame buffer)
+			 FrameBuffer frameBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, (int) Math.ceil(font.getRegion().getRegionWidth()), (int) Math.ceil(font.getRegion().getRegionHeight()), false);
+			 frameBuffer.begin();
+			 spriteBatch.begin();
+			 font.draw(spriteBatch, str, 0, font.getRegion().getRegionHeight());
+			 spriteBatch.end();
+			 Pixmap result = ScreenUtils.getFrameBufferPixmap(0, 0, frameBuffer.getWidth(), frameBuffer.getHeight());
+			 frameBuffer.end();
 
-			float dx = 0;
-			float dy = 0;
+			 // Process contours from Pixmap
+			 ArrayList<Boolean> isHoles = new ArrayList<>();
+			 ArrayList<Integer> parents = new ArrayList<>();
+			 ArrayList<ArrayList<Vector2>> conts = PEmbroiderTrace.findContours(result, isHoles, parents);
 
-			if (FONT_ALIGN == PConstants.RIGHT) {
-				dx -= tw;
-			} else if (FONT_ALIGN == PConstants.CENTER) {
-				dx -= tw / 2;
-			}
-			if (FONT_ALIGN_VERTICAL == PConstants.BASELINE) {
-				dy -= ta;
-			} else if (FONT_ALIGN_VERTICAL == PConstants.BOTTOM) {
-				dy -= ta + td;
-			}
+			 for (int i = conts.size() - 1; i >= 0; i--) {
+				 for (int j = 0; j < conts.get(i).size(); j++) {
+					 conts.get(i).get(j).add(new Vector2(x, y));
+				 }
+				 conts.set(i, PEmbroiderTrace.approxPolyDP(conts.get(i), 1));
+			 }
 
-			
+			 float dx = 0;
+			 float dy = 0;
+
+			 if (FONT_ALIGN == PConstants.RIGHT) {
+				 dx -= font.getRegion().getRegionWidth();
+			 } else if (FONT_ALIGN == PConstants.CENTER) {
+				 dx -= font.getRegion().getRegionWidth() / 2;
+			 }
+			 if (FONT_ALIGN_VERTICAL == PConstants.BASELINE) {
+				 dy -= font.getCapHeight();
+			 } else if (FONT_ALIGN_VERTICAL == PConstants.BOTTOM) {
+				 dy -= font.getCapHeight() + font.getDescent();
+			 }
 
 			pushMatrix();
 			translate(dx, dy);
@@ -5821,34 +5924,34 @@ public class PEmbroiderGraphics {
 	 public void rawStitch(float x, float y) {
 		 polyBuff.get(0).add(new Vector2(x,y));
 	 }
-	 public void endRawStitches() {
-		 if (polyBuff.get(0).size() < 2) {
-			 return;
-		 }
-		 ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
-		 for (int i = 0; i < polyBuff.get(0).size(); i++) {
-			 poly2.add(polyBuff.get(0).get(i).cpy());
-			 for (int j = matStack.size()-1; j>= 0; j--) {
-				 poly2.set(i, matStack.get(j).mul(poly2.get(i), null));
-			 }
-		 }
-		 colors.add(currentStroke);
-		 polylines.add(poly2);
-	 }
+	public void endRawStitches() {
+		if (polyBuff.get(0).size() < 2) {
+			return;
+		}
+		ArrayList<Vector2> poly2 = new ArrayList<Vector2>();
+		for (int i = 0; i < polyBuff.get(0).size(); i++) {
+			poly2.add(polyBuff.get(0).get(i).cpy());
+			for (int j = matStack.size() - 1; j >= 0; j--) {
+				poly2.set(i, poly2.get(i).mul(matStack.get(j)));
+			}
+		}
+		colors.add(currentStroke);
+		polylines.add(poly2);
+	}
 
-	 public float getCurrentScale(float ang) {
-		Vector2 p0 = new Vector2(0,0);
-		Vector2 p1 = new Vector2(MathUtils.cos(ang),MathUtils.sin(ang));
+	public float getCurrentScale(float ang) {
+		Vector2 p0 = new Vector2(0, 0);
+		Vector2 p1 = new Vector2(MathUtils.cos(ang), MathUtils.sin(ang));
 		Vector2 p2 = p0.cpy();
 		Vector2 p3 = p1.cpy();
 		for (int j = 0; j < matStack.size(); j++) {
-			p2 = matStack.get(j).mul(p2, null);
-			p3 = matStack.get(j).mul(p3, null);
+			p2.mul(matStack.get(j));
+			p3.mul(matStack.get(j));
 		}
 		return p2.dst(p3);
-	 }
-	 
-	 ArrayList<Integer> reorderColorMonteCarlo(ArrayList<ArrayList<Vector2>> polys, ArrayList<Integer> cols, float d, float wait) {
+	}
+
+	ArrayList<Integer> reorderColorMonteCarlo(ArrayList<ArrayList<Vector2>> polys, ArrayList<Integer> cols, float d, float wait) {
 		 ArrayList<Integer> ret = new ArrayList<Integer>();
 		 
 		 class ColorOpt{
@@ -5881,18 +5984,34 @@ public class PEmbroiderGraphics {
 					 }
 //					 drawRender().save("/Users/studio/Downloads/rcmc-"+hashCode()+".png");
 				 }
-				 ShapeRenderer drawRender(){
-					 ShapeRenderer pg = app.createGraphics(w,h);
-					 pg.beginDraw();
-					 pg.loadPixels();
-					 for (int i = 0; i < render.length; i++){
-						 pg.pixels[i] = render[i];
+				 Pixmap drawRender() {
+					 // Create a Pixmap with the render data
+					 Pixmap pixmap = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+					 for (int i = 0; i < render.length; i++) {
+						 int x = i % w;
+						 int y = i / w;
+						 pixmap.drawPixel(x, y, render[i]);
 					 }
-					 pg.updatePixels();
-					 pg.endDraw();
-					 return pg;
+
+					 // Create a Texture from the Pixmap
+					 Texture texture = new Texture(pixmap);
+
+					 // Create a SpriteBatch for drawing
+					 SpriteBatch spriteBatch = new SpriteBatch();
+
+					 Gdx.gl.glClearColor(0, 0, 0, 1);
+					 Gdx.gl.glClear(Gdx.gl.GL_COLOR_BUFFER_BIT);
+
+					 spriteBatch.begin();  // Begin drawing with SpriteBatch
+					 spriteBatch.draw(texture, 0, 0, w, h); // Draw the texture on the screen
+					 spriteBatch.end();    // End drawing
+
+					 texture.dispose(); // Dispose of the texture after drawing
+
+					 return pixmap;
 				 }
-				 
+
+
 				 boolean equalsSolution(Solution sol) {
 					 if (render == null){
 						 renderSolution();
@@ -5955,81 +6074,82 @@ public class PEmbroiderGraphics {
 				 
 				 return sol;
 			 }
-			 
+
 			 void main() {
-				 w = (int)MathUtils.ceil(width/d);
-				 h = (int)MathUtils.ceil(height/d);
-				 standard = new Solution();
+				 int w = (int) MathUtils.ceil(width / d);
+				 int h = (int) MathUtils.ceil(height / d);
+				 Solution standard = new Solution();
 				 ArrayList<Solution> solutions = new ArrayList<Solution>();
-				 
-				 ArrayList<ShapeRenderer> pgs = new ArrayList<ShapeRenderer>();
+
+				 ArrayList<Pixmap> pgs = new ArrayList<Pixmap>();
 				 ArrayList<ArrayList<Integer>> indices = new ArrayList<ArrayList<Integer>>();
+
+				 // Loop through polys and generate Pixmaps
 				 for (int i = 0; i < polys.size(); i++) {
-					 if (i == 0 || (!cols.get(i).equals(cols.get(i-1)))) {
-						 ShapeRenderer pg = app.createGraphics(w,h);
-						 pg.beginDraw();
-						 pg.background(0);
-						 pg.endDraw();
+					 if (i == 0 || (!cols.get(i).equals(cols.get(i - 1)))) {
+						 Pixmap pg = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+						 pg.setColor(Color.BLACK);
+						 pg.fill(); // Set background to black (equivalent to pg.background(0) in original)
 						 pgs.add(pg);
 						 indices.add(new ArrayList<Integer>());
 					 }
-					 ShapeRenderer pg = pgs.get(pgs.size()-1);
-					 pg.beginDraw();
-					 pg.noFill();
-					 pg.strokeWeight(1);
-					 pg.stroke(255);
-					 pg.beginShape();
+
+					 Pixmap pg = pgs.get(pgs.size() - 1);
+					 pg.setColor(Color.WHITE); // Stroke color
 					 for (int j = 0; j < polys.get(i).size(); j++) {
-						 pg.vertex(polys.get(i).get(j).x/d,polys.get(i).get(j).y/d);
+						 Vector2 v = polys.get(i).get(j);
+						 pg.drawPixel((int) (v.x / d), (int) (v.y / d)); // Equivalent to vertex in ShapeRenderer
 					 }
-					 pg.endShape();
-					 pg.endDraw();
-					 indices.get(indices.size()-1).add(i);
+					 indices.get(indices.size() - 1).add(i);
 				 }
+
+				 // Process each layer and store pixel data
 				 standard.layers = new Layer[pgs.size()];
 				 for (int i = 0; i < pgs.size(); i++) {
-					Layer l = new Layer();
-					l.id = i+1;
-					ShapeRenderer pg = pgs.get(i);
-				    pg.beginDraw();
-					pg.loadPixels();
-				    l.data = new boolean[pg.pixels.length];
-				    for (int j = 0; j < pg.pixels.length; j++){
-				      l.data[j] = (pg.pixels[j]&255)>128;
-				      
-				    }
-				    pg.endDraw();
-//				    pg.save("/Users/studio/Downloads/rcmc-"+i+".png");
-				    l.col = cols.get(indices.get(i).get(0));
-				    l.indices = indices.get(i);
-				    standard.layers[i] = l;
+					 Layer l = new Layer();
+					 l.id = i + 1;
+					 Pixmap pg = pgs.get(i);
+					 l.data = new boolean[pg.getWidth() * pg.getHeight()];
+					 for (int y = 0; y < pg.getHeight(); y++) {
+						 for (int x = 0; x < pg.getWidth(); x++) {
+							 l.data[x + y * pg.getWidth()] = (pg.getPixel(x, y) & 0xFF) > 128; // Store pixel data
+						 }
+					 }
+
+					 l.col = cols.get(indices.get(i).get(0));
+					 l.indices = indices.get(i);
+					 standard.layers[i] = l;
 				 }
+
 				 scoreSolution(standard);
 
-				 standard.drawRender().save("/Users/studio/Downloads/rcmc-"+hashCode()+".png");
-				 
+				 // Save the result to a file
+				 Pixmap resultPixmap = standard.drawRender(); // Assuming this returns a Pixmap
+				 savePixmap(resultPixmap, "/Users/studio/Downloads/rcmc-" + hashCode() + ".png");
+
 				 solutions.add(standard);
-				 System.out.println(logPrefix+" Original color change: "+standard.score+", optimizing...");
-				 
+				 System.out.println(logPrefix + " Original color change: " + standard.score + ", optimizing...");
+
 				 long startTime = System.currentTimeMillis();
 				 for (int i = 0; i < Integer.MAX_VALUE; i++) {
 					 Solution sol = newSolution();
-					 if (sol.score < solutions.get(solutions.size()-1).score){
-						 System.out.println(logPrefix+" Color opt trial # "+i+", improved color changes to: "+sol.score);
+					 if (sol.score < solutions.get(solutions.size() - 1).score) {
+						 System.out.println(logPrefix + " Color opt trial # " + i + ", improved color changes to: " + sol.score);
 						 solutions.add(sol);
 					 }
 					 if (i % 100 == 0) {
-						 long duration = System.currentTimeMillis()- startTime;
-						 float secs = duration/1000;
+						 long duration = System.currentTimeMillis() - startTime;
+						 float secs = duration / 1000f;
 						 if (secs > wait) {
-							 
 							 break;
 						 }
 					 }
 				 }
-				 Solution best = solutions.get(solutions.size()-1);
-				 System.out.println(logPrefix+" Color opt timed out, best solution: "+best.score+" color changes");
 
+				 Solution best = solutions.get(solutions.size() - 1);
+				 System.out.println(logPrefix + " Color opt timed out, best solution: " + best.score + " color changes");
+
+				 // Collect the final result
 				 for (int i = 0; i < best.layers.length; i++) {
 					 for (int j = 0; j < best.layers[i].indices.size(); j++) {
 						 ret.add(best.layers[i].indices.get(j));
@@ -6042,16 +6162,14 @@ public class PEmbroiderGraphics {
 		 co.main();
 		 return ret;
 
-			
+
 	 }
-	 void throwNPE() {// hack to throw null pointer exception
-		ShapeRenderer pg = null;
-		if (MathUtils.random(1)>999) {// silence eclipse warning
-			pg = app.createGraphics(0,0);
-		}
-		pg.rect(0,0,0,0);
-		 
+	// Helper method to save Pixmap to file
+	private void savePixmap(Pixmap pixmap, String path) {
+		PixmapIO.writePNG(Gdx.files.local(path), pixmap);
+		pixmap.dispose(); // Dispose the Pixmap after saving
 	}
+
 	void pause() {
 		try {Thread.sleep(Integer.MAX_VALUE);}catch(Exception e) {}
 	}
@@ -6172,20 +6290,29 @@ public class PEmbroiderGraphics {
 		}
 		return false;
 	}
-	 
+
 	public void beginComposite() {
 		if (composite == null) {
-			composite = new PEmbroiderBooleanShapeGraphics(width,height);
+			composite = new PEmbroiderBooleanShapeGraphics(width, height);
 		}
-		composite.background(0);
-		composite.operator(PEmbroiderBooleanShapeGraphics.OR);
+		// Clear the frame buffer with black (equivalent to background(0) in Processing)
+		composite.clear(); // This clears the frame buffer with black
+		composite.operator(PEmbroiderBooleanShapeGraphics.OR); // Set the operation mode to OR
 	}
+
 	public void endComposite() {
-		composite.filter(PConstants.THRESHOLD);
-		composite.endDraw();
-		image(composite,0,0);
-		composite = null;
+		// Apply a filter (this is done after composite operations)
+		// Note: libGDX doesn't have a direct "filter" method for FrameBuffer
+		// You would need to manually implement the thresholding filter or another operation
+		composite.endOps(); // End operations
+
+		// Convert the result to a Pixmap (which can be saved or used for further operations)
+		Pixmap resultPixmap = composite.toPixmap(); // Get the Pixmap from FrameBuffer
+		savePixmap(resultPixmap, "/Users/studio/Downloads/rcmc-" + hashCode() + ".png"); // TODO PROBABLY DO NOT SAVE A PNG HERE
+
+		composite = null; // Clean up the composite
 	}
-	 
+
+
 
 }
