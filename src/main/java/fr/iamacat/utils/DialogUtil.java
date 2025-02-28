@@ -2,28 +2,19 @@ package fr.iamacat.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.glutils.FrameBuffer;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.VisDialog;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
-import fr.iamacat.PEmbroiderLauncher;
-import fr.iamacat.utils.enums.SaveDropboxType;
-import fr.iamacat.utils.enums.SaveLocallyType;
-import jdk.jshell.execution.Util;
+import fr.iamacat.embroider.PEmbroiderGraphics;
+import fr.iamacat.embroider.PEmbroiderWriter;
+import fr.iamacat.utils.enums.SaveType;
 
 import java.io.File;
 import java.util.function.Consumer;
@@ -141,7 +132,7 @@ public class DialogUtil {
         stage.addActor(fileChooser.fadeIn());
     }
 
-    public static void showSaveDialog(final SaveLocallyType saveType, final Stage stage, final Image imageToSave, Consumer<Boolean> onResult) {
+    public static void showSaveDialog(final SaveType saveType, final Stage stage, final PEmbroiderGraphics brodery, int saveWidth, int saveHeight, Consumer<Boolean> onResult) {
         final FileChooser fileChooser = new FileChooser(FileChooser.Mode.SAVE);
         fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
         String ext = saveType.toString().toLowerCase();
@@ -155,10 +146,7 @@ public class DialogUtil {
             public void selected(Array<FileHandle> files) {
                 if (files.size > 0) {
                     FileHandle file = files.first();
-                    boolean success = saveImageToFile(stage, file, saveType, imageToSave);
-                    if (onResult != null) {
-                        onResult.accept(success);
-                    }
+                    saveBroderyFile(stage, file.path(), saveType, brodery, saveWidth, saveHeight);
                 } else {
                     if (onResult != null) {
                         onResult.accept(false);
@@ -171,45 +159,23 @@ public class DialogUtil {
         stage.addActor(fileChooser.fadeIn());
     }
 
-
-    // Méthode pour sauvegarder l'image dans le fichier sélectionné
-    private static boolean saveImageToFile(Stage stage, FileHandle file, SaveLocallyType saveType, Image imageToSave) {
+    private static File saveBroderyFile(Stage stage, String filePath, SaveType saveType, PEmbroiderGraphics brodery, int saveWidth, int saveHeight) {
         try {
-            // Récupérer la texture depuis l'image (en supposant un TextureRegionDrawable)
-            TextureRegionDrawable drawable = (TextureRegionDrawable) imageToSave.getDrawable();
-            Texture texture = drawable.getRegion().getTexture();
+            File file = new File(filePath); // Create a File object based on the given file path
+            boolean isSVG = saveType.toString().equals(SaveType.SVG);
 
-            // Vérifier et préparer la texture si nécessaire
-            if (!texture.getTextureData().isPrepared()) {
-                texture.getTextureData().prepare();
-            }
+            // Assuming PEmbroiderWriter.write method writes to the file
+            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.polylines, brodery.colors, saveWidth, saveHeight, isSVG);
 
-            // Extraire le Pixmap de la texture
-            Pixmap pixmap = texture.getTextureData().consumePixmap();
-            // TODO SUPPORT PES ETC..
-            if (saveType == SaveLocallyType.PES) {
-                // Implémentation spécifique pour le format PES (à remplacer par ton propre code)
-                System.out.println("Sauvegarde en PES - implémentation spécifique requise !");
-                // Exemple : FileUtils.writeByteArrayToFile(file.file(), convertToPES(pixmap));
-                showErrorDialog(stage, "Le format PES nécessite une implémentation spécifique !");
-                return false;
-            } else {
-                // Pour PNG, JPG, etc.
-                PixmapIO.writePNG(file, pixmap);
-            }
-
-            // Nettoyage du Pixmap après utilisation pour éviter les fuites mémoire
-            pixmap.dispose();
-
-            return true;
+            return file;  // Return the File object
         } catch (Exception e) {
-            showErrorDialog(stage, "Erreur lors de la sauvegarde : " + e.getMessage());
-            return false;
+            showErrorDialog(stage, "Error while saving: " + e.getMessage());
+            return null;
         }
     }
 
-    // Méthode qui affiche une boîte de dialogue pour uploader sur Dropbox
-    public static void showUploadDialog(final SaveDropboxType saveType, final Stage stage, final Image imageToSave, Consumer<Boolean> onResult) {
+
+    public static void showUploadDialog(final SaveType saveType, final Stage stage, PEmbroiderGraphics brodery, int saveWidth, int saveHeight, Consumer<Boolean> onResult) {
         final TextField fileNameField = new TextField("", UIUtils.visSkin);
         VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
             @Override
@@ -222,7 +188,7 @@ public class DialogUtil {
                             onResult.accept(false);
                         }
                     } else {
-                        File imageFile = convertImageToFile(imageToSave, saveType, fileName);
+                        File imageFile = saveBroderyFile(stage, fileName + "." + saveType.toString(),saveType,brodery, saveWidth,saveHeight);
                         if (imageFile != null) {
                             boolean success = DropboxUtil.uploadToDropbox(stage, imageFile);
                             if (onResult != null) {
@@ -248,32 +214,7 @@ public class DialogUtil {
         dialog.button(Translator.getInstance().translate("cancel"), "CANCEL");
         dialog.show(stage);
     }
-    private static File convertImageToFile(Image image, SaveDropboxType saveType, String fileName) {
-        // TODO SUPPORT PES ETC..
-        File file = new File(Gdx.files.getLocalStoragePath(), fileName + "." + saveType.toString().toLowerCase());
 
-        try {
-            // Récupérer la texture originale
-            Texture texture = ((TextureRegionDrawable) image.getDrawable()).getRegion().getTexture();
-
-            // Extraire les données brutes comme pour la sauvegarde locale
-            if (!texture.getTextureData().isPrepared()) {
-                texture.getTextureData().prepare();
-            }
-
-            Pixmap pixmap = texture.getTextureData().consumePixmap();
-
-            // Sauvegarder le Pixmap original
-            PixmapIO.writePNG(new FileHandle(file), pixmap);
-
-            pixmap.dispose();
-
-            return file;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
     public static void showExitConfirmationDialog(Stage stage, Runnable onExit, Runnable onSaveLocally, Runnable onUpload) {
         VisDialog dialog = new VisDialog("Exit Application") {
             @Override
