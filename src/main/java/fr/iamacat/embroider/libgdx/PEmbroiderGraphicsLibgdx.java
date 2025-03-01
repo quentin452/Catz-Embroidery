@@ -23,6 +23,8 @@ import static fr.iamacat.utils.enums.ColorType.Realistic;
 // TODO ADD BRODERING TIME ESTIMATION
 // TODO FIX SAVING CAUSING BUGS
 // TODO FIX WHEN I EXTRACT BRODERY TO PNG , IT DONT SAVE SAME COLORS
+// TODO FIX SAVING SGV/PES OR ANOTHER BRODERY FILES CAUSING LARGE FILES
+
 public class PEmbroiderGraphicsLibgdx {
     private final CrossHatch crossHatch;
     private final ParallelHatch parallelHatch;
@@ -89,7 +91,7 @@ public class PEmbroiderGraphicsLibgdx {
         beginShape();
         colorsCache = precalculateColors(pixmap, maxColors, colorMode);
         applyHatchMode(pixmap, x, y);
-        optimizeStitchPaths();
+        // optimizeStitchPaths();
         endShape();
         // needsRefresh = true;
     }
