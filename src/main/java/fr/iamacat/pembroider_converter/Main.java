@@ -5,7 +5,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
@@ -16,6 +18,7 @@ import fr.iamacat.utils.enums.HatchModeType;
 import fr.iamacat.utils.enums.SaveType;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 
 import static fr.iamacat.utils.UIUtils.*;
 // TODO update progressBar during file loading/saving
@@ -119,9 +122,14 @@ public class Main extends MainBase {
         });
         VisCheckBox checkBox = new VisCheckBox(t("fill_mode"));
         checkBox.setChecked(embroidery.fillEnabled);
-        checkBox.addListener(event -> {embroidery.fillEnabled = checkBox.isChecked(); refreshPreview(); return true;});
+        checkBox.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                embroidery.fillEnabled = checkBox.isChecked();
+                refreshPreview();
+            }
+        });
         settingsTable.add(checkBox).left().padLeft(10).padRight(10).row();
-
         ScrollPane scrollPane = new ScrollPane(settingsTable);
         scrollPane.setScrollingDisabled(false, true);
         scrollPane.setPosition(50, 50);
