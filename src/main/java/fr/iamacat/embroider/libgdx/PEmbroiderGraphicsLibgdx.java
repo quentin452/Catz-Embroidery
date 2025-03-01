@@ -5,10 +5,15 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import fr.iamacat.embroider.PEmbroiderTrace;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 
+import java.util.ArrayList;
+
+import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitchIfVisible;
+// TODO FIX SAVING CAUSING BUGS
 public class PEmbroiderGraphicsLibgdx {
     private final CrossHatch crossHatch;
     private final ParallelHatch parallelHatch;
@@ -20,6 +25,8 @@ public class PEmbroiderGraphicsLibgdx {
     public HatchModeType hatchMode = HatchModeType.Cross;
     public int width = 200;
     public int height = 200;
+    public int yPosOffset = 100;
+    public int zPosOffset = 340;
     public int hatchSpacing = 50;
     public int strokeWeight = 20;
     public int maxColors = 10;
@@ -77,23 +84,48 @@ public class PEmbroiderGraphicsLibgdx {
      * Applique le mode de hachure sélectionné.
      */
     private void applyHatchMode(Pixmap pixmap, float x, float y) {
-        switch (hatchMode) {
+        ArrayList<ArrayList<Vector2>> contours = generateContours(pixmap);
+        // TODO
+        /*switch (hatchMode) {
             case Cross:
-                crossHatch.apply(this, pixmap, x, y);
+                crossHatch.apply(this, pixmap, x, y,contours);
                 break;
             case Parallel:
-                parallelHatch.apply(this, pixmap, x, y);
+                parallelHatch.apply(this, pixmap, x, y,contours);
                 break;
             case Concentric:
-                concentricHatch.apply(this, pixmap, x, y);
+                concentricHatch.apply(this, pixmap, x, y,contours);
                 break;
             case Spiral:
-                spiralHatch.apply(this, pixmap, x, y);
+                spiralHatch.apply(this, pixmap, x, y,contours);
                 break;
             case PerlinNoise:
-                perlinHatch.apply(this, pixmap, x, y);
+                perlinHatch.apply(this, pixmap, x, y,contours);
                 break;
+        }*/
+    }
+
+    private ArrayList<ArrayList<Vector2>> generateContours(Pixmap pixmap) {
+        ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(pixmap);
+        float epsilon = Math.min(1.0f, pixmap.getWidth() / 100f);
+        contours.replaceAll(polyline -> PEmbroiderTrace.approxPolyDP(polyline, epsilon));
+        for (ArrayList<Vector2> contour : contours) {
+            for (int j = 0; j < contour.size(); j++) {
+                Vector2 p1 = contour.get(j);
+                Vector2 p2 = contour.get((j + 1) % contour.size());
+                float adjustedX1 = (p1.x * width / pixmap.getWidth()) + zPosOffset;
+                float adjustedY1 = height - (p1.y * height / pixmap.getHeight() + yPosOffset);
+                addStitchIfVisible(pixmap, adjustedX1, adjustedY1, this);
+                float steps = p1.dst(p2) / hatchSpacing;
+                for (int k = 0; k <= steps; k++) {
+                    Vector2 interp = p1.cpy().lerp(p2, k / steps);
+                    float interpX = (interp.x * width / pixmap.getWidth()) + zPosOffset;
+                    float interpY = height - (interp.y * height / pixmap.getHeight() + yPosOffset);
+                    addStitchIfVisible(pixmap, interpX, interpY, this);
+                }
+            }
         }
+        return contours;
     }
 
     public void visualize(ShapeRenderer renderer, float offsetX, float offsetY) {
