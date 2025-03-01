@@ -13,9 +13,16 @@ import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import static fr.iamacat.embroider.libgdx.utils.ColorUtil.precalculateColors;
 import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitch;
+import static fr.iamacat.utils.enums.ColorType.MultiColor;
+import static fr.iamacat.utils.enums.ColorType.Realistic;
 
 // TODO FIX SAVING CAUSING BUGS
 // TODO FIX WHEN I EXTRACT BRODERY TO PNG , IT DONT SAVE SAME COLORS
@@ -28,9 +35,9 @@ public class PEmbroiderGraphicsLibgdx {
     private final ConcentricHatch concentricHatch;
     private final SpiralHatch spiralHatch;
     private final PerlinHatch perlinHatch;
-    private Color[] colorsCache;
+    public Color[] colorsCache;
 
-    public ColorType colorMode = ColorType.MultiColor;
+    public ColorType colorMode = MultiColor;
     public HatchModeType hatchMode = HatchModeType.Cross;
     public int width = 200;
     public int height = 200;
@@ -39,13 +46,8 @@ public class PEmbroiderGraphicsLibgdx {
     public int maxColors = 10;
     public int strokeSpacing = 5;
     public boolean fillEnabled = true;
-    // Données de broderie
-    public Color currentColor = Color.BLACK;
     public Array<Array<StitchUtil.StitchPoint>> stitchPaths = new Array<>();
     private Array<StitchUtil.StitchPoint> currentPath;
-    // État du dessin
-    private boolean drawing = false;
-    public Array<Vector2> currentPolyline;
 
     public PEmbroiderGraphicsLibgdx() {
         this.crossHatch = new CrossHatch(this);
@@ -57,11 +59,10 @@ public class PEmbroiderGraphicsLibgdx {
 
     public void beginDraw() {
         stitchPaths.clear();
-        drawing = true;
+        colorsCache = new Color[0];
     }
 
     public void endDraw() {
-        drawing = false;
         optimizeStitchPaths();
     }
 
@@ -86,6 +87,7 @@ public class PEmbroiderGraphicsLibgdx {
         this.width = width;
         this.height = height;
         beginShape();
+        colorsCache = precalculateColors(pixmap, maxColors,colorMode);
         applyHatchMode(pixmap, x, y);
         endShape();
     }
