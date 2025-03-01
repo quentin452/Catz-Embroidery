@@ -2328,12 +2328,6 @@ public class PEmbroiderWriter {
 
 				// Extract the color of the first stitch in the path (you can adjust as needed)
 				int col = Color.rgba8888(path.get(0).color);  // Assuming all stitches in a path have the same color
-
-				float[] hsb = new float[3];
-				ColorUtil.RGBtoHSB((col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, hsb);
-				hsb[1] = Math.min(1.0f, hsb[1] * 1.5f); // Increase saturation
-				col = ColorUtil.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
-
 				pixmap.setColor(col);
 
 				// Loop through the stitches in the path and draw lines between consecutive stitches
