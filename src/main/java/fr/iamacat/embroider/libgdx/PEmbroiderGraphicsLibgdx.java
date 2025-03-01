@@ -226,7 +226,6 @@ public class PEmbroiderGraphicsLibgdx {
 
         shapeRenderer.end();
     }
-
     private void optimizeStitchPaths() {
         // Optimisation des chemins pour minimiser les sauts
         // (Implémentation simplifiée)

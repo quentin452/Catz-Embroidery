@@ -193,7 +193,7 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-            embroidery.visualize(true, false, false, Integer.MAX_VALUE,
+            embroidery.visualize(true, true, true, Integer.MAX_VALUE,
                     broderyWidth,
                     broderyHeight, +900, 100);
         }

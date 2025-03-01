@@ -2326,9 +2326,9 @@ public class PEmbroiderWriter {
 					Vector2 p1 = polyline.get(j + 1);
 
 					int x0 = (int) (p0.x + offsetX);
-					int y0 = (int) (p0.y + offsetY);
+					int y0 = height - (int) (p0.y + offsetY); // Inversion Y
 					int x1 = (int) (p1.x + offsetX);
-					int y1 = (int) (p1.y + offsetY);
+					int y1 = height - (int) (p1.y + offsetY); // Inversion Y
 
 					if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height &&
 							x1 >= 0 && x1 < width && y1 >= 0 && y1 < height) {
