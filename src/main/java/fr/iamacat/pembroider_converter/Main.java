@@ -21,6 +21,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 
 import static fr.iamacat.utils.UIUtils.*;
+import static fr.iamacat.utils.enums.HatchModeType.Parallel;
+
 // TODO update progressBar during file loading/saving
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
@@ -160,6 +162,7 @@ public class Main extends MainBase {
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
+        embroidery.hatchMode = Parallel;
         embroidery.image(pixmap, 400, -139,broderyWidth,broderyHeight);
         embroidery.endDraw();
         pixmap.dispose();

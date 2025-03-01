@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import fr.iamacat.embroider.libgdx.utils.StitchUtil;
 import fr.iamacat.utils.ColorUtil;
 
 import java.io.ByteArrayOutputStream;
@@ -2278,59 +2279,84 @@ public class PEmbroiderWriter {
 		}
 		
 	}
-
 	public static class PNG {
-		public static void write(String filename, String extension, Array<Array<Vector2>> polylines, Array<Color> colors) {
+		public static void write(String filename, String extension, Array<Array<StitchUtil.StitchPoint>> stitchPaths) {
 			int width = 1000;
 			int height = 1000;
 
 			Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
 
+			if (stitchPaths.isEmpty()) {
+				System.err.println("ERROR: No stitchPaths to save! Exiting PNG writing.");
+				return;
+			}
+
 			float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
 			float maxX = Float.MIN_VALUE, maxY = Float.MIN_VALUE;
 
-			for (Array<Vector2> polyline : polylines) {
-				for (Vector2 point : polyline) {
-					if (point.x < minX) minX = point.x;
-					if (point.y < minY) minY = point.y;
-					if (point.x > maxX) maxX = point.x;
-					if (point.y > maxY) maxY = point.y;
+			// Determine bounding box based on all stitches
+			for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
+				System.out.println("Path size: " + path.size);
+				if (path.isEmpty()) {
+					System.err.println("WARNING: Found empty path!");
+				}
+				for (StitchUtil.StitchPoint stitch : path) {
+					if (stitch == null) {
+						System.err.println("ERROR: Found null stitch in path!");
+						continue;
+					}
+					if (stitch.position.x < minX) minX = stitch.position.x;
+					if (stitch.position.y < minY) minY = stitch.position.y;
+					if (stitch.position.x > maxX) maxX = stitch.position.x;
+					if (stitch.position.y > maxY) maxY = stitch.position.y;
 				}
 			}
 
 			float centerX = (minX + maxX) / 2;
 			float centerY = (minY + maxY) / 2;
-
 			float offsetX = (float) width / 2 - centerX;
 			float offsetY = (float) height / 2 - centerY;
 
-			for (int i = 0; i < polylines.size; i++) {
-				Array<Vector2> polyline = polylines.get(i);
-				int col = colors.get(i).toIntBits();
+			// Iterate over the stitchPaths to draw the lines
+			for (int i = 0; i < stitchPaths.size; i++) {
+				Array<StitchUtil.StitchPoint> path = stitchPaths.get(i);
+
+				// If the path is empty, skip
+				if (path.isEmpty()) {
+					System.err.println("WARNING: Skipping empty path " + i);
+					continue;
+				}
+
+				// Extract the color of the first stitch in the path (you can adjust as needed)
+				int col = Color.rgba8888(path.get(0).color);  // Assuming all stitches in a path have the same color
 
 				float[] hsb = new float[3];
 				ColorUtil.RGBtoHSB((col >> 16) & 0xFF, (col >> 8) & 0xFF, col & 0xFF, hsb);
-				hsb[1] = Math.min(1.0f, hsb[1] * 1.5f); // Augment saturation of 50 %
+				hsb[1] = Math.min(1.0f, hsb[1] * 1.5f); // Increase saturation
 				col = ColorUtil.HSBtoRGB(hsb[0], hsb[1], hsb[2]);
 
 				pixmap.setColor(col);
 
-				if (polyline.isEmpty()) {
-					continue;
-				}
+				// Loop through the stitches in the path and draw lines between consecutive stitches
+				for (int j = 0; j < path.size - 1; j++) {
+					StitchUtil.StitchPoint stitch1 = path.get(j);
+					StitchUtil.StitchPoint stitch2 = path.get(j + 1);
 
-				for (int j = 0; j < polyline.size - 1; j++) {
-					Vector2 p0 = polyline.get(j);
-					Vector2 p1 = polyline.get(j + 1);
+					if (stitch1 == null || stitch2 == null) {
+						System.err.println("ERROR: Null stitch found in path " + i);
+						continue;
+					}
 
-					int x0 = (int) (p0.x + offsetX);
-					int y0 = height - (int) (p0.y + offsetY); // Inversion Y
-					int x1 = (int) (p1.x + offsetX);
-					int y1 = height - (int) (p1.y + offsetY); // Inversion Y
+					// Transform positions
+					int x0 = (int) (stitch1.position.x + offsetX);
+					int y0 = height - (int) (stitch1.position.y + offsetY);
+					int x1 = (int) (stitch2.position.x + offsetX);
+					int y1 = height - (int) (stitch2.position.y + offsetY);
 
 					if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height &&
 							x1 >= 0 && x1 < width && y1 >= 0 && y1 < height) {
 
+						// Bresenham's line algorithm to draw a line between two points
 						int dx = Math.abs(x1 - x0);
 						int dy = -Math.abs(y1 - y0);
 						int sx = x0 < x1 ? 1 : -1;
@@ -2358,9 +2384,10 @@ public class PEmbroiderWriter {
 				}
 			}
 
+			// Saving the Pixmap as a PNG
 			try {
 				FileHandle fileHandle = Gdx.files.absolute(filename + "." + extension);
-				System.out.println("Saving file to: " + fileHandle.path()); // Debugging output
+				System.out.println("Saving file to: " + fileHandle.path());
 				PixmapIO.writePNG(fileHandle, pixmap);
 			} catch (Exception e) {
 				System.err.println("Error writing PNG: " + e.getMessage());
@@ -2421,12 +2448,13 @@ public class PEmbroiderWriter {
 			stream.close();
 		}
 	}
-	
 
-	public static void write(String filename, Array<Array<Vector2>> polylines, Array<Color> colors, int width, int height){
-		write(filename,polylines,colors,width,height,false);
+
+	public static void write(String filename, Array<Array<StitchUtil.StitchPoint>> stitchPaths, int width, int height) {
+		write(filename, stitchPaths, width, height, false);
 	}
-	public static void write(String filename, Array<Array<Vector2>> polylines, Array<Color> colors, int width, int height, boolean noConnect) {
+
+	public static void write(String filename, Array<Array<StitchUtil.StitchPoint>> stitchPaths, int width, int height, boolean noConnect) {
 		System.out.println(filename);
 		boolean isCustomMatrix = true;
 		boolean isCustomBounds = true;
@@ -2441,13 +2469,16 @@ public class PEmbroiderWriter {
 		Array<Vector2> stitches = new Array<>();
 		Array<Integer> flatColors = new Array<>();
 		Array<Boolean> jumps = new Array<>();
-		for (int i = 0; i < polylines.size; i++) {
-			for (int j = 0; j < polylines.get(i).size; j++) {
-				Vector2 p = polylines.get(i).get(j).cpy();
-				p = p.mul(TRANSFORM);
+
+		// Loop through stitchPaths and extract positions and colors
+		for (int i = 0; i < stitchPaths.size; i++) {
+			for (int j = 0; j < stitchPaths.get(i).size; j++) {
+				StitchUtil.StitchPoint stitch = stitchPaths.get(i).get(j);
+				Vector2 p = stitch.position.cpy();
+				p = p.mul(TRANSFORM); // Apply transformation to the position
 				stitches.add(p);
-				flatColors.add(Color.rgba8888(colors.get(i)));
-				jumps.add(j == 0);
+				flatColors.add(Color.rgba8888(stitch.color)); // Convert color to flat representation
+				jumps.add(j == 0); // Mark the first stitch as a jump
 			}
 		}
 
@@ -2510,7 +2541,7 @@ public class PEmbroiderWriter {
 				//case "JPEG": // TODO
 				//case "BMP": // TODO
 				//case "GIF":// TODO
-					PNG.write(tokens[0], tokens[1], polylines, colors);
+					PNG.write(tokens[0], tokens[1], stitchPaths);
 					break;
 				default:
 					System.out.println(logPrefix + "Unsupported format. Try dst, exp, pdf, pec, pes, svg, tsv, vp3, xxx, png, jpg, jpeg, bmp, gif or gcode.");

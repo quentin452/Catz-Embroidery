@@ -8,8 +8,6 @@ import fr.iamacat.embroider.libgdx.utils.StitchUtil;
 
 import java.util.ArrayList;
 
-import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitchIfVisible;
-
 public class SpiralHatch extends BaseHatch{
 
     public SpiralHatch(PEmbroiderGraphicsLibgdx brodery) {

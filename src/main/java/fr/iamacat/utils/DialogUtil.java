@@ -158,14 +158,14 @@ public class DialogUtil {
         fileChooser.setPosition(Gdx.graphics.getWidth() * 0.125f, Gdx.graphics.getHeight() * 0.125f);
         stage.addActor(fileChooser.fadeIn());
     }
-
     private static File saveBroderyFile(Stage stage, String filePath, SaveType saveType, PEmbroiderGraphicsLibgdx brodery, int saveWidth, int saveHeight) {
         try {
             File file = new File(filePath); // Create a File object based on the given file path
             boolean isSVG = saveType.toString().equals(SaveType.SVG);
 
             // Assuming PEmbroiderWriter.write method writes to the file
-            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.polylines, brodery.colors, saveWidth, saveHeight, isSVG);
+            // Now, we use stitchPaths instead of polylines and colors
+            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.stitchPaths, saveWidth, saveHeight, isSVG);
 
             return file;  // Return the File object
         } catch (Exception e) {

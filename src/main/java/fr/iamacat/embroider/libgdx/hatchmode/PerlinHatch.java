@@ -9,8 +9,6 @@ import fr.iamacat.utils.PerlinNoise;
 
 import java.util.ArrayList;
 
-import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitchIfVisible;
-
 public class PerlinHatch  extends BaseHatch{
 
     public PerlinHatch(PEmbroiderGraphicsLibgdx brodery) {

@@ -8,23 +8,27 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import fr.iamacat.embroider.PEmbroiderTrace;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
+import fr.iamacat.embroider.libgdx.utils.StitchUtil;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitchIfVisible;
+import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitch;
+
 // TODO FIX SAVING CAUSING BUGS
 // TODO FIX WHEN I EXTRACT BRODERY TO PNG , IT DONT SAVE SAME COLORS
 // TODO FIX BLACK AND WHITE MOD AND THE MULTICOLOR MOD CAN SAVE NOTHING (PROBABLY A COLOR PROBLEM)
 // TODO FIX visualize don't draw the good colors
+// TODO SUPPORT MULTPLE COLORS FOR REALISTIC MODE(collect dominant colors using maxColors field) AND MULTI COLOR MODE (use random color using maxColors field)
 public class PEmbroiderGraphicsLibgdx {
     private final CrossHatch crossHatch;
     private final ParallelHatch parallelHatch;
     private final ConcentricHatch concentricHatch;
     private final SpiralHatch spiralHatch;
     private final PerlinHatch perlinHatch;
+    private Color[] colorsCache;
 
     public ColorType colorMode = ColorType.MultiColor;
     public HatchModeType hatchMode = HatchModeType.Cross;
@@ -36,10 +40,9 @@ public class PEmbroiderGraphicsLibgdx {
     public int strokeSpacing = 5;
     public boolean fillEnabled = true;
     // Données de broderie
-    public Array<Array<Vector2>> polylines = new Array<>();
-    public Array<Color> colors = new Array<>();
     public Color currentColor = Color.BLACK;
-
+    public Array<Array<StitchUtil.StitchPoint>> stitchPaths = new Array<>();
+    private Array<StitchUtil.StitchPoint> currentPath;
     // État du dessin
     private boolean drawing = false;
     public Array<Vector2> currentPolyline;
@@ -53,8 +56,7 @@ public class PEmbroiderGraphicsLibgdx {
     }
 
     public void beginDraw() {
-        polylines.clear();
-        colors.clear();
+        stitchPaths.clear();
         drawing = true;
     }
 
@@ -64,15 +66,20 @@ public class PEmbroiderGraphicsLibgdx {
     }
 
     public void beginShape() {
-        currentPolyline = new Array<>();
+        currentPath = new Array<>();
     }
 
     public void endShape() {
-        if (currentPolyline != null && currentPolyline.size > 0) {
-            polylines.add(currentPolyline);
-            colors.add(currentColor.cpy());
+        if (currentPath != null && currentPath.size > 0) {
+            stitchPaths.add(currentPath);
         }
-        currentPolyline = null;
+        currentPath = null;
+    }
+
+    public void vertex(Vector2 pos, Color col) {
+        if (currentPath != null) {
+            currentPath.add(new StitchUtil.StitchPoint(pos, col));
+        }
     }
 
     public void image(Pixmap pixmap, float x, float y, int width, int height) {
@@ -88,8 +95,7 @@ public class PEmbroiderGraphicsLibgdx {
      */
     private void applyHatchMode(Pixmap pixmap, float x, float y) {
         ArrayList<ArrayList<Vector2>> contours = generateContours(pixmap);
-        // TODO
-        /*switch (hatchMode) {
+        switch (hatchMode) {
             case Cross:
                 crossHatch.apply(this, pixmap, x, y,contours);
                 break;
@@ -105,26 +111,24 @@ public class PEmbroiderGraphicsLibgdx {
             case PerlinNoise:
                 perlinHatch.apply(this, pixmap, x, y,contours);
                 break;
-        }*/
+        }
     }
 
     private ArrayList<ArrayList<Vector2>> generateContours(Pixmap pixmap) {
         ArrayList<ArrayList<Vector2>> contours = PEmbroiderTrace.findContours(pixmap);
         float epsilon = Math.min(1.0f, pixmap.getWidth() / 100f);
         contours.replaceAll(polyline -> PEmbroiderTrace.approxPolyDP(polyline, epsilon));
+
         for (ArrayList<Vector2> contour : contours) {
             for (int j = 0; j < contour.size(); j++) {
                 Vector2 p1 = contour.get(j);
                 Vector2 p2 = contour.get((j + 1) % contour.size());
-                float adjustedX1 = (p1.x * width / pixmap.getWidth());
-                float adjustedY1 = height - (p1.y * height / pixmap.getHeight());
-                addStitchIfVisible(pixmap, adjustedX1, adjustedY1, this);
+                addStitch(pixmap, p1.x, p1.y, this);
+
                 float steps = p1.dst(p2) / hatchSpacing;
                 for (int k = 0; k <= steps; k++) {
                     Vector2 interp = p1.cpy().lerp(p2, k / steps);
-                    float interpX = (interp.x * width / pixmap.getWidth());
-                    float interpY = height - (interp.y * height / pixmap.getHeight());
-                    addStitchIfVisible(pixmap, interpX, interpY, this);
+                    addStitch(pixmap, interp.x, interp.y, this);
                 }
             }
         }
@@ -132,22 +136,19 @@ public class PEmbroiderGraphicsLibgdx {
     }
 
 
+
     public void visualize(ShapeRenderer renderer, float offsetX, float offsetY) {
         renderer.begin(ShapeRenderer.ShapeType.Line);
 
-        for (int i = 0; i < polylines.size; i++) {
-            Array<Vector2> poly = polylines.get(i);
-            Color color = colors.get(i);
+        for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
+            for (int i = 1; i < path.size; i++) {
+                StitchUtil.StitchPoint p1 = path.get(i-1);
+                StitchUtil.StitchPoint p2 = path.get(i);
 
-            renderer.setColor(color);
-            for (int j = 1; j < poly.size; j++) {
-                Vector2 p1 = poly.get(j-1);
-                Vector2 p2 = poly.get(j);
+                renderer.setColor(p1.color);
                 renderer.line(
-                        p1.x + offsetX,
-                        p1.y + offsetY,
-                        p2.x + offsetX,
-                        p2.y + offsetY
+                        p1.position.x+ offsetX, p1.position.y+ offsetY,
+                        p2.position.x+ offsetX, p2.position.y+ offsetY
                 );
             }
         }
@@ -157,12 +158,12 @@ public class PEmbroiderGraphicsLibgdx {
     private void optimizeStitchPaths() {
         // Optimisation des chemins pour minimiser les sauts
         // (Implémentation simplifiée)
-        Array<Array<Vector2>> optimized = new Array<>();
-        for (Array<Vector2> path : polylines) {
+        Array<Array<StitchUtil.StitchPoint>> optimized = new Array<>();
+        for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
             if (path.size > 1) {
                 optimized.add(path);
             }
         }
-        polylines = optimized;
+        stitchPaths = optimized;
     }
 }
