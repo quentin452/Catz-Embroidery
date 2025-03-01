@@ -16,6 +16,9 @@ import java.util.List;
 
 import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitchIfVisible;
 // TODO FIX SAVING CAUSING BUGS
+// TODO FIX WHEN I EXTRACT BRODERY TO PNG , IT DONT SAVE SAME COLORS
+// TODO FIX BLACK AND WHITE MOD AND THE MULTICOLOR MOD CAN SAVE NOTHING (PROBABLY A COLOR PROBLEM)
+// TODO FIX visualize don't draw the good colors
 public class PEmbroiderGraphicsLibgdx {
     private final CrossHatch crossHatch;
     private final ParallelHatch parallelHatch;
@@ -128,103 +131,28 @@ public class PEmbroiderGraphicsLibgdx {
         return contours;
     }
 
-    public void visualize(boolean color, boolean stitches, boolean route, int nStitches, float targetWidth, float targetHeight, float offsetX, float offsetY) {
-        float scaleX = targetWidth / width;
-        float scaleY = targetHeight / height;
-        float scale = Math.max(scaleX, scaleY);
-        int n = 0;
 
-        ShapeRenderer shapeRenderer = new ShapeRenderer();
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+    public void visualize(ShapeRenderer renderer, float offsetX, float offsetY) {
+        renderer.begin(ShapeRenderer.ShapeType.Line);
 
-        // Use Array<Vector2> instead of List<Vector2>
         for (int i = 0; i < polylines.size; i++) {
-            Array<Vector2> polyline = polylines.get(i);
-            if (polyline != null && polyline.size > 1) {
-                if (color) {
-                    int colorInt = colors.get(i).toIntBits();
-                    float r = ((colorInt >> 16) & 0xFF) / 255f;
-                    float g = ((colorInt >> 8) & 0xFF) / 255f;
-                    float b = (colorInt & 0xFF) / 255f;
-                    shapeRenderer.setColor(r, g, b, 1);
-                } else if (stitches) {
-                    shapeRenderer.setColor(0, 0, 0, 1);
-                } else {
-                    shapeRenderer.setColor(MathUtils.random(200) / 255f, MathUtils.random(200) / 255f, MathUtils.random(200) / 255f, 1);
-                }
+            Array<Vector2> poly = polylines.get(i);
+            Color color = colors.get(i);
 
-                for (int j = 0; j < polyline.size - 1; j++) {
-                    Vector2 p0 = polyline.get(j);
-                    Vector2 p1 = polyline.get(j + 1);
-                    float scaledP0X = p0.x * scale + offsetX;
-                    float scaledP0Y = p0.y * scale + offsetY;
-                    float scaledP1X = p1.x * scale + offsetX;
-                    float scaledP1Y = p1.y * scale + offsetY;
-
-                    shapeRenderer.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
-
-                    n++;
-                    if (n >= nStitches) {
-                        break;
-                    }
-                }
-            }
-            if (n >= nStitches) {
-                break;
+            renderer.setColor(color);
+            for (int j = 1; j < poly.size; j++) {
+                Vector2 p1 = poly.get(j-1);
+                Vector2 p2 = poly.get(j);
+                renderer.line(
+                        p1.x + offsetX,
+                        p1.y + offsetY,
+                        p2.x + offsetX,
+                        p2.y + offsetY
+                );
             }
         }
 
-        shapeRenderer.end();
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        n = 0;
-        for (int i = 0; i < polylines.size; i++) {
-            if (route) {
-                if (i != 0 && !polylines.get(i - 1).isEmpty() && !polylines.get(i).isEmpty()) {
-                    shapeRenderer.setColor(1, 0, 0, 1); // Red
-                    Vector2 p0 = polylines.get(i - 1).get(polylines.get(i - 1).size - 1);
-                    Vector2 p1 = polylines.get(i).get(0);
-
-                    float scaledP0X = p0.x * scale + offsetX;
-                    float scaledP0Y = p0.y * scale + offsetY;
-                    float scaledP1X = p1.x * scale + offsetX;
-                    float scaledP1Y = p1.y * scale + offsetY;
-
-                    shapeRenderer.line(scaledP0X, scaledP0Y, scaledP1X, scaledP1Y);
-                }
-            }
-            if (stitches) {
-                if (polylines.get(i) != null && polylines.get(i).size > 1) {
-                    for (int j = 0; j < polylines.get(i).size - 1; j++) {
-                        Vector2 p0 = polylines.get(i).get(j);
-                        Vector2 p1 = polylines.get(i).get(j + 1);
-
-                        float scaledP0X = p0.x * scale + offsetX;
-                        float scaledP0Y = p0.y * scale + offsetY;
-                        float scaledP1X = p1.x * scale + offsetX;
-                        float scaledP1Y = p1.y * scale + offsetY;
-
-                        if (j == 0) {
-                            shapeRenderer.setColor(0, 1, 0, 1); // Green for start
-                            shapeRenderer.rect(scaledP0X - 1, scaledP0Y - 1, 2, 2);
-                        }
-
-                        shapeRenderer.setColor(1, 0, 1, 1); // Magenta for stitches
-                        shapeRenderer.rect(scaledP1X - 1, scaledP1Y - 1, 2, 2);
-
-                        n++;
-                        if (n >= nStitches) {
-                            break;
-                        }
-                    }
-                }
-                if (n >= nStitches) {
-                    break;
-                }
-            }
-        }
-
-        shapeRenderer.end();
+        renderer.end();
     }
     private void optimizeStitchPaths() {
         // Optimisation des chemins pour minimiser les sauts

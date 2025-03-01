@@ -2285,8 +2285,6 @@ public class PEmbroiderWriter {
 			int height = 1000;
 
 			Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
-			pixmap.setColor(0, 0, 0, 0);
-			pixmap.fill();
 
 			float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
 			float maxX = Float.MIN_VALUE, maxY = Float.MIN_VALUE;
