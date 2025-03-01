@@ -268,7 +268,16 @@ public final class BezierCurve {
 		return Arrays.hashCode(p);
 	}
 
+	// Dans la classe BezierCurve
 	public double length() {
-		return 0;
+		final int samples = 100;
+		double total = 0.0;
+		Vec2 prev = this.f(0.0);
+		for(int i = 1; i <= samples; i++){
+			Vec2 next = this.f(i/(double)samples);
+			total += prev.dist(next);
+			prev = next;
+		}
+		return total;
 	}
 }

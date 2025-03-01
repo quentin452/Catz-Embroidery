@@ -2296,7 +2296,6 @@ public class PEmbroiderWriter {
 
 			// Determine bounding box based on all stitches
 			for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
-				System.out.println("Path size: " + path.size);
 				if (path.isEmpty()) {
 					System.err.println("WARNING: Found empty path!");
 				}

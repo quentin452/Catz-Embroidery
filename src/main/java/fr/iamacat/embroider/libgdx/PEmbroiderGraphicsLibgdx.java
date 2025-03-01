@@ -33,8 +33,8 @@ public class PEmbroiderGraphicsLibgdx {
     private final TraceBitmapHach traceBitmapHach;
     public Color[] colorsCache;
 
-    public ColorType colorMode = MultiColor;
-    public HatchModeType hatchMode = HatchModeType.Realistic;
+    public ColorType colorMode = ColorType.Bitmap;
+    public HatchModeType hatchMode = HatchModeType.TraceBitmap;
     public int width = 200;
     public int height = 200;
     public int hatchSpacing = 50;
@@ -98,7 +98,10 @@ public class PEmbroiderGraphicsLibgdx {
      * Applique le mode de hachure sélectionné.
      */
     private void applyHatchMode(Pixmap pixmap, float x, float y) {
-        ArrayList<ArrayList<Vector2>> contours = generateContours(pixmap);
+        ArrayList<ArrayList<Vector2>> contours = new ArrayList<>();
+        if (hatchMode != HatchModeType.TraceBitmap) {
+            contours = generateContours(pixmap);
+        }
         if (!fillEnabled) {
             return;
         }

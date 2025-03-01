@@ -105,7 +105,6 @@ public class Main extends MainBase {
         VisTable settingsTable = new VisTable();
         settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
         settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
-        embroidery.fillEnabled = false;
         createSettingsTable(settingsTable, "Space Between Strokes", String.valueOf(embroidery.strokeSpacing), 50, value -> {
             embroidery.strokeSpacing = value;
             refreshPreview();
