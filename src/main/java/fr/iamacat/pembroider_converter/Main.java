@@ -30,13 +30,13 @@ public class Main extends MainBase {
     private SaveType currentSaveLocallyType = SaveType.JPG;
     private SaveType currentSaveDropboxType = SaveType.JPG;
     private int exportHeight = 95 , exportWidth = 95,broderyHeight = 320 , broderyWidth = 320;
+    private int broderyYPos,broderyXPos;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     private VisTable rootTable;
     private boolean showPreview = false;
     public static boolean enableEscapeMenu = false;
     private Slider progressBar;
-    private float visualizationWidth = 95;
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
     public Main() {
@@ -185,11 +185,9 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-            embroidery.visualize(
-                    shapeRenderer,
-                    550,
-                    250
-            );
+            embroidery.visualize(true, false, false, Integer.MAX_VALUE,
+                    broderyWidth,
+                    broderyHeight, +900, 100);
         }
     }
 

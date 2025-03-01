@@ -165,7 +165,7 @@ public class DialogUtil {
             boolean isSVG = saveType.toString().equals(SaveType.SVG);
 
             // Assuming PEmbroiderWriter.write method writes to the file
-            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.getPolylines(), brodery.getColors(), saveWidth, saveHeight, isSVG);
+            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.polylines, brodery.colors, saveWidth, saveHeight, isSVG);
 
             return file;  // Return the File object
         } catch (Exception e) {

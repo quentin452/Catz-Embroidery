@@ -14,8 +14,7 @@ public class StitchUtil {
         int originalX = (int) (px - (float) brodery.width / 2);
         int originalY = (int) (py - (float) brodery.height / 2);
         int pixel = pixmap.getPixel(originalX, originalY);
-        Color pixelColor = getColorForPixel(pixel,brodery);
-        brodery.currentColor = pixelColor;
+        brodery.currentColor = getColorForPixel(pixel,brodery);
         vertex(px, py,brodery);
     }
 
