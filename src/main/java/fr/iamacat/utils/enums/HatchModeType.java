@@ -5,5 +5,7 @@ public enum HatchModeType {
     Parallel,
     Concentric,
     Spiral,
-    PerlinNoise
+    PerlinNoise,
+    Realistic,
+    TraceBitmap,
 }

@@ -2,8 +2,9 @@ package fr.iamacat.embroider.libgdx;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import fr.iamacat.embroider.PEmbroiderTrace;
@@ -13,32 +14,27 @@ import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static fr.iamacat.embroider.libgdx.utils.ColorUtil.precalculateColors;
 import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitch;
 import static fr.iamacat.utils.enums.ColorType.MultiColor;
 import static fr.iamacat.utils.enums.ColorType.Realistic;
 
+// TODO ADD BRODERING TIME ESTIMATION
 // TODO FIX SAVING CAUSING BUGS
 // TODO FIX WHEN I EXTRACT BRODERY TO PNG , IT DONT SAVE SAME COLORS
-// TODO FIX BLACK AND WHITE MOD AND THE MULTICOLOR MOD CAN SAVE NOTHING (PROBABLY A COLOR PROBLEM)
-// TODO FIX visualize don't draw the good colors
-// TODO SUPPORT MULTPLE COLORS FOR REALISTIC MODE(collect dominant colors using maxColors field) AND MULTI COLOR MODE (use random color using maxColors field)
 public class PEmbroiderGraphicsLibgdx {
     private final CrossHatch crossHatch;
     private final ParallelHatch parallelHatch;
     private final ConcentricHatch concentricHatch;
     private final SpiralHatch spiralHatch;
     private final PerlinHatch perlinHatch;
+    private final RealisticHatch realisticHatch;
+    private final TraceBitmapHach traceBitmapHach;
     public Color[] colorsCache;
 
     public ColorType colorMode = MultiColor;
-    public HatchModeType hatchMode = HatchModeType.Cross;
+    public HatchModeType hatchMode = HatchModeType.Realistic;
     public int width = 200;
     public int height = 200;
     public int hatchSpacing = 50;
@@ -49,12 +45,15 @@ public class PEmbroiderGraphicsLibgdx {
     public Array<Array<StitchUtil.StitchPoint>> stitchPaths = new Array<>();
     private Array<StitchUtil.StitchPoint> currentPath;
 
+
     public PEmbroiderGraphicsLibgdx() {
         this.crossHatch = new CrossHatch(this);
         this.parallelHatch = new ParallelHatch(this);
         this.concentricHatch = new ConcentricHatch(this);
         this.spiralHatch = new SpiralHatch(this);
         this.perlinHatch = new PerlinHatch(this);
+        this.realisticHatch = new RealisticHatch(this);
+        this.traceBitmapHach = new TraceBitmapHach(this);
     }
 
     public void beginDraw() {
@@ -63,7 +62,7 @@ public class PEmbroiderGraphicsLibgdx {
     }
 
     public void endDraw() {
-        optimizeStitchPaths();
+
     }
 
     public void beginShape() {
@@ -83,13 +82,16 @@ public class PEmbroiderGraphicsLibgdx {
         }
     }
 
+
     public void image(Pixmap pixmap, float x, float y, int width, int height) {
         this.width = width;
         this.height = height;
         beginShape();
-        colorsCache = precalculateColors(pixmap, maxColors,colorMode);
+        colorsCache = precalculateColors(pixmap, maxColors, colorMode);
         applyHatchMode(pixmap, x, y);
+        optimizeStitchPaths();
         endShape();
+        // needsRefresh = true;
     }
 
     /**
@@ -97,6 +99,9 @@ public class PEmbroiderGraphicsLibgdx {
      */
     private void applyHatchMode(Pixmap pixmap, float x, float y) {
         ArrayList<ArrayList<Vector2>> contours = generateContours(pixmap);
+        if (!fillEnabled) {
+            return;
+        }
         switch (hatchMode) {
             case Cross:
                 crossHatch.apply(this, pixmap, x, y,contours);
@@ -113,7 +118,13 @@ public class PEmbroiderGraphicsLibgdx {
             case PerlinNoise:
                 perlinHatch.apply(this, pixmap, x, y,contours);
                 break;
+            case Realistic:
+                realisticHatch.apply(this, pixmap, x, y,contours);
+            case TraceBitmap:
+                traceBitmapHach.apply(this, pixmap, x, y,contours);
+                break;
         }
+        System.out.println("hatchMode :" + hatchMode);
     }
 
     private ArrayList<ArrayList<Vector2>> generateContours(Pixmap pixmap) {
@@ -137,16 +148,13 @@ public class PEmbroiderGraphicsLibgdx {
         return contours;
     }
 
-
-
-    public void visualize(ShapeRenderer renderer, float offsetX, float offsetY) {
+    // TODO ADD WORKING CACHING
+    public void visualizeNoCaching(ShapeRenderer renderer, float offsetX, float offsetY) {
         renderer.begin(ShapeRenderer.ShapeType.Line);
-
         for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
             for (int i = 1; i < path.size; i++) {
                 StitchUtil.StitchPoint p1 = path.get(i-1);
                 StitchUtil.StitchPoint p2 = path.get(i);
-
                 renderer.setColor(p1.color);
                 renderer.line(
                         p1.position.x+ offsetX, p1.position.y+ offsetY,
@@ -154,18 +162,37 @@ public class PEmbroiderGraphicsLibgdx {
                 );
             }
         }
-
         renderer.end();
     }
     private void optimizeStitchPaths() {
-        // Optimisation des chemins pour minimiser les sauts
-        // (Implémentation simplifiée)
         Array<Array<StitchUtil.StitchPoint>> optimized = new Array<>();
+
         for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
-            if (path.size > 1) {
-                optimized.add(path);
+            Array<StitchUtil.StitchPoint> newPath = new Array<>();
+            StitchUtil.StitchPoint last = null;
+
+            // Iterate through the stitch points
+            for (StitchUtil.StitchPoint point : path) {
+                // If the path is empty or the point is not redundant, add it to the new path
+                if (last == null || !isRedundant(last, point)) {
+                    newPath.add(point);
+                    last = point;
+                }
+            }
+
+            // If the new path contains more than one stitch, add it to the optimized list
+            if (newPath.size > 1) {
+                optimized.add(newPath);
             }
         }
+
+        // Update stitchPaths to the optimized paths
         stitchPaths = optimized;
     }
+
+    private boolean isRedundant(StitchUtil.StitchPoint a, StitchUtil.StitchPoint b) {
+        // Check if two points are sufficiently close and have the same color
+        return a.position.epsilonEquals(b.position, 0.01f) && a.color.equals(b.color);
+    }
+
 }

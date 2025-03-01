@@ -2,7 +2,6 @@ package fr.iamacat.embroider.libgdx.hatchmode;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
-import fr.iamacat.embroider.PEmbroiderTrace;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.BBox;
 import fr.iamacat.embroider.libgdx.utils.StitchUtil;

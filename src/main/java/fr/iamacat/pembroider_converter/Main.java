@@ -4,6 +4,7 @@ import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -19,6 +20,7 @@ import fr.iamacat.utils.enums.SaveType;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
+import javax.swing.plaf.synth.SynthUI;
 
 import static fr.iamacat.utils.UIUtils.*;
 import static fr.iamacat.utils.enums.HatchModeType.Parallel;
@@ -29,6 +31,7 @@ import static fr.iamacat.utils.enums.HatchModeType.Parallel;
 // TODO FIX WRONG COLORS
 // TODO FIX SHAPE
 // TODO FIX CAN CREATE MULTIPLE EXIT MENU
+// TODO ADD DRAW ON SCREEN AVERAGE BRODERYING AND STATS
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
     private PopupMenu fileMenu,editMenu;
@@ -44,9 +47,12 @@ public class Main extends MainBase {
     private Slider progressBar;
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
+    private SpriteBatch batch;
+
     public Main() {
         embroidery = new PEmbroiderGraphicsLibgdx();
         shapeRenderer = new ShapeRenderer();
+        batch = new SpriteBatch();
         rootTable = new VisTable();
         rootTable.setFillParent(true);
         getStage().addActor(rootTable);
@@ -78,6 +84,7 @@ public class Main extends MainBase {
         });
         addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, value -> {
             embroidery.hatchMode = value;
+            System.out.println("embroidery.hatchMode :" + embroidery.hatchMode);
             refreshPreview();
         });
         VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
@@ -98,6 +105,7 @@ public class Main extends MainBase {
         VisTable settingsTable = new VisTable();
         settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
         settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
+        embroidery.fillEnabled = false;
         createSettingsTable(settingsTable, "Space Between Strokes", String.valueOf(embroidery.strokeSpacing), 50, value -> {
             embroidery.strokeSpacing = value;
             refreshPreview();
@@ -162,7 +170,6 @@ public class Main extends MainBase {
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
-        embroidery.hatchMode = Parallel;
         embroidery.image(pixmap, 400, -139,broderyWidth,broderyHeight);
         embroidery.endDraw();
         pixmap.dispose();
@@ -196,8 +203,13 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-            embroidery.visualize(shapeRenderer,900, 100);
+           embroidery.visualizeNoCaching(shapeRenderer,900, 350);
         }
+    }
+    @Override
+    public void dispose() {
+        super.dispose();
+        batch.dispose();
     }
 
     private void showLoadDialog() {

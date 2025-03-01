@@ -24,55 +24,54 @@ public class ColorUtil {
         int pixHeight = pixmap.getHeight();
         Color[] colorsCache = new Color[pixWidth * pixHeight];
 
-        // Stocker les couleurs pour Realistic
-        Map<Color, Integer> colorFrequency = new HashMap<>();
-
-        // Première étape : collecter les couleurs et leur fréquence
-        for (int y = 0; y < pixHeight; y++) {
-            for (int x = 0; x < pixWidth; x++) {
-                int pixel = pixmap.getPixel(x, y);
-                Color color = new Color();
-                Color.rgba8888ToColor(color, pixel);
-
-                // Compter la fréquence des couleurs
-                colorFrequency.put(color, colorFrequency.getOrDefault(color, 0) + 1);
+        if (colorType == ColorType.Bitmap) {
+            // In TraceBitmap mode, just use the exact pixel colors
+            for (int y = 0; y < pixHeight; y++) {
+                for (int x = 0; x < pixWidth; x++) {
+                    int pixel = pixmap.getPixel(x, y);
+                    Color color = new Color();
+                    Color.rgba8888ToColor(color, pixel);
+                    colorsCache[y * pixWidth + x] = color;
+                }
             }
-        }
-
-        // Liste des couleurs dominantes dans le mode Realistic
-        List<Color> dominantColors = colorFrequency.entrySet().stream()
-                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue())) // Trier par fréquence
-                .map(Map.Entry::getKey) // Extraire les couleurs
-                .limit(maxColors) // Limiter à maxColors
-                .collect(Collectors.toList());
-
-        // Liste des couleurs aléatoires dans le mode MultiColor
-        List<Color> randomColors = new ArrayList<>();
-        for (int i = 0; i < maxColors; i++) {
-            randomColors.add(new Color(MathUtils.random(), MathUtils.random(), MathUtils.random(), 1));
-        }
-
-        // Deuxième étape : Assigner les couleurs dominantes ou aléatoires à colorsCache
-        int dominantIndex = 0;
-        int randomIndex = 0;
-
-        for (int y = 0; y < pixHeight; y++) {
-            for (int x = 0; x < pixWidth; x++) {
-                int index = y * pixWidth + x;
-
-                // Si le mode est Realistic, attribuer une couleur dominante à ce pixel
-                if (colorType == Realistic) {
-                    colorsCache[index] = dominantColors.get(dominantIndex);
-                    dominantIndex = (dominantIndex + 1) % dominantColors.size(); // Passer à la couleur suivante
+        } else {
+            // Existing logic for Realistic and MultiColor modes
+            // Collect dominant or random colors as needed (existing behavior)
+            Map<Color, Integer> colorFrequency = new HashMap<>();
+            for (int y = 0; y < pixHeight; y++) {
+                for (int x = 0; x < pixWidth; x++) {
+                    int pixel = pixmap.getPixel(x, y);
+                    Color color = new Color();
+                    Color.rgba8888ToColor(color, pixel);
+                    colorFrequency.put(color, colorFrequency.getOrDefault(color, 0) + 1);
                 }
-                // Si le mode est MultiColor, attribuer une couleur aléatoire
-                else if (colorType == MultiColor) {
-                    colorsCache[index] = randomColors.get(randomIndex);
-                    randomIndex = (randomIndex + 1) % randomColors.size(); // Passer à la couleur suivante
-                }
-                // Par défaut, la couleur est noire
-                else {
-                    colorsCache[index] = Color.BLACK;
+            }
+
+            List<Color> dominantColors = colorFrequency.entrySet().stream()
+                    .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))
+                    .map(Map.Entry::getKey)
+                    .limit(maxColors)
+                    .collect(Collectors.toList());
+
+            List<Color> randomColors = new ArrayList<>();
+            for (int i = 0; i < maxColors; i++) {
+                randomColors.add(new Color(MathUtils.random(), MathUtils.random(), MathUtils.random(), 1));
+            }
+
+            int dominantIndex = 0;
+            int randomIndex = 0;
+            for (int y = 0; y < pixHeight; y++) {
+                for (int x = 0; x < pixWidth; x++) {
+                    int index = y * pixWidth + x;
+                    if (colorType == ColorType.Realistic) {
+                        colorsCache[index] = dominantColors.get(dominantIndex);
+                        dominantIndex = (dominantIndex + 1) % dominantColors.size();
+                    } else if (colorType == ColorType.MultiColor) {
+                        colorsCache[index] = randomColors.get(randomIndex);
+                        randomIndex = (randomIndex + 1) % randomColors.size();
+                    } else {
+                        colorsCache[index] = Color.BLACK;
+                    }
                 }
             }
         }
