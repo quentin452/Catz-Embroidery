@@ -11,10 +11,10 @@ public class BroideryWriter {
 
 	public static String TITLE = null;
 // TODO FIX WIDTH AND HEIGHT
-	private static void saveBezierShapesAsSVG(String filename,String extension,List<BezierShape> shapes, int width, int height) {
+	private static void saveBezierShapesAsSVG(String filename,String extension,List<BezierShape> shapes, float width, float height) {
 		try (BufferedWriter out = Files.newBufferedWriter(Paths.get(filename + "." + extension))) {
 			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-			out.write(String.format("<svg width=\"%d\" height=\"%d\" id=\"svgroot\" version=\"1.1\" viewBox=\"0 0 %d %d\" xmlns=\"http://www.w3.org/2000/svg\">\n", width, height, width, height));
+			out.write(String.format("<svg width=\"%.2f\" height=\"%.2f\" id=\"svgroot\" version=\"1.1\" viewBox=\"0 0 %.2f %.2f\" xmlns=\"http://www.w3.org/2000/svg\">\n", width, height, width, height));
 			for (BezierShape shape : shapes) {
 				int color = shape.getColor();
 				int red = (color >> 16) & 0xFF;
@@ -29,7 +29,7 @@ public class BroideryWriter {
 		}
 	}
 
-	public static void write(String filename, List<BezierShape> shapes, int width, int height) {
+	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
 		boolean isCustomTitle = true;
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
 		if (TITLE == null) {

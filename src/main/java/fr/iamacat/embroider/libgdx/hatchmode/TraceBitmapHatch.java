@@ -26,8 +26,8 @@ public class TraceBitmapHatch extends BaseHatch {
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
 
         // Calculate scaling factors
-        float scaleX = brodery.width * 3.66f / quantizedPixmap.getWidth();
-        float scaleY = brodery.height * 3.66f / quantizedPixmap.getHeight();
+        float scaleX = (brodery.width * 3.67f) / quantizedPixmap.getWidth();
+        float scaleY = (brodery.height * 3.67f) / quantizedPixmap.getHeight();
 
         for (BezierShape shape : shapes) {
             // Scale the shape before adding

@@ -132,7 +132,7 @@ public class DialogUtil {
         stage.addActor(fileChooser.fadeIn());
     }
 
-    public static void showSaveDialog(final SaveType saveType, final Stage stage, final PEmbroiderGraphicsLibgdx brodery, int saveWidth, int saveHeight, Consumer<Boolean> onResult) {
+    public static void showSaveDialog(final SaveType saveType, final Stage stage, final PEmbroiderGraphicsLibgdx brodery, float saveWidth, float saveHeight, Consumer<Boolean> onResult) {
         final FileChooser fileChooser = new FileChooser(FileChooser.Mode.SAVE);
         fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
         String ext = saveType.toString().toLowerCase();
@@ -158,12 +158,12 @@ public class DialogUtil {
         fileChooser.setPosition(Gdx.graphics.getWidth() * 0.125f, Gdx.graphics.getHeight() * 0.125f);
         stage.addActor(fileChooser.fadeIn());
     }
-    private static File saveBroderyFile(Stage stage, String filePath, PEmbroiderGraphicsLibgdx brodery, int saveWidth, int saveHeight) {
+    private static File saveBroderyFile(Stage stage, String filePath, PEmbroiderGraphicsLibgdx brodery, float saveWidth, float saveHeight) {
         try {
             File file = new File(filePath); // Create a File object based on the given file path
             // Assuming PEmbroiderWriter.write method writes to the file
             // Now, we use stitchPaths instead of polylines and colors
-            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth, saveHeight);
+            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth  * 3.67f, saveHeight  * 3.67f);
 
             return file;  // Return the File object
         } catch (Exception e) {
@@ -172,7 +172,7 @@ public class DialogUtil {
         }
     }
 
-    public static void showUploadDialog(final SaveType saveType, final Stage stage, PEmbroiderGraphicsLibgdx brodery, int saveWidth,int saveHeight, Consumer<Boolean> onResult) {
+    public static void showUploadDialog(final SaveType saveType, final Stage stage, PEmbroiderGraphicsLibgdx brodery, float saveWidth,float saveHeight, Consumer<Boolean> onResult) {
         final TextField fileNameField = new TextField("", UIUtils.visSkin);
         VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
             @Override
