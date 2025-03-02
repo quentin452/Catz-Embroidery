@@ -31,8 +31,8 @@ import static fr.iamacat.utils.UIUtils.*;
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
     private PopupMenu fileMenu,editMenu;
-    private SaveType currentSaveLocallyType = SaveType.JPG;
-    private SaveType currentSaveDropboxType = SaveType.JPG;
+    private SaveType currentSaveLocallyType = SaveType.SVG;
+    private SaveType currentSaveDropboxType = SaveType.SVG;
     private int exportHeight = 95 , exportWidth = 95,broderyHeight = 320 , broderyWidth = 320;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;

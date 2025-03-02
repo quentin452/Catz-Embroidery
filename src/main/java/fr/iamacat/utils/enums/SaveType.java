@@ -1,16 +1,16 @@
 package fr.iamacat.utils.enums;
 
 public enum SaveType {
-    PNG,
-    JPG,
-    JPEG,
-    BMP,
-    GIF,
-    PES,
+    //PNG,
+    //JPG,
+    //JPEG,
+    //BMP,
+    //GIF,
+    //PES,
     SVG,
-    PEC,
-    DST,
-    JEFF,
-    XXX,
-    VP3,
+    //PEC,
+    //DST,
+    //JEFF,
+    //XXX,
+    //VP3,
 }
