@@ -23,7 +23,7 @@ import static fr.iamacat.utils.UIUtils.*;
 // TODO update progressBar during file loading/saving
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
-// TODO FIX CAN CREATE MULTIPLE EXIT MENU
+// TODO FIX CAN CREATE MULTIPLE EXIT MENU (DIALOGS UTILS THINGS)
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
     private PopupMenu fileMenu,editMenu;
@@ -186,7 +186,7 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-           embroidery.visualizeNoCaching(shapeRenderer,900, 350,visualizeHeight);
+           embroidery.visualizeNoCaching(shapeRenderer,910, 190,visualizeHeight);
         }
     }
     @Override

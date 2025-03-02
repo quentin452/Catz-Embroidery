@@ -19,6 +19,7 @@ import java.util.Objects;
 // TODO ADD A WORKING VISUALIZE CACHING
 // TODO ADD DRAW ON SCREEN AVERAGE BRODERYING AND STATS
 // TODO FIX WRONG COLORS
+// TODO FIX DRAWED STITCH RENDER AT Z INDEX HIGHER THAN DIALOGS UTILS THINGS
 public class PEmbroiderGraphicsLibgdx {
     private final TraceBitmapHatch traceBitmapHach;
 
