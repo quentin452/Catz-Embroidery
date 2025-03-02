@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-// TODO ADD BRODERING TIME ESTIMATION
+// TODO ADD BRODERING TIME ESTIMATION + STITCH STATS
 // TODO FIX SAVING SGV/PES OR ANOTHER BRODERY FILES CAUSING LARGE FILES
 // TODO ADD A WORKING VISUALIZE CACHING
 // TODO ADD DRAW ON SCREEN AVERAGE BRODERYING AND STATS
@@ -25,8 +25,8 @@ public class PEmbroiderGraphicsLibgdx {
 
     public ColorType colorMode = ColorType.Bitmap;
     public HatchModeType hatchMode = HatchModeType.TraceBitmap;
-    public int width = 200;
-    public int height = 200; // ATTENTION IF YOU USE TOO HEIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
+    public int width = 200; // ATTENTION IF YOU USE TOO HIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
+    public int height = 200; // ATTENTION IF YOU USE TOO HIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
     public int hatchSpacing = 50;
     public int maxColors = 10;
     public boolean fillEnabled = true;

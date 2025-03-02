@@ -10,7 +10,7 @@ import java.util.*;
 public class BroideryWriter {
 
 	public static String TITLE = null;
-
+// TODO FIX WIDTH AND HEIGHT
 	private static void saveBezierShapesAsSVG(String filename,String extension,List<BezierShape> shapes, int width, int height) {
 		try (BufferedWriter out = Files.newBufferedWriter(Paths.get(filename + "." + extension))) {
 			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");

@@ -20,7 +20,7 @@ import fr.iamacat.utils.enums.SaveType;
 
 import javax.swing.*;
 import static fr.iamacat.utils.UIUtils.*;
-// TODO update progressBar during file loading/saving
+// TODO update progressBar during file loading/saving + progressbar not get rendered
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
 // TODO FIX CAN CREATE MULTIPLE EXIT MENU (DIALOGS UTILS THINGS)
@@ -186,7 +186,7 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-           embroidery.visualizeNoCaching(shapeRenderer,910, 190,visualizeHeight);
+            embroidery.visualizeNoCaching(shapeRenderer,910, 190,visualizeHeight);
         }
     }
     @Override
@@ -269,7 +269,7 @@ public class Main extends MainBase {
     public void handleExitRequest() {
         DialogUtil.showExitConfirmationDialog(
                 getStage(),
-                () -> confirmExit(), // Exit direct
+                Main::confirmExit, // Exit direct
                 () -> showSaveLocallyDialog(currentSaveLocallyType, Main::confirmExit), // Sauvegarde locale puis exit
                 () -> showDropboxDialog(currentSaveDropboxType, Main::confirmExit) // Upload puis exit
         );
