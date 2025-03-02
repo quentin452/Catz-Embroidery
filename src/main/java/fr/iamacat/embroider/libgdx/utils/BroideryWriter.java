@@ -1,7 +1,5 @@
-package fr.iamacat.embroider;
+package fr.iamacat.embroider.libgdx.utils;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.Array;
-import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 
 import java.io.*;
@@ -9,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class PEmbroiderWriter {
+public class BroideryWriter {
 
 	public static String TITLE = null;
 

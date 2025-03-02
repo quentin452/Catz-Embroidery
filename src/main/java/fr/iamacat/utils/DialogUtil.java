@@ -13,7 +13,7 @@ import com.kotcrab.vis.ui.widget.VisDialog;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
-import fr.iamacat.embroider.PEmbroiderWriter;
+import fr.iamacat.embroider.libgdx.utils.BroideryWriter;
 import fr.iamacat.utils.enums.SaveType;
 
 import java.io.File;
@@ -163,7 +163,7 @@ public class DialogUtil {
             File file = new File(filePath); // Create a File object based on the given file path
             // Assuming PEmbroiderWriter.write method writes to the file
             // Now, we use stitchPaths instead of polylines and colors
-            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth, saveHeight);
+            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth, saveHeight);
 
             return file;  // Return the File object
         } catch (Exception e) {
