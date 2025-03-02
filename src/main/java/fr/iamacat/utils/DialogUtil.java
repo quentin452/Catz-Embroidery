@@ -146,7 +146,7 @@ public class DialogUtil {
             public void selected(Array<FileHandle> files) {
                 if (files.size > 0) {
                     FileHandle file = files.first();
-                    saveBroderyFile(stage, file.path(), saveType, brodery, saveWidth, saveHeight);
+                    saveBroderyFile(stage, file.path(), brodery, saveWidth, saveHeight);
                 } else {
                     if (onResult != null) {
                         onResult.accept(false);
@@ -158,14 +158,12 @@ public class DialogUtil {
         fileChooser.setPosition(Gdx.graphics.getWidth() * 0.125f, Gdx.graphics.getHeight() * 0.125f);
         stage.addActor(fileChooser.fadeIn());
     }
-    private static File saveBroderyFile(Stage stage, String filePath, SaveType saveType, PEmbroiderGraphicsLibgdx brodery, int saveWidth, int saveHeight) {
+    private static File saveBroderyFile(Stage stage, String filePath, PEmbroiderGraphicsLibgdx brodery, int saveWidth, int saveHeight) {
         try {
             File file = new File(filePath); // Create a File object based on the given file path
-            boolean isSVG = saveType.toString().equals(SaveType.SVG);
-
             // Assuming PEmbroiderWriter.write method writes to the file
             // Now, we use stitchPaths instead of polylines and colors
-            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.stitchPaths, saveWidth, saveHeight, isSVG);
+            PEmbroiderWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth, saveHeight);
 
             return file;  // Return the File object
         } catch (Exception e) {
@@ -187,7 +185,7 @@ public class DialogUtil {
                             onResult.accept(false);
                         }
                     } else {
-                        File imageFile = saveBroderyFile(stage, fileName + "." + saveType.toString(),saveType,brodery, saveWidth,saveHeight);
+                        File imageFile = saveBroderyFile(stage, fileName + "." + saveType.toString(),brodery, saveWidth,saveHeight);
                         if (imageFile != null) {
                             boolean success = DropboxUtil.uploadToDropbox(stage, imageFile);
                             if (onResult != null) {

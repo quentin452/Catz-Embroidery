@@ -3,13 +3,15 @@ package fr.iamacat.embroider.libgdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
-import fr.iamacat.embroider.libgdx.utils.StitchUtil;
+import fr.iamacat.embroider.libgdx.utils.BezierUtil;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
+import net.plantabyte.drptrace.geometry.BezierCurve;
+import net.plantabyte.drptrace.geometry.BezierShape;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 // TODO ADD BRODERING TIME ESTIMATION
@@ -19,7 +21,6 @@ import java.util.Objects;
 // TODO ADD A WORKING VISUALIZE CACHING
 public class PEmbroiderGraphicsLibgdx {
     private final TraceBitmapHatch traceBitmapHach;
-    public Color[] colorsCache;
 
     public ColorType colorMode = ColorType.Bitmap;
     public HatchModeType hatchMode = HatchModeType.TraceBitmap;
@@ -28,9 +29,10 @@ public class PEmbroiderGraphicsLibgdx {
     public int hatchSpacing = 50;
     public int maxColors = 10;
     public boolean fillEnabled = true;
-    public Array<Array<StitchUtil.StitchPoint>> stitchPaths = new Array<>();
-    private Array<StitchUtil.StitchPoint> currentPath;
+    public List<List<BezierCurve>> stitchPaths = new ArrayList<>();
+    public List<BezierShape> bezierShapes = new ArrayList<>();
 
+    private List<BezierCurve> currentPath;
 
     public PEmbroiderGraphicsLibgdx() {
         this.traceBitmapHach = new TraceBitmapHatch(this);
@@ -38,28 +40,36 @@ public class PEmbroiderGraphicsLibgdx {
 
     public void beginDraw() {
         stitchPaths.clear();
-        colorsCache = new Color[0];
+        bezierShapes.clear();
     }
-
+    public void addBezierShape(BezierShape shape) {
+        bezierShapes.add(shape);
+        // Also add curves to maintain backward compatibility
+        beginShape();
+        for(BezierCurve curve : shape) {
+            currentPath.add(curve);
+        }
+        endShape();
+    }
     public void endDraw() { }
 
     public void beginShape() {
-        currentPath = new Array<>();
+        currentPath = new ArrayList<>();
     }
 
     public void endShape() {
-        if (currentPath != null && currentPath.size > 0) {
+        if (currentPath != null && !currentPath.isEmpty()) {
             stitchPaths.add(currentPath);
         }
         currentPath = null;
     }
 
-    public void vertex(Vector2 pos, Color col) {
+    public void addCurve(BezierCurve curve, Color color) {
         if (currentPath != null) {
-            currentPath.add(new StitchUtil.StitchPoint(pos, col));
+            curve.setColor(color.toIntBits());
+            currentPath.add(curve);
         }
     }
-
 
     public void image(Pixmap pixmap, float x, float y, int width, int height) {
         this.width = width;
@@ -73,9 +83,7 @@ public class PEmbroiderGraphicsLibgdx {
      * Applique le mode de hachure sélectionné.
      */
     private void applyHatchMode(Pixmap pixmap, float x, float y) {
-        if (!fillEnabled) {
-            return;
-        }
+        if (!fillEnabled) return;
         if (Objects.requireNonNull(hatchMode) == HatchModeType.TraceBitmap) {
             traceBitmapHach.apply(this, pixmap, x, y);
         }
@@ -83,15 +91,10 @@ public class PEmbroiderGraphicsLibgdx {
 
     public void visualizeNoCaching(ShapeRenderer renderer, float offsetX, float offsetY) {
         renderer.begin(ShapeRenderer.ShapeType.Line);
-        for (Array<StitchUtil.StitchPoint> path : stitchPaths) {
-            for (int i = 1; i < path.size; i++) {
-                StitchUtil.StitchPoint p1 = path.get(i-1);
-                StitchUtil.StitchPoint p2 = path.get(i);
-                renderer.setColor(p1.color);
-                renderer.line(
-                        p1.position.x+ offsetX, p1.position.y+ offsetY,
-                        p2.position.x+ offsetX, p2.position.y+ offsetY
-                );
+        for (List<BezierCurve> path : stitchPaths) {
+            for (BezierCurve curve : path) {
+                Color color = new Color(curve.getColor());
+                BezierUtil.renderBezierCurve(renderer, curve, color, offsetX, offsetY);
             }
         }
         renderer.end();
