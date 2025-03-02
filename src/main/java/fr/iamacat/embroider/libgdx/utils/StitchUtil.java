@@ -7,8 +7,6 @@ import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 
 import java.util.List;
 
-import static fr.iamacat.embroider.libgdx.utils.ColorUtil.getCachedColor;
-
 public class StitchUtil {
     public static class StitchPoint {
         public Vector2 position;
@@ -28,14 +26,5 @@ public class StitchUtil {
             Vector2 stitchPos = new Vector2(scaledX + offsetX, scaledY - offsetY);
             brodery.vertex(stitchPos, color);
         }
-    }
-
-    public static void addStitch(Pixmap pixmap, float px, float py, PEmbroiderGraphicsLibgdx brodery) {
-        float invertedY = brodery.height - py;
-        float scaledX = px * brodery.width / pixmap.getWidth();
-        float scaledY = invertedY * brodery.height / pixmap.getHeight();
-        Vector2 pos = new Vector2(scaledX, scaledY);
-        Color col = getCachedColor(pixmap, px, py, brodery);
-        brodery.vertex(pos, col);
     }
 }

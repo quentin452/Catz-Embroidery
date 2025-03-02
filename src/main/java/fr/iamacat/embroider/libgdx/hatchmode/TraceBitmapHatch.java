@@ -19,15 +19,15 @@ import java.util.List;
 
 import static fr.iamacat.embroider.libgdx.utils.StitchUtil.addStitchesWithoutColorChanges;
 // TODO FIX BITMAP ISNT POSITIONNED CORRECTLY DURING VISUALIZATION
-public class TraceBitmapHach extends BaseHatch {
+public class TraceBitmapHatch extends BaseHatch {
     private static final int TRACE_PRECISION = 20;
 
-    public TraceBitmapHach(PEmbroiderGraphicsLibgdx graphicsLibgdx) {
+    public TraceBitmapHatch(PEmbroiderGraphicsLibgdx graphicsLibgdx) {
         super(graphicsLibgdx);
     }
 
     @Override
-    public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y, ArrayList<ArrayList<Vector2>> contours) {
+    public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y) {
         // Quantize the Pixmap to reduce colors
         Pixmap quantizedPixmap = quantizeToBinary(pixmap);
         ZOrderIntMap tracedImage = convertToDrPTraceMap(quantizedPixmap);

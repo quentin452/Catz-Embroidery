@@ -19,11 +19,7 @@ import fr.iamacat.utils.enums.HatchModeType;
 import fr.iamacat.utils.enums.SaveType;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.plaf.synth.SynthUI;
-
 import static fr.iamacat.utils.UIUtils.*;
-import static fr.iamacat.utils.enums.HatchModeType.Parallel;
 
 // TODO update progressBar during file loading/saving
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
@@ -38,7 +34,6 @@ public class Main extends MainBase {
     private SaveType currentSaveLocallyType = SaveType.JPG;
     private SaveType currentSaveDropboxType = SaveType.JPG;
     private int exportHeight = 95 , exportWidth = 95,broderyHeight = 320 , broderyWidth = 320;
-    private int broderyYPos,broderyXPos;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     private VisTable rootTable;
@@ -105,10 +100,6 @@ public class Main extends MainBase {
         VisTable settingsTable = new VisTable();
         settingsTable.setBackground(VisUI.getSkin().getDrawable("menu-bg"));
         settingsTable.setColor(new Color(62f, 62f, 66f, 1f));
-        createSettingsTable(settingsTable, "Space Between Strokes", String.valueOf(embroidery.strokeSpacing), 50, value -> {
-            embroidery.strokeSpacing = value;
-            refreshPreview();
-        });
         createSettingsTable(settingsTable, "Space Between Points", String.valueOf(embroidery.hatchSpacing), 50, value -> {
             embroidery.hatchSpacing = value;
             refreshPreview();
@@ -119,10 +110,6 @@ public class Main extends MainBase {
         });
         createSettingsTable(settingsTable, "HEIGHT (MM)", String.valueOf(exportHeight), 50, value -> {
             exportHeight = value;
-            refreshPreview();
-        });
-        createSettingsTable(settingsTable, "STROKE WEIGHT", String.valueOf(embroidery.strokeWeight), 50, value -> {
-            embroidery.strokeWeight = value;
             refreshPreview();
         });
         createSettingsTable(settingsTable, "MAX COLORS", String.valueOf(embroidery.maxColors), 50, value -> {

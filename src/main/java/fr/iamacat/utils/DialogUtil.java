@@ -174,7 +174,6 @@ public class DialogUtil {
         }
     }
 
-
     public static void showUploadDialog(final SaveType saveType, final Stage stage, PEmbroiderGraphicsLibgdx brodery, int saveWidth,int saveHeight, Consumer<Boolean> onResult) {
         final TextField fileNameField = new TextField("", UIUtils.visSkin);
         VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {

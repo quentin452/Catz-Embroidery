@@ -13,7 +13,7 @@ public class BaseHatch {
         this.height = brodery.height;
         this.hatchSpacing = brodery.hatchSpacing;
     }
-    public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y,ArrayList<ArrayList<Vector2>> contours) {
+    public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y) {
         throw new UnsupportedOperationException("Feature incomplete. Contact assistance.");
     }
 }
