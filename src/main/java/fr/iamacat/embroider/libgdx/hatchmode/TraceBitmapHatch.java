@@ -12,14 +12,12 @@ import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 
 import java.util.List;
 
-// TODO FIX BITMAP ISNT POSITIONNED CORRECTLY DURING VISUALIZATION
 public class TraceBitmapHatch extends BaseHatch {
     private static final int TRACE_PRECISION = 20;
 
     public TraceBitmapHatch(PEmbroiderGraphicsLibgdx graphicsLibgdx) {
         super(graphicsLibgdx);
     }
-
     @Override
     public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y) {
         Pixmap quantizedPixmap = quantizeToBinary(pixmap);
@@ -27,10 +25,30 @@ public class TraceBitmapHatch extends BaseHatch {
         Tracer tracer = new IntervalTracer(TRACE_PRECISION);
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
 
+        // Calculate scaling factors
+        float scaleX = brodery.width * 3.66f / quantizedPixmap.getWidth();
+        float scaleY = brodery.height * 3.66f / quantizedPixmap.getHeight();
+
         for (BezierShape shape : shapes) {
-            BezierUtil.addBezierShape(brodery,shape);
-            processBezierShape(brodery, shape, x, y, quantizedPixmap);
+            // Scale the shape before adding
+            BezierShape scaledShape = scaleShape(shape, scaleX, scaleY);
+            BezierUtil.addBezierShape(brodery, scaledShape);
+            processBezierShape(brodery, scaledShape, quantizedPixmap);
         }
+    }
+
+    private BezierShape scaleShape(BezierShape original, float scaleX, float scaleY) {
+        BezierShape scaled = new BezierShape();
+        for (BezierCurve curve : original) {
+            Vec2 p1 = new Vec2(curve.getP1().x * scaleX, curve.getP1().y * scaleY);
+            Vec2 p2 = new Vec2(curve.getP2().x * scaleX, curve.getP2().y * scaleY);
+            Vec2 p3 = new Vec2(curve.getP3().x * scaleX, curve.getP3().y * scaleY);
+            Vec2 p4 = new Vec2(curve.getP4().x * scaleX, curve.getP4().y * scaleY);
+
+            scaled.add(new BezierCurve(p1, p2, p3, p4));
+        }
+        scaled.setColor(original.getColor());
+        return scaled;
     }
 
     private Pixmap quantizeToBinary(Pixmap input) {
@@ -47,11 +65,10 @@ public class TraceBitmapHatch extends BaseHatch {
         return output;
     }
 
-    private void processBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape,
-                                    float offsetX, float offsetY, Pixmap source) {
+    private void processBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape, Pixmap source) {
         Color shapeColor = getColorForShape(shape, source);
         for (BezierCurve curve : shape) {
-            BezierUtil.addBezierStitches(brodery, curve, shapeColor, offsetX, offsetY);
+            BezierUtil.addBezierStitches(brodery, curve, shapeColor);
         }
     }
 

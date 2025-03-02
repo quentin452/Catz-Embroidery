@@ -25,7 +25,7 @@ public class PEmbroiderGraphicsLibgdx {
     public ColorType colorMode = ColorType.Bitmap;
     public HatchModeType hatchMode = HatchModeType.TraceBitmap;
     public int width = 200;
-    public int height = 200;
+    public int height = 200; // ATTENTION IF YOU USE TOO HEIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
     public int hatchSpacing = 50;
     public int maxColors = 10;
     public boolean fillEnabled = true;
@@ -81,12 +81,12 @@ public class PEmbroiderGraphicsLibgdx {
         }
     }
 
-    public void visualizeNoCaching(ShapeRenderer renderer, float offsetX, float offsetY) {
+    public void visualizeNoCaching(ShapeRenderer renderer, float offsetX, float offsetY, int height) {
         renderer.begin(ShapeRenderer.ShapeType.Line);
         for (List<BezierCurve> path : stitchPaths) {
             for (BezierCurve curve : path) {
                 Color color = new Color(curve.getColor());
-                BezierUtil.renderBezierCurve(renderer, curve, color, offsetX, offsetY);
+                BezierUtil.renderBezierCurve(renderer, curve, color, offsetX, offsetY,height);
             }
         }
         renderer.end();

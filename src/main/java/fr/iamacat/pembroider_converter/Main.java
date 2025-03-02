@@ -33,7 +33,7 @@ public class Main extends MainBase {
     private PopupMenu fileMenu,editMenu;
     private SaveType currentSaveLocallyType = SaveType.SVG;
     private SaveType currentSaveDropboxType = SaveType.SVG;
-    private int exportHeight = 95 , exportWidth = 95,broderyHeight = 320 , broderyWidth = 320;
+    private int exportHeight = 95 , exportWidth = 95,visualizeHeight = 285 , visualizeWidth = 285;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     private VisTable rootTable;
@@ -79,7 +79,6 @@ public class Main extends MainBase {
         });
         addSubmenu(editMenu, t("hatch_mode"), HatchModeType.class, value -> {
             embroidery.hatchMode = value;
-            System.out.println("embroidery.hatchMode :" + embroidery.hatchMode);
             refreshPreview();
         });
         VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
@@ -151,12 +150,14 @@ public class Main extends MainBase {
         enableEscapeMenu = true;
         showPreview = false;
         updateProgress(0, true);
+        embroidery.height = exportHeight;
+        embroidery.width = exportWidth;
         embroidery.beginDraw();
         updateProgress(10);
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
-        embroidery.image(pixmap, 400, -139,broderyWidth,broderyHeight);
+        embroidery.image(pixmap, 400, -139, embroidery.width, embroidery.height);
         embroidery.endDraw();
         pixmap.dispose();
         updateProgress(100);
@@ -189,7 +190,7 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-           embroidery.visualizeNoCaching(shapeRenderer,900, 350);
+           embroidery.visualizeNoCaching(shapeRenderer,900, 350,visualizeHeight);
         }
     }
     @Override
@@ -231,7 +232,7 @@ public class Main extends MainBase {
 
     private void showSaveLocallyDialog(SaveType type, Runnable onSuccess) {
         currentSaveLocallyType = type;
-        DialogUtil.showSaveDialog(currentSaveLocallyType, getStage(), embroidery, broderyWidth,broderyHeight, success -> {
+        DialogUtil.showSaveDialog(currentSaveLocallyType, getStage(), embroidery, embroidery.width, embroidery.height, success -> {
             if (success) {
                 enableEscapeMenu = false;
                 if (onSuccess != null) {
@@ -243,7 +244,7 @@ public class Main extends MainBase {
 
     private void showDropboxDialog(SaveType type, Runnable onSuccess) {
         currentSaveDropboxType = type;
-        DialogUtil.showUploadDialog(currentSaveDropboxType, getStage(), embroidery, broderyWidth,broderyHeight, success -> {
+        DialogUtil.showUploadDialog(currentSaveDropboxType, getStage(), embroidery, embroidery.width,embroidery.height, success -> {
             if (success) {
                 enableEscapeMenu = false;
                 if (onSuccess != null) {
