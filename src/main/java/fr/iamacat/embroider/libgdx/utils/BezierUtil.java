@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import net.plantabyte.drptrace.geometry.BezierCurve;
+import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.geometry.Vec2;
 
 public class BezierUtil {
@@ -21,7 +22,12 @@ public class BezierUtil {
             prev = next;
         }
     }
-
+    public static void addBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape) {
+        brodery.bezierShapes.add(shape);
+        for(BezierCurve curve : shape) {
+            brodery.currentPath.add(curve);
+        }
+    }
     public static void addBezierStitches(PEmbroiderGraphicsLibgdx brodery, BezierCurve curve,
                                          Color color, float offsetX, float offsetY) {
         Vec2 prev = curve.f(0);

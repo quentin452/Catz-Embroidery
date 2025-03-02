@@ -32,7 +32,7 @@ public class PEmbroiderGraphicsLibgdx {
     public List<List<BezierCurve>> stitchPaths = new ArrayList<>();
     public List<BezierShape> bezierShapes = new ArrayList<>();
 
-    private List<BezierCurve> currentPath;
+    public List<BezierCurve> currentPath;
 
     public PEmbroiderGraphicsLibgdx() {
         this.traceBitmapHach = new TraceBitmapHatch(this);
@@ -42,15 +42,7 @@ public class PEmbroiderGraphicsLibgdx {
         stitchPaths.clear();
         bezierShapes.clear();
     }
-    public void addBezierShape(BezierShape shape) {
-        bezierShapes.add(shape);
-        // Also add curves to maintain backward compatibility
-        beginShape();
-        for(BezierCurve curve : shape) {
-            currentPath.add(curve);
-        }
-        endShape();
-    }
+
     public void endDraw() { }
 
     public void beginShape() {

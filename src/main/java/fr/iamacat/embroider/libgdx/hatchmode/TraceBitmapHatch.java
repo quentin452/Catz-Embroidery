@@ -28,7 +28,7 @@ public class TraceBitmapHatch extends BaseHatch {
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
 
         for (BezierShape shape : shapes) {
-            brodery.addBezierShape(shape);
+            BezierUtil.addBezierShape(brodery,shape);
             processBezierShape(brodery, shape, x, y, quantizedPixmap);
         }
     }
