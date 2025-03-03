@@ -8,6 +8,9 @@ import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.geometry.Vec2;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class BezierUtil {
     public static void renderBezierCurveToShapeRenderer(ShapeRenderer renderer, BezierCurve curve, BezierShape shape, float offsetX, float offsetY, int visualizeWidth, int visualizeHeight) {
         int color = shape.getColor();
@@ -81,6 +84,50 @@ public class BezierUtil {
                     next,
                     next));
             prev = next;
+        }
+    }
+
+    public static void scaleShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+
+        // Calculer la boîte englobante originale
+        for (BezierShape shape : shapes) {
+            for (BezierCurve curve : shape) {
+                for (Vec2 point : new Vec2[]{curve.getP1(), curve.getP2(), curve.getP3(), curve.getP4()}) {
+                    minX = (float) Math.min(minX, point.x);
+                    minY = (float) Math.min(minY, point.y);
+                    maxX = (float) Math.max(maxX, point.x);
+                    maxY = (float) Math.max(maxY, point.y);
+                }
+            }
+        }
+
+        float originalWidth = maxX - minX;
+        float originalHeight = maxY - minY;
+        if (originalWidth <= 0 || originalHeight <= 0) return;
+
+        // Calculer le facteur d'échelle
+        float scaleFactor = Math.min(targetWidth / originalWidth, targetHeight / originalHeight);
+
+        // Translater toutes les courbes vers l'origine (0,0)
+        for (BezierShape shape : shapes) {
+            List<BezierCurve> translatedCurves = new ArrayList<>();
+            for (BezierCurve curve : shape) {
+                translatedCurves.add(curve.translate(-minX, -minY));
+            }
+            shape.clear();
+            shape.addAll(translatedCurves);
+        }
+
+        // Mettre à l'échelle toutes les courbes autour de (0,0)
+        for (BezierShape shape : shapes) {
+            List<BezierCurve> scaledCurves = new ArrayList<>();
+            for (BezierCurve curve : shape) {
+                scaledCurves.add(curve.scale(scaleFactor, new Vec2(0, 0)));
+            }
+            shape.clear();
+            shape.addAll(scaledCurves);
         }
     }
 }

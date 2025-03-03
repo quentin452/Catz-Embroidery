@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
+import net.plantabyte.drptrace.geometry.Vec2;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -12,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
+import static fr.iamacat.embroider.libgdx.utils.BezierUtil.scaleShapes;
 
 public class BroideryWriter {
 
@@ -50,8 +52,7 @@ public class BroideryWriter {
 	}
 
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
-		width *= 3.67f;
-		height *= 3.67f;
+		scaleShapes(shapes, width, height);
 		boolean isCustomTitle = true;
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
 		if (TITLE == null) {

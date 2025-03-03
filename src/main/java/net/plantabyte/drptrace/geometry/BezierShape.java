@@ -67,7 +67,8 @@ public class BezierShape extends ArrayList<BezierCurve> {
 		super(path);
 		this.closedLoop = this.get(this.size()-1).getP4().equals(this.get(0).getP1());
 	}
-	
+
+
 	/**
 	 * Constructs a <code>BezierShape</code> from the provided array, marking it
 	 * closed if the last point of the last bezier equals the first point of the

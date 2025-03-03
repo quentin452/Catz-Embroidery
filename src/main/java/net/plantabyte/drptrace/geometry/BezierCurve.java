@@ -124,6 +124,22 @@ public final class BezierCurve {
 	public BezierCurve scale(double scalar){
 		return new BezierCurve(p[0].mul(scalar), p[1].mul(scalar), p[2].mul(scalar), p[3].mul(scalar));
 	}
+	/**
+	 * Scales this bezier curve by multiplying each point by the given scalar value.
+	 * This will also translate the position of the bezier curve around a specific origin.
+	 * @param scalar A scaling factor
+	 * @param origin The point around which the scaling will occur
+	 * @return A new scaled bezier curve
+	 */
+	public BezierCurve scale(double scalar, Vec2 origin) {
+		// Translating each point to be relative to the origin, applying scaling, and then translating it back
+		Vec2 p1Scaled = p[0].sub(origin).mul(scalar).add(origin);
+		Vec2 p2Scaled = p[1].sub(origin).mul(scalar).add(origin);
+		Vec2 p3Scaled = p[2].sub(origin).mul(scalar).add(origin);
+		Vec2 p4Scaled = p[3].sub(origin).mul(scalar).add(origin);
+
+		return new BezierCurve(p1Scaled, p2Scaled, p3Scaled, p4Scaled);
+	}
 
 	/**
 	 * Scales this bezier curve by multiplying each point by the given scalar value, keeping it centered relative to the
@@ -138,6 +154,16 @@ public final class BezierCurve {
 				p[1].sub(center).mul(scalar).add(center),
 				p[2].sub(center).mul(scalar).add(center),
 				p[3].sub(center).mul(scalar).add(center)
+		);
+	}
+
+	public BezierCurve translate(double dx, double dy) {
+		Vec2 offset = new Vec2(dx, dy);
+		return new BezierCurve(
+				p[0].add(offset),
+				p[1].add(offset),
+				p[2].add(offset),
+				p[3].add(offset)
 		);
 	}
 
