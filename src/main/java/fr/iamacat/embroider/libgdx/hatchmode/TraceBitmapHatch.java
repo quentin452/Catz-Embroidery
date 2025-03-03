@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 // TODO OPTIMIZE THIS
-// TODO ADD COLOR TRACING
 public class TraceBitmapHatch extends BaseHatch {
     private static final int TRACE_PRECISION = 20;
 
@@ -31,14 +30,7 @@ public class TraceBitmapHatch extends BaseHatch {
         ZOrderIntMap tracedImage = convertToDrPTraceMap(quantizedPixmap);
         Tracer tracer = new IntervalTracer(TRACE_PRECISION);
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
-
-        // Calculate scaling factors
-        float scale = PixelUtil.pixelToMm(width,height);
-        float scaleX = (scale) / quantizedPixmap.getWidth();
-        float scaleY = (scale) / quantizedPixmap.getHeight();
-
         for (BezierShape shape : shapes) {
-            BezierUtil.scaleShape(shape,scaleX,scaleY);
             BezierUtil.addBezierShape(brodery, shape);
             processBezierShape(brodery, shape);
         }
@@ -111,18 +103,5 @@ public class TraceBitmapHatch extends BaseHatch {
             }
         }
         return map;
-    }
-
-    private Color getColorForShape(BezierShape shape, Pixmap source) {
-        Vec2 firstPoint = shape.get(0).f(0.0);
-        int x = (int)firstPoint.x;
-        int y = (int)firstPoint.y;
-        return getPixelColorSafe(source, x, y);
-    }
-
-    private Color getPixelColorSafe(Pixmap pixmap, int x, int y) {
-        x = Math.max(0, Math.min(pixmap.getWidth() - 1, x));
-        y = Math.max(0, Math.min(pixmap.getHeight() - 1, y));
-        return new Color(pixmap.getPixel(x, y));
     }
 }
