@@ -156,11 +156,6 @@ public class DialogManager {
                 }
                 dialogEnabled = false;
             }
-            @Override
-            public void canceled() {
-                //dialogEnabled = false;
-                //fileChooser.remove();
-            }
         });
 
         fileChooser.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);

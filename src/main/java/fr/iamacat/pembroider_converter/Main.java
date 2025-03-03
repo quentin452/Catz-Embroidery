@@ -23,7 +23,6 @@ import static fr.iamacat.utils.UIUtils.*;
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
 // TODO Failed to load file: prepare() must not be called on a PixmapTextureData instance as it is already prepared WHEN loading .SVG File
-// TODO FIX broderyMachine translation
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
     private PopupMenu fileMenu,editMenu,broderyMachineMenu;
@@ -80,10 +79,10 @@ public class Main extends MainBase {
 
         // BRODERY MACHINE MENU
         broderyMachineMenu = new PopupMenu();
-        addSubmenu(broderyMachineMenu, t("broderyMachine"), EmbroideryMachine.class, value -> {
+        addSubmenu(broderyMachineMenu, t("brodery_tab"), EmbroideryMachine.class, value -> {
             embroidery.selectedMachine = value;
         });
-        VisTextButton broderyMachineButton = UIUtils.createMenuButton("broderyMachine", true, broderyMachineMenu, getStage());
+        VisTextButton broderyMachineButton = UIUtils.createMenuButton("brodery_tab", true, broderyMachineMenu, getStage());
         menuBar.add(broderyMachineButton).expandX().fillX().pad(0).left();
 
         // OTHER
