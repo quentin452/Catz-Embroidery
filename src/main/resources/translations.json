@@ -66,7 +66,8 @@
     "parallel": "Parallel",
     "concentric": "Concentric",
     "spiral": "Spiral",
-    "perlinnoise": "Perlin Noise"
+    "perlinnoise": "Perlin Noise",
+    "broderyMachine": "Brodery Machine"
   },
   "fr": {
     "choose_app": "Choisissez l'application a lancer :",
@@ -135,6 +136,7 @@
     "parallel": "Parallèle",
     "concentric": "Concentrique",
     "spiral": "Spirale",
-    "perlinnoise": "Bruit de Perlin"
+    "perlinnoise": "Bruit de Perlin",
+    "broderyMachine": "Machine de broderie"
   }
 }

@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
+import fr.iamacat.embroider.libgdx.utils.EmbroideryMachine;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import net.plantabyte.drptrace.geometry.BezierCurve;
@@ -15,8 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-// TODO ADD BRODERING TIME ESTIMATION + STITCH STATS
+// TODO FIX STITCH STATS + BRODERY TIME PROBLEM
 // TODO FIX PNG/SVG COLORS
+// TODO REMOVE STITCH BORDERS
 // TODO FIX DRAWED STITCH RENDER AT Z INDEX HIGHER THAN DIALOGS UTILS THINGS
 public class PEmbroiderGraphicsLibgdx {
     private final TraceBitmapHatch traceBitmapHach;
@@ -30,6 +32,9 @@ public class PEmbroiderGraphicsLibgdx {
     public boolean fillEnabled = true;
     public List<List<BezierCurve>> stitchPaths = new ArrayList<>();
     public List<BezierShape> bezierShapes = new ArrayList<>();
+
+    public EmbroideryMachine selectedMachine = EmbroideryMachine.BROTHER_SKITCH_PP1;
+    private String statsText = "";
 
     public List<BezierCurve> currentPath;
     private Texture cachedTexture;
@@ -99,5 +104,35 @@ public class PEmbroiderGraphicsLibgdx {
             }
             shapeRenderer.end();
         }
+    }
+    public void updateStats() {
+        int totalStitches = calculateTotalStitches();
+
+        float minTime = totalStitches / (float)selectedMachine.maxStitchesPerMinute;
+        float maxTime = totalStitches / (float)selectedMachine.minStitchesPerMinute;
+
+        int minTimeMinutes = (int) minTime;
+        int minTimeSeconds = (int) ((minTime - minTimeMinutes) * 60);
+        int maxTimeMinutes = (int) maxTime;
+        int maxTimeSeconds = (int) ((maxTime - maxTimeMinutes) * 60);
+
+        statsText = String.format(
+                "Points: %d\nTemps estimé: %d min %d sec - %d min %d sec\nMachine: %s\n\n*Fonctionnalité en Bêta*",
+                totalStitches, minTimeMinutes, minTimeSeconds, maxTimeMinutes, maxTimeSeconds, selectedMachine.displayName
+        );
+    }
+
+    private int calculateTotalStitches() {
+        int count = 0;
+        for (BezierShape shape : bezierShapes) {
+            for (BezierCurve curve : shape) {
+                count += hatchSpacing; // Chaque courbe génère 'hatchSpacing' points
+            }
+        }
+        return count;
+    }
+
+    public String getStatsText() {
+        return statsText;
     }
 }

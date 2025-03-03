@@ -10,10 +10,12 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
+import fr.iamacat.embroider.libgdx.utils.EmbroideryMachine;
 import fr.iamacat.utils.*;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
@@ -26,9 +28,10 @@ import static fr.iamacat.utils.UIUtils.*;
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
 // TODO FIX CAN CREATE MULTIPLE EXIT MENU (DIALOGS UTILS THINGS)
 // TODO Failed to load file: prepare() must not be called on a PixmapTextureData instance as it is already prepared WHEN loading .SVG File
+// TODO FIX broderyMachine translation
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
-    private PopupMenu fileMenu,editMenu;
+    private PopupMenu fileMenu,editMenu,broderyMachineMenu;
     private SaveType currentSaveLocallyType = SaveType.SVG;
     private SaveType currentSaveDropboxType = SaveType.SVG;
     private int exportHeight = 95 , exportWidth = 95,visualizeHeight = 320 , visualizeWidth = 320;
@@ -40,7 +43,7 @@ public class Main extends MainBase {
     private Slider progressBar;
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
-
+    private VisLabel statsLabel;
     public Main() {
         shapeRenderer = new ShapeRenderer();
         embroidery = new PEmbroiderGraphicsLibgdx(shapeRenderer);
@@ -80,6 +83,14 @@ public class Main extends MainBase {
         VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
         menuBar.add(editButton).expandX().fillX().pad(0).left();
 
+        // BRODERY MACHINE MENU
+        broderyMachineMenu = new PopupMenu();
+        addSubmenu(broderyMachineMenu, t("broderyMachine"), EmbroideryMachine.class, value -> {
+            embroidery.selectedMachine = value;
+        });
+        VisTextButton broderyMachineButton = UIUtils.createMenuButton("broderyMachine", true, broderyMachineMenu, getStage());
+        menuBar.add(broderyMachineButton).expandX().fillX().pad(0).left();
+
         // OTHER
         createSettingsPanel();
         progressBar = new VisSlider(0, 100, 1, false); // Min: 0, Max: 100, Step: 1, Horizontal
@@ -90,6 +101,17 @@ public class Main extends MainBase {
         sliderContainer.add(new VisLabel(Translator.getInstance().translate("progress"))).padRight(10);
         sliderContainer.add(progressBar).width(300).height(20);
         sliderContainer.setPosition((float) Gdx.graphics.getWidth() / 2 - 150, 240);
+
+        if (statsLabel == null) {
+            statsLabel = new VisLabel();
+            VisLabel.LabelStyle labelStyle = new VisLabel.LabelStyle();
+            labelStyle.font = VisUI.getSkin().getFont("default-font");  // Assurez-vous d'utiliser la bonne police
+            labelStyle.fontColor = Color.BLACK;  // Changer la couleur du texte à noir
+            statsLabel.setStyle(labelStyle);
+            statsLabel.setPosition(910, 130);
+            getStage().addActor(statsLabel);
+        }
+
     }
     private void createSettingsPanel() {
         VisTable settingsTable = new VisTable();
@@ -185,6 +207,11 @@ public class Main extends MainBase {
         }
         if (showPreview && embroidery != null) {
             embroidery.visualizeCacheOrNo(910,190,visualizeWidth,visualizeHeight);
+        }
+        if (showPreview && embroidery != null) {
+            embroidery.updateStats();
+            statsLabel.setText(embroidery.getStatsText());
+            statsLabel.setColor(Color.WHITE);
         }
     }
 
