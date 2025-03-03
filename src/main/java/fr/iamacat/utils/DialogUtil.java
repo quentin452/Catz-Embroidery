@@ -188,7 +188,7 @@ public class DialogUtil {
     private static File saveBroderyFile(Stage stage, String filePath, PEmbroiderGraphicsLibgdx brodery, float saveWidth, float saveHeight) {
         try {
             File file = new File(filePath);
-            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth /* * 3.67f*/, saveHeight/*  * 3.67f*/);
+            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth, saveHeight);
             return file;
         } catch (Exception e) {
             showErrorDialog(stage, "Error while saving: " + e.getMessage());

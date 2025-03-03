@@ -52,10 +52,10 @@ public class BroideryWriter {
 	}
 
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
-
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
-		width *= 3.67f;
-		height *= 3.67f;
+		float scale = PixelUtil.pixelToMm(width,height);
+		width = scale;
+		height = scale;
 		scaleShapes(shapes, width, height);
 		boolean isCustomTitle = true;
 		if (TITLE == null) {

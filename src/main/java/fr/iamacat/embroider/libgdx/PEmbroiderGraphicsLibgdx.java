@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
 import fr.iamacat.embroider.libgdx.utils.EmbroideryMachine;
+import fr.iamacat.embroider.libgdx.utils.PixelUtil;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import net.plantabyte.drptrace.geometry.BezierCurve;
@@ -15,6 +16,8 @@ import net.plantabyte.drptrace.geometry.BezierShape;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static fr.iamacat.embroider.libgdx.utils.PixelUtil.pixelToMm;
 
 // TODO FIX STITCH STATS + BRODERY TIME PROBLEM
 // TODO FIX PNG/SVG COLORS
@@ -78,7 +81,8 @@ public class PEmbroiderGraphicsLibgdx {
         beginShape();
         applyHatchMode(pixmap, x, y);
         endShape();
-        cachedTexture = BezierUtil.generateScaledTextureFromBezierShapes(bezierShapes,width * 3.67f,height * 3.67f);
+        float scale = PixelUtil.pixelToMm(width,height);
+        cachedTexture = BezierUtil.generateScaledTextureFromBezierShapes(bezierShapes,scale,scale);
     }
 
     /**

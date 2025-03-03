@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
+import fr.iamacat.embroider.libgdx.utils.PixelUtil;
 import fr.iamacat.utils.enums.ColorType;
 import imagemagick.Quantize;
 import net.plantabyte.drptrace.*;
@@ -32,8 +33,9 @@ public class TraceBitmapHatch extends BaseHatch {
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
 
         // Calculate scaling factors
-        float scaleX = (brodery.width * 3.67f) / quantizedPixmap.getWidth();
-        float scaleY = (brodery.height * 3.67f) / quantizedPixmap.getHeight();
+        float scale = PixelUtil.pixelToMm(width,height);
+        float scaleX = (scale) / quantizedPixmap.getWidth();
+        float scaleY = (scale) / quantizedPixmap.getHeight();
 
         for (BezierShape shape : shapes) {
             BezierUtil.scaleShape(shape,scaleX,scaleY);
