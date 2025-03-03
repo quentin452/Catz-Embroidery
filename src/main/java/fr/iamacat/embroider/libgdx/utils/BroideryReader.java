@@ -13,8 +13,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,30 +20,6 @@ import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPi
 
 public class BroideryReader {
 
-    // Helper method to read SVG files and convert to Texture
-    /*private static Texture readSVGAsTexture(String filename) {
-        List<BezierShape> shapes = readSVG(filename);
-
-        // Create a Pixmap to draw the shapes
-        float width = 1000; // Width of the image
-        float height = 1000; // Height of the image // TODO
-        Pixmap pixmap = new Pixmap((int) width, (int) height, Pixmap.Format.RGBA8888);
-
-        // Draw the BezierShapes directly to the Pixmap
-        for (BezierShape shape : shapes) {
-            int color = shape.getColor();
-            Color gdxColor = new Color((color >> 16 & 0xFF) / 255f, (color >> 8 & 0xFF) / 255f, (color & 0xFF) / 255f, 1f);
-            pixmap.setColor(gdxColor);
-            for (BezierCurve curve : shape) {
-                renderBezierCurveToPixmap(pixmap, curve, gdxColor);
-            }
-        }
-
-        Texture texture = new Texture(pixmap);
-        pixmap.dispose(); // Dispose the Pixmap to free resources
-       return texture;
-    }
-     */
     private static Texture readSVGAsTexture(String filename, float desiredWidth, float desiredHeight) {
         List<BezierShape> shapes = readSVG(filename);
         // Create a Pixmap to draw the shapes

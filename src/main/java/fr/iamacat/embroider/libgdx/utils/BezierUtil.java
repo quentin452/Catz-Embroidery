@@ -52,22 +52,7 @@ public class BezierUtil {
             prev = next;
         }
     }
-/*
-    public static void renderBezierCurveToPixmap(Pixmap pixmap, BezierCurve curve, Color color, float scale) {
-        pixmap.setColor(color);
-        Vec2 prev = curve.getP1().mul(scale);
-        for (int i = 1; i <= 20; i++) {
-            double t = i / 20.0;
-            Vec2 next = curve.f(t).mul(scale);
-            float x1 = (float) prev.x;
-            float y1 = (float) prev.y;
-            float x2 = (float) next.x;
-            float y2 = (float) next.y;
-            pixmap.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
-            prev = next;
-        }
-    }
- */
+
     public static void addBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape) {
         brodery.bezierShapes.add(shape);
         for(BezierCurve curve : shape) {
