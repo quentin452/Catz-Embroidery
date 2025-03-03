@@ -25,6 +25,7 @@ import static fr.iamacat.utils.UIUtils.*;
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
 // TODO FIX CAN CREATE MULTIPLE EXIT MENU (DIALOGS UTILS THINGS)
+// TODO Failed to load file: prepare() must not be called on a PixmapTextureData instance as it is already prepared WHEN loading .SVG File
 public class Main extends MainBase {
     private final PEmbroiderGraphicsLibgdx embroidery;
     private PopupMenu fileMenu,editMenu;
