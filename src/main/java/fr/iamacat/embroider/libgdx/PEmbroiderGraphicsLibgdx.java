@@ -1,6 +1,5 @@
 package fr.iamacat.embroider.libgdx;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
@@ -35,8 +34,11 @@ public class PEmbroiderGraphicsLibgdx {
 
     public List<BezierCurve> currentPath;
 
-    public PEmbroiderGraphicsLibgdx() {
+    // Required renderers
+    private final ShapeRenderer shapeRenderer;
+    public PEmbroiderGraphicsLibgdx(ShapeRenderer shapeRenderer) {
         this.traceBitmapHach = new TraceBitmapHatch(this);
+        this.shapeRenderer = shapeRenderer;
     }
 
     public void beginDraw() {
@@ -57,9 +59,8 @@ public class PEmbroiderGraphicsLibgdx {
         currentPath = null;
     }
 
-    public void addCurve(BezierCurve curve, Color color) {
+    public void addCurve(BezierCurve curve) {
         if (currentPath != null) {
-            curve.setColor(color.toIntBits());
             currentPath.add(curve);
         }
     }
@@ -81,15 +82,13 @@ public class PEmbroiderGraphicsLibgdx {
             traceBitmapHach.apply(this, pixmap, x, y);
         }
     }
-
-    public void visualizeNoCaching(ShapeRenderer renderer, float offsetX, float offsetY, int height) {
-        renderer.begin(ShapeRenderer.ShapeType.Line);
-        for (List<BezierCurve> path : stitchPaths) {
-            for (BezierCurve curve : path) {
-                Color color = new Color(curve.getColor());
-                BezierUtil.renderBezierCurve(renderer, curve, color, offsetX, offsetY,height);
+    public void visualizeNoCaching(float offsetX, float offsetY, int visualizeWidth,int visualizeHeight) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        for (BezierShape shape : bezierShapes) {
+            for (BezierCurve curve : shape) {
+                BezierUtil.renderBezierCurveToShapeRenderer(shapeRenderer, curve, shape, offsetX, offsetY,visualizeWidth,visualizeHeight);
             }
         }
-        renderer.end();
+        shapeRenderer.end();
     }
 }

@@ -11,7 +11,8 @@ import net.plantabyte.drptrace.geometry.Vec2;
 import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 
 import java.util.List;
-
+// TODO OPTIMIZE THIS
+// TODO ADD COLOR TRACING
 public class TraceBitmapHatch extends BaseHatch {
     private static final int TRACE_PRECISION = 20;
 
@@ -33,7 +34,7 @@ public class TraceBitmapHatch extends BaseHatch {
             // Scale the shape before adding
             BezierShape scaledShape = scaleShape(shape, scaleX, scaleY);
             BezierUtil.addBezierShape(brodery, scaledShape);
-            processBezierShape(brodery, scaledShape, quantizedPixmap);
+            processBezierShape(brodery, scaledShape);
         }
     }
 
@@ -65,10 +66,9 @@ public class TraceBitmapHatch extends BaseHatch {
         return output;
     }
 
-    private void processBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape, Pixmap source) {
-        Color shapeColor = getColorForShape(shape, source);
+    private void processBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape) {
         for (BezierCurve curve : shape) {
-            BezierUtil.addBezierStitches(brodery, curve, shapeColor);
+            BezierUtil.addBezierStitches(brodery, curve);
         }
     }
 

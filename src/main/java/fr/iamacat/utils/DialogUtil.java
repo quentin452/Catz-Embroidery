@@ -13,6 +13,7 @@ import com.kotcrab.vis.ui.widget.VisDialog;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
+import fr.iamacat.embroider.libgdx.utils.BroideryReader;
 import fr.iamacat.embroider.libgdx.utils.BroideryWriter;
 import fr.iamacat.utils.enums.SaveType;
 
@@ -40,7 +41,7 @@ public class DialogUtil {
         fileChooser.setFileFilter(file -> {
             FileHandle fileHandle = new FileHandle(file);
             String ext = fileHandle.extension().toLowerCase();
-            return file.isDirectory() || (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif"));
+            return file.isDirectory() || (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif")|| ext.equals("svg"));
         });
 
         // Définir un fournisseur d'icônes personnalisé
@@ -61,6 +62,12 @@ public class DialogUtil {
                 // Si c'est un fichier d'image, afficher la miniature
                 if (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif")) {
                     Drawable thumbnail = getImageThumbnail(file); // Crée la miniature
+                    thumbnail.setMinWidth(iconSize);  // Définir la largeur de l'icône
+                    thumbnail.setMinHeight(iconSize); // Définir la hauteur de l'icône
+                    return thumbnail;
+                }
+                if (ext.equals("svg")) {
+                    Drawable thumbnail = this.style.iconFileImage;
                     thumbnail.setMinWidth(iconSize);  // Définir la largeur de l'icône
                     thumbnail.setMinHeight(iconSize); // Définir la hauteur de l'icône
                     return thumbnail;
@@ -103,20 +110,40 @@ public class DialogUtil {
                     try {
                         System.out.println("File selected: " + selectedFile.file().getAbsolutePath());
 
-                        Texture texture = new Texture(selectedFile);
-                        Image newImage = new Image(texture);
+                        String filePath = selectedFile.file().getAbsolutePath();
+                        String extension = BroideryReader.getFileExtension(filePath);
 
-                        // Resize and position the image
-                        float windowWidth = Gdx.graphics.getWidth();
-                        float windowHeight = Gdx.graphics.getHeight();
-                        newImage.setSize(500, 500);
-                        newImage.setPosition((windowWidth - newImage.getWidth()) / 2,
-                                (windowHeight - newImage.getHeight()) / 2);
+                        if ("SVG".equalsIgnoreCase(extension)) {
+                            // Handle SVG file
+                            Texture texture = BroideryReader.readAsTexture(filePath,500,500);
+                            Image newImage = new Image(texture);
 
-                        // Pass the new image to the callback
-                        onImageSelected.accept(newImage);
+                            // Resize and position the image
+                            float windowWidth = Gdx.graphics.getWidth();
+                            float windowHeight = Gdx.graphics.getHeight();
+                            newImage.setSize(500, 500);
+                            newImage.setPosition((windowWidth - newImage.getWidth()) / 2,
+                                    (windowHeight - newImage.getHeight()) / 2);
+
+                            // Pass the new image to the callback
+                            onImageSelected.accept(newImage);
+                        } else {
+                            // Handle non-SVG files as images
+                            Texture texture = new Texture(selectedFile);
+                            Image newImage = new Image(texture);
+
+                            // Resize and position the image
+                            float windowWidth = Gdx.graphics.getWidth();
+                            float windowHeight = Gdx.graphics.getHeight();
+                            newImage.setSize(500, 500);
+                            newImage.setPosition((windowWidth - newImage.getWidth()) / 2,
+                                    (windowHeight - newImage.getHeight()) / 2);
+
+                            // Pass the new image to the callback
+                            onImageSelected.accept(newImage);
+                        }
                     } catch (Exception e) {
-                        System.out.println("Failed to load image: " + e.getMessage());
+                        System.out.println("Failed to load file: " + e.getMessage());
                     }
                 }
             }

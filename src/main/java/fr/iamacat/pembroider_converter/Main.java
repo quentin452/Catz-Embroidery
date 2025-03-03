@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -29,7 +30,7 @@ public class Main extends MainBase {
     private PopupMenu fileMenu,editMenu;
     private SaveType currentSaveLocallyType = SaveType.SVG;
     private SaveType currentSaveDropboxType = SaveType.SVG;
-    private int exportHeight = 95 , exportWidth = 95,visualizeHeight = 285 , visualizeWidth = 285;
+    private int exportHeight = 95 , exportWidth = 95,visualizeHeight = 380 , visualizeWidth = 380;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     private VisTable rootTable;
@@ -38,12 +39,10 @@ public class Main extends MainBase {
     private Slider progressBar;
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
-    private SpriteBatch batch;
 
     public Main() {
-        embroidery = new PEmbroiderGraphicsLibgdx();
         shapeRenderer = new ShapeRenderer();
-        batch = new SpriteBatch();
+        embroidery = new PEmbroiderGraphicsLibgdx(shapeRenderer);
         rootTable = new VisTable();
         rootTable.setFillParent(true);
         getStage().addActor(rootTable);
@@ -146,14 +145,12 @@ public class Main extends MainBase {
         enableEscapeMenu = true;
         showPreview = false;
         updateProgress(0, true);
-        embroidery.height = exportHeight;
-        embroidery.width = exportWidth;
         embroidery.beginDraw();
         updateProgress(10);
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
-        embroidery.image(pixmap, 400, -139, embroidery.width, embroidery.height);
+        embroidery.image(pixmap, 400, -139, exportWidth, exportHeight);
         embroidery.endDraw();
         pixmap.dispose();
         updateProgress(100);
@@ -186,13 +183,8 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-            embroidery.visualizeNoCaching(shapeRenderer,910, 190,visualizeHeight);
+            embroidery.visualizeNoCaching(910,190,visualizeWidth,visualizeHeight);
         }
-    }
-    @Override
-    public void dispose() {
-        super.dispose();
-        batch.dispose();
     }
 
     private void showLoadDialog() {

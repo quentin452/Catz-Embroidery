@@ -1,5 +1,9 @@
 package fr.iamacat.embroider.libgdx.utils;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.PixmapIO;
+import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 
 import java.io.*;
@@ -7,10 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
+
 public class BroideryWriter {
 
 	public static String TITLE = null;
-// TODO FIX WIDTH AND HEIGHT
 	private static void saveBezierShapesAsSVG(String filename,String extension,List<BezierShape> shapes, float width, float height) {
 		try (BufferedWriter out = Files.newBufferedWriter(Paths.get(filename + "." + extension))) {
 			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
@@ -28,6 +33,21 @@ public class BroideryWriter {
 			e.printStackTrace();
 		}
 	}
+	private static void saveBezierShapesAsPNG(String filename, String extension, List<BezierShape> shapes, float width, float height) {
+		Pixmap pixmap = new Pixmap((int) width, (int) height, Pixmap.Format.RGBA8888);
+
+		// Draw the BezierShapes directly to the Pixmap
+		for (BezierShape shape : shapes) {
+			int color = shape.getColor();
+			Color gdxColor = new Color((color >> 16 & 0xFF), (color >> 8 & 0xFF), (color & 0xFF), 1f);
+			pixmap.setColor(gdxColor);
+			for (BezierCurve curve : shape) {
+				renderBezierCurveToPixmap(pixmap, curve, gdxColor);
+			}
+		}
+		PixmapIO.writePNG(Gdx.files.absolute(filename + "." + extension), pixmap);
+		pixmap.dispose(); // Dispose the Pixmap to free resources
+	}
 
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
 		boolean isCustomTitle = true;
@@ -43,6 +63,9 @@ public class BroideryWriter {
 			switch (tokens[1].toUpperCase()) {
 				case "SVG":
 					saveBezierShapesAsSVG(tokens[0],tokens[1],shapes, width, height);
+					break;
+				case "PNG":
+					saveBezierShapesAsPNG(tokens[0],tokens[1],shapes, width, height);
 					break;
 				default:
 					throw new IOException("Unimplemented");

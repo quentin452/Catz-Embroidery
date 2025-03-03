@@ -36,8 +36,7 @@ import static net.plantabyte.drptrace.math.Util.RMSE;
  */
 public final class BezierCurve {
 	private Vec2[] p = new Vec2[4];
-	private int color;
-	
+
 	/**
 	 * Standard constructor for cubic bezier curve
 	 * @param origin point 1
@@ -50,7 +49,6 @@ public final class BezierCurve {
 		p[1] = ctrl1;
 		p[2] = ctrl2;
 		p[3] = dest;
-		this.color = color;
 	}
 	
 	/**
@@ -63,17 +61,6 @@ public final class BezierCurve {
 		p[1] = origin;
 		p[2] = dest;
 		p[3] = dest;
-		this.color = color;
-	}
-
-	// Get the color as an integer
-	public int getColor() {
-		return color;
-	}
-
-	// Set the color using an integer (ARGB format)
-	public void setColor(int color) {
-		this.color = color;
 	}
 
 	/**

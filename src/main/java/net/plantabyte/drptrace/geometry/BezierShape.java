@@ -148,6 +148,66 @@ public class BezierShape extends ArrayList<BezierCurve> {
 		if(this.isClosed()) sb.append(" Z");
 		return sb.toString();
 	}
+	/**
+	 * Constructs a BezierShape from an SVG path string.
+	 * @param svgPathString the SVG path string
+	 * @return a BezierShape representing the path
+	 */
+	public static BezierShape fromSVGPathString(String svgPathString) {
+		BezierShape shape = new BezierShape();
+		String[] commands = svgPathString.split("(?=[MmLlCcZz])");
+		Vec2 currentPoint = new Vec2(0, 0);
+		Vec2 startPoint = new Vec2(0, 0);
+
+		for (String command : commands) {
+			char type = command.charAt(0);
+			String[] params = command.substring(1).trim().split("[ ,]+");
+			switch (type) {
+				case 'M': // Move to absolute
+					currentPoint = new Vec2(Double.parseDouble(params[0]), Double.parseDouble(params[1]));
+					startPoint = currentPoint;
+					break;
+				case 'm': // Move to relative
+					currentPoint = currentPoint.add(new Vec2(Double.parseDouble(params[0]), Double.parseDouble(params[1])));
+					startPoint = currentPoint;
+					break;
+				case 'L': // Line to absolute
+					Vec2 lineToAbs = new Vec2(Double.parseDouble(params[0]), Double.parseDouble(params[1]));
+					shape.add(new BezierCurve(currentPoint, lineToAbs));
+					currentPoint = lineToAbs;
+					break;
+				case 'l': // Line to relative
+					Vec2 lineToRel = currentPoint.add(new Vec2(Double.parseDouble(params[0]), Double.parseDouble(params[1])));
+					shape.add(new BezierCurve(currentPoint, lineToRel));
+					currentPoint = lineToRel;
+					break;
+				case 'C': // Cubic curve to absolute
+					Vec2 ctrl1Abs = new Vec2(Double.parseDouble(params[0]), Double.parseDouble(params[1]));
+					Vec2 ctrl2Abs = new Vec2(Double.parseDouble(params[2]), Double.parseDouble(params[3]));
+					Vec2 endPointAbs = new Vec2(Double.parseDouble(params[4]), Double.parseDouble(params[5]));
+					shape.add(new BezierCurve(currentPoint, ctrl1Abs, ctrl2Abs, endPointAbs));
+					currentPoint = endPointAbs;
+					break;
+				case 'c': // Cubic curve to relative
+					Vec2 ctrl1Rel = currentPoint.add(new Vec2(Double.parseDouble(params[0]), Double.parseDouble(params[1])));
+					Vec2 ctrl2Rel = currentPoint.add(new Vec2(Double.parseDouble(params[2]), Double.parseDouble(params[3])));
+					Vec2 endPointRel = currentPoint.add(new Vec2(Double.parseDouble(params[4]), Double.parseDouble(params[5])));
+					shape.add(new BezierCurve(currentPoint, ctrl1Rel, ctrl2Rel, endPointRel));
+					currentPoint = endPointRel;
+					break;
+				case 'Z':
+				case 'z':
+					shape.setClosed(true);
+					shape.add(new BezierCurve(currentPoint, startPoint));
+					currentPoint = startPoint;
+					break;
+				default:
+					throw new IllegalArgumentException("Unsupported SVG command: " + type);
+			}
+		}
+
+		return shape;
+	}
 
 	/**
 	 * Scales this shape around the origin point
