@@ -2,6 +2,7 @@ package fr.iamacat.embroider.libgdx.utils;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import net.plantabyte.drptrace.geometry.BezierCurve;
@@ -129,5 +130,50 @@ public class BezierUtil {
             shape.clear();
             shape.addAll(scaledCurves);
         }
+    }
+    
+    public static Texture generateScaledTextureFromBezierShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
+        Texture texture = null;
+        List<BezierShape> scaledShapes = new ArrayList<>();
+        for (BezierShape original : shapes) {
+            BezierShape copy = new BezierShape();
+            for (BezierCurve curve : original) {
+                copy.add(new BezierCurve(
+                        curve.getP1(),
+                        curve.getP2(),
+                        curve.getP3(),
+                        curve.getP4()
+                ));
+            }
+            copy.setColor(original.getColor());
+            scaledShapes.add(copy);
+        }
+
+        BezierUtil.scaleShapes(scaledShapes, targetWidth, targetHeight);
+
+        Pixmap renderPixmap = new Pixmap((int) targetWidth, (int) targetHeight, Pixmap.Format.RGBA8888);
+        renderPixmap.setColor(Color.CLEAR);
+        renderPixmap.fill();
+
+        for (BezierShape shape : scaledShapes) {
+            int color = shape.getColor();
+            Color gdxColor = new Color(
+                    (color >> 16 & 0xFF) / 255f,
+                    (color >> 8 & 0xFF) / 255f,
+                    (color & 0xFF) / 255f,
+                    1f
+            );
+            renderPixmap.setColor(gdxColor);
+            for (BezierCurve curve : shape) {
+                BezierUtil.renderBezierCurveToPixmap(renderPixmap, curve, gdxColor);
+            }
+        }
+
+        if (texture != null) {
+            texture.dispose();
+        }
+        texture = new Texture(renderPixmap);
+        renderPixmap.dispose();
+        return texture;
     }
 }

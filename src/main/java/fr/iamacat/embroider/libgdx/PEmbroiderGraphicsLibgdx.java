@@ -1,6 +1,7 @@
 package fr.iamacat.embroider.libgdx;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -43,7 +44,6 @@ public class PEmbroiderGraphicsLibgdx {
     public List<BezierCurve> currentPath;
     private Texture cachedTexture;
     private SpriteBatch spriteBatch;
-    private String tempImagePath;
     // Required renderers
     private final ShapeRenderer shapeRenderer;
     public PEmbroiderGraphicsLibgdx(ShapeRenderer shapeRenderer) {
@@ -82,24 +82,7 @@ public class PEmbroiderGraphicsLibgdx {
         beginShape();
         applyHatchMode(pixmap, x, y);
         endShape();
-
-        // Save to temporary PNG
-        String tempDir = System.getProperty("java.io.tmpdir") + "/embroider-temp";
-        try {
-            Files.createDirectories(Paths.get(tempDir));
-        } catch (IOException e) {
-            Gdx.app.error("PEmbroider", "Failed to create temp directory", e);
-            return;
-        }
-        String filename = tempDir + "/" + UUID.randomUUID().toString() + ".png";
-        BroideryWriter.write(filename, bezierShapes, width, height);
-
-        // Load the saved PNG as a texture
-        if (cachedTexture != null) {
-            cachedTexture.dispose();
-        }
-        cachedTexture = new Texture(Gdx.files.absolute(filename));
-        tempImagePath = filename;
+        cachedTexture = BezierUtil.generateScaledTextureFromBezierShapes(bezierShapes,width,height);
     }
 
     /**
