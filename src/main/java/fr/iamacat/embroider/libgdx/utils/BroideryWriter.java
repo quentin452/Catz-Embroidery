@@ -50,6 +50,8 @@ public class BroideryWriter {
 	}
 
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
+		width *= 3.67f;
+		height *= 3.67f;
 		boolean isCustomTitle = true;
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
 		if (TITLE == null) {
@@ -57,7 +59,6 @@ public class BroideryWriter {
 			String[] strs = tokens[0].split("/|\\\\");
 			TITLE = strs[strs.length - 1];
 		}
-		System.out.println(TITLE);
 		TITLE = TITLE.substring(0, Math.min(8, TITLE.length()));
 		try {
 			switch (tokens[1].toUpperCase()) {

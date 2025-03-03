@@ -187,12 +187,9 @@ public class DialogUtil {
     }
     private static File saveBroderyFile(Stage stage, String filePath, PEmbroiderGraphicsLibgdx brodery, float saveWidth, float saveHeight) {
         try {
-            File file = new File(filePath); // Create a File object based on the given file path
-            // Assuming PEmbroiderWriter.write method writes to the file
-            // Now, we use stitchPaths instead of polylines and colors
-            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth  * 3.67f, saveHeight  * 3.67f);
-
-            return file;  // Return the File object
+            File file = new File(filePath);
+            BroideryWriter.write(file.getAbsolutePath(), brodery.bezierShapes, saveWidth /* * 3.67f*/, saveHeight/*  * 3.67f*/);
+            return file;
         } catch (Exception e) {
             showErrorDialog(stage, "Error while saving: " + e.getMessage());
             return null;

@@ -183,7 +183,7 @@ public class Main extends MainBase {
             saveToDropboxButton.setDisabled(!isImageAvailable);
         }
         if (showPreview && embroidery != null) {
-            embroidery.visualizeNoCaching(910,190,visualizeWidth,visualizeHeight);
+            embroidery.visualizeCacheOrNo(910,190,visualizeWidth,visualizeHeight);
         }
     }
 

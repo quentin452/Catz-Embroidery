@@ -1,17 +1,25 @@
 package fr.iamacat.embroider.libgdx;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
+import fr.iamacat.embroider.libgdx.utils.BroideryWriter;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 // TODO ADD BRODERING TIME ESTIMATION + STITCH STATS
 // TODO FIX SAVING SGV/PES OR ANOTHER BRODERY FILES CAUSING LARGE FILES
@@ -33,12 +41,15 @@ public class PEmbroiderGraphicsLibgdx {
     public List<BezierShape> bezierShapes = new ArrayList<>();
 
     public List<BezierCurve> currentPath;
-
+    private Texture cachedTexture;
+    private SpriteBatch spriteBatch;
+    private String tempImagePath;
     // Required renderers
     private final ShapeRenderer shapeRenderer;
     public PEmbroiderGraphicsLibgdx(ShapeRenderer shapeRenderer) {
         this.traceBitmapHach = new TraceBitmapHatch(this);
         this.shapeRenderer = shapeRenderer;
+        this.spriteBatch = new SpriteBatch();
     }
 
     public void beginDraw() {
@@ -71,6 +82,24 @@ public class PEmbroiderGraphicsLibgdx {
         beginShape();
         applyHatchMode(pixmap, x, y);
         endShape();
+
+        // Save to temporary PNG
+        String tempDir = System.getProperty("java.io.tmpdir") + "/embroider-temp";
+        try {
+            Files.createDirectories(Paths.get(tempDir));
+        } catch (IOException e) {
+            Gdx.app.error("PEmbroider", "Failed to create temp directory", e);
+            return;
+        }
+        String filename = tempDir + "/" + UUID.randomUUID().toString() + ".png";
+        BroideryWriter.write(filename, bezierShapes, width, height);
+
+        // Load the saved PNG as a texture
+        if (cachedTexture != null) {
+            cachedTexture.dispose();
+        }
+        cachedTexture = new Texture(Gdx.files.absolute(filename));
+        tempImagePath = filename;
     }
 
     /**
@@ -82,13 +111,20 @@ public class PEmbroiderGraphicsLibgdx {
             traceBitmapHach.apply(this, pixmap, x, y);
         }
     }
-    public void visualizeNoCaching(float offsetX, float offsetY, int visualizeWidth,int visualizeHeight) {
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        for (BezierShape shape : bezierShapes) {
-            for (BezierCurve curve : shape) {
-                BezierUtil.renderBezierCurveToShapeRenderer(shapeRenderer, curve, shape, offsetX, offsetY,visualizeWidth,visualizeHeight);
+    public void visualizeCacheOrNo(float offsetX, float offsetY, int visualizeWidth, int visualizeHeight) {
+        if (cachedTexture != null) {
+            spriteBatch.begin();
+            spriteBatch.draw(cachedTexture, offsetX, offsetY, visualizeWidth, visualizeHeight);
+            spriteBatch.end();
+        } else {
+            // Fallback to original rendering if no cached texture
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            for (BezierShape shape : bezierShapes) {
+                for (BezierCurve curve : shape) {
+                    BezierUtil.renderBezierCurveToShapeRenderer(shapeRenderer, curve, shape, offsetX, offsetY, visualizeWidth, visualizeHeight);
+                }
             }
+            shapeRenderer.end();
         }
-        shapeRenderer.end();
     }
 }
