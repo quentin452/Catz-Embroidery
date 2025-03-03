@@ -23,7 +23,6 @@ import fr.iamacat.utils.enums.SaveType;
 
 import javax.swing.*;
 import static fr.iamacat.utils.UIUtils.*;
-// TODO update progressBar during file loading/saving + progressbar not get rendered
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
 // TODO FIX CAN CREATE MULTIPLE EXIT MENU (DIALOGS UTILS THINGS)
