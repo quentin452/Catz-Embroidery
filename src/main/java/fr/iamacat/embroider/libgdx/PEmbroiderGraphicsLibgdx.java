@@ -1,26 +1,19 @@
 package fr.iamacat.embroider.libgdx;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.hatchmode.*;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
-import fr.iamacat.embroider.libgdx.utils.BroideryWriter;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 // TODO ADD BRODERING TIME ESTIMATION + STITCH STATS
 // TODO FIX SAVING SGV/PES OR ANOTHER BRODERY FILES CAUSING LARGE FILES
