@@ -20,6 +20,7 @@ import java.util.Objects;
 // TODO FIX PNG/SVG COLORS
 // TODO REMOVE STITCH BORDERS
 // TODO FIX DRAWED STITCH RENDER AT Z INDEX HIGHER THAN DIALOGS UTILS THINGS
+// TODO ADD a variable in TraceBitmapHatch to increase/reduce quality of the shape by reducing triangle
 public class PEmbroiderGraphicsLibgdx {
     private final TraceBitmapHatch traceBitmapHach;
 
@@ -77,7 +78,7 @@ public class PEmbroiderGraphicsLibgdx {
         beginShape();
         applyHatchMode(pixmap, x, y);
         endShape();
-        cachedTexture = BezierUtil.generateScaledTextureFromBezierShapes(bezierShapes,width,height);
+        cachedTexture = BezierUtil.generateScaledTextureFromBezierShapes(bezierShapes,width * 3.67f,height * 3.67f);
     }
 
     /**

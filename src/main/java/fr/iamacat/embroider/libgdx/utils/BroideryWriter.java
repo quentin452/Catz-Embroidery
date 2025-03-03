@@ -54,10 +54,8 @@ public class BroideryWriter {
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
 
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
-		if (tokens[1].equalsIgnoreCase("SVG")) {
-			width *= 3.67f;
-			height *= 3.67f;
-		}
+		width *= 3.67f;
+		height *= 3.67f;
 		scaleShapes(shapes, width, height);
 		boolean isCustomTitle = true;
 		if (TITLE == null) {
