@@ -23,7 +23,7 @@ import java.util.Objects;
 public class PEmbroiderGraphicsLibgdx {
     private final TraceBitmapHatch traceBitmapHach;
 
-    public ColorType colorMode = ColorType.Bitmap;
+    public ColorType colorMode = ColorType.MultiColor;
     public HatchModeType hatchMode = HatchModeType.TraceBitmap;
     public int width = 200; // ATTENTION IF YOU USE TOO HIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
     public int height = 200; // ATTENTION IF YOU USE TOO HIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly

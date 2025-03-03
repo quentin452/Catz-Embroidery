@@ -4,12 +4,17 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
+import fr.iamacat.utils.enums.ColorType;
+import imagemagick.Quantize;
 import net.plantabyte.drptrace.*;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.geometry.Vec2;
 import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 // TODO OPTIMIZE THIS
 // TODO ADD COLOR TRACING
@@ -21,7 +26,7 @@ public class TraceBitmapHatch extends BaseHatch {
     }
     @Override
     public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y) {
-        Pixmap quantizedPixmap = quantizeToBinary(pixmap);
+        Pixmap quantizedPixmap = quantize(pixmap, brodery.colorMode, brodery.maxColors);
         ZOrderIntMap tracedImage = convertToDrPTraceMap(quantizedPixmap);
         Tracer tracer = new IntervalTracer(TRACE_PRECISION);
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
@@ -31,41 +36,64 @@ public class TraceBitmapHatch extends BaseHatch {
         float scaleY = (brodery.height * 3.67f) / quantizedPixmap.getHeight();
 
         for (BezierShape shape : shapes) {
-            // Scale the shape before adding
-            BezierShape scaledShape = scaleShape(shape, scaleX, scaleY);
-            BezierUtil.addBezierShape(brodery, scaledShape);
-            processBezierShape(brodery, scaledShape);
+            BezierUtil.scaleShape(shape,scaleX,scaleY);
+            BezierUtil.addBezierShape(brodery, shape);
+            processBezierShape(brodery, shape);
         }
     }
 
-    private BezierShape scaleShape(BezierShape original, float scaleX, float scaleY) {
-        BezierShape scaled = new BezierShape();
-        for (BezierCurve curve : original) {
-            Vec2 p1 = new Vec2(curve.getP1().x * scaleX, curve.getP1().y * scaleY);
-            Vec2 p2 = new Vec2(curve.getP2().x * scaleX, curve.getP2().y * scaleY);
-            Vec2 p3 = new Vec2(curve.getP3().x * scaleX, curve.getP3().y * scaleY);
-            Vec2 p4 = new Vec2(curve.getP4().x * scaleX, curve.getP4().y * scaleY);
-
-            scaled.add(new BezierCurve(p1, p2, p3, p4));
+    private Pixmap quantize(Pixmap input, ColorType colorType, int maxColors) {
+        if (colorType == ColorType.BlackAndWhite) {
+            return quantizeToBlackAndWhite(input);
+        } else {
+            return quantizeToMultiColor(input, maxColors);
         }
-        scaled.setColor(original.getColor());
-        return scaled;
     }
 
-    private Pixmap quantizeToBinary(Pixmap input) {
+    private Pixmap quantizeToMultiColor(Pixmap input, int maxColors) {
+        // Convertir Pixmap en tableau 2D int
+        int width = input.getWidth();
+        int height = input.getHeight();
+        int[][] pixels = new int[width][height];
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                pixels[x][y] = input.getPixel(x, y);
+            }
+        }
+
+        // Appliquer la quantification
+        int[] colormap = Quantize.quantizeImage(pixels, maxColors);
+
+        // Créer le Pixmap de sortie
+        Pixmap output = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+
+        // Remplacer les indices par les couleurs de la palette
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int color = colormap[pixels[x][y]];
+                output.drawPixel(x, y, color);
+            }
+        }
+
+        return output;
+    }
+
+    private Pixmap quantizeToBlackAndWhite(Pixmap input) {
+        // Même implémentation que précédemment
         Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
         for (int y = 0; y < input.getHeight(); y++) {
             for (int x = 0; x < input.getWidth(); x++) {
                 Color color = new Color(input.getPixel(x, y));
                 float luminance = (color.r + color.g + color.b) / 3.0f;
-                int quantizedColor = luminance > 0.5f ? Color.WHITE.toIntBits() : Color.BLACK.toIntBits();
-                output.setColor(quantizedColor);
-                output.drawPixel(x, y);
+                int quantizedColor = luminance > 0.5f ?
+                        Color.WHITE.toIntBits() :
+                        Color.BLACK.toIntBits();
+                output.drawPixel(x, y, quantizedColor);
             }
         }
         return output;
     }
-
     private void processBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape) {
         for (BezierCurve curve : shape) {
             BezierUtil.addBezierStitches(brodery, curve);

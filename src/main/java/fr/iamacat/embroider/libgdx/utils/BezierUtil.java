@@ -73,7 +73,22 @@ public class BezierUtil {
         }
     }
 
-    public static void scaleShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
+
+    public static BezierShape scaleShape(BezierShape original, float scaleX, float scaleY) {
+        BezierShape scaled = new BezierShape();
+        for (BezierCurve curve : original) {
+            Vec2 p1 = new Vec2(curve.getP1().x * scaleX, curve.getP1().y * scaleY);
+            Vec2 p2 = new Vec2(curve.getP2().x * scaleX, curve.getP2().y * scaleY);
+            Vec2 p3 = new Vec2(curve.getP3().x * scaleX, curve.getP3().y * scaleY);
+            Vec2 p4 = new Vec2(curve.getP4().x * scaleX, curve.getP4().y * scaleY);
+
+            scaled.add(new BezierCurve(p1, p2, p3, p4));
+        }
+        scaled.setColor(original.getColor());
+        return scaled;
+    }
+
+    public static void scaleShapes(List<BezierShape> shapes, float scaleX, float scaleY) {
         float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
         float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
 
@@ -94,7 +109,7 @@ public class BezierUtil {
         if (originalWidth <= 0 || originalHeight <= 0) return;
 
         // Calculer le facteur d'échelle
-        float scaleFactor = Math.min(targetWidth / originalWidth, targetHeight / originalHeight);
+        float scaleFactor = Math.min(scaleX / originalWidth, scaleY / originalHeight);
 
         // Translater toutes les courbes vers l'origine (0,0)
         for (BezierShape shape : shapes) {
