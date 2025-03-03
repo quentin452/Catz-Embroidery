@@ -4,28 +4,24 @@ import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.*;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.EmbroideryMachine;
+import fr.iamacat.manager.DialogManager;
 import fr.iamacat.utils.*;
 import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import fr.iamacat.utils.enums.SaveType;
 
-import javax.swing.*;
 import static fr.iamacat.utils.UIUtils.*;
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 // TODO FIX CAN MOVE THE VISTABLE ADDED BY THE createSettingsPanel
-// TODO FIX CAN CREATE MULTIPLE EXIT MENU (DIALOGS UTILS THINGS)
 // TODO Failed to load file: prepare() must not be called on a PixmapTextureData instance as it is already prepared WHEN loading .SVG File
 // TODO FIX broderyMachine translation
 public class Main extends MainBase {
@@ -42,6 +38,7 @@ public class Main extends MainBase {
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
     private VisLabel statsLabel;
+
     public Main() {
         shapeRenderer = new ShapeRenderer();
         embroidery = new PEmbroiderGraphicsLibgdx(shapeRenderer);
@@ -189,7 +186,7 @@ public class Main extends MainBase {
     }
 
     private void showLoadDialog() {
-        DialogUtil.showFileChooserDialog(getStage(), selectedImage -> {
+        DialogManager.showFileChooserDialog(getStage(), selectedImage -> {
             if (selectedImage != null) {
                 if (displayedImage != null) {
                     displayedImage.remove();
@@ -203,7 +200,7 @@ public class Main extends MainBase {
     public boolean keyDown(int keycode) {
         if (keycode == Input.Keys.ESCAPE && enableEscapeMenu) {
             // Show exit confirmation dialog
-            DialogUtil.showExitConfirmationDialog(
+            DialogManager.showExitConfirmationDialog(
                     getStage(),
                     () -> Gdx.app.exit(), // Exit immediately
                     () -> showSaveLocallyDialog(currentSaveLocallyType, () -> Gdx.app.exit()), // Save locally then exit
@@ -221,7 +218,7 @@ public class Main extends MainBase {
 
     private void showSaveLocallyDialog(SaveType type, Runnable onSuccess) {
         currentSaveLocallyType = type;
-        DialogUtil.showSaveDialog(currentSaveLocallyType, getStage(), embroidery, embroidery.width, embroidery.height, success -> {
+        DialogManager.showSaveDialog(currentSaveLocallyType, getStage(), embroidery, embroidery.width, embroidery.height, success -> {
             if (success) {
                 enableEscapeMenu = false;
                 if (onSuccess != null) {
@@ -233,7 +230,7 @@ public class Main extends MainBase {
 
     private void showDropboxDialog(SaveType type, Runnable onSuccess) {
         currentSaveDropboxType = type;
-        DialogUtil.showUploadDialog(currentSaveDropboxType, getStage(), embroidery, embroidery.width,embroidery.height, success -> {
+        DialogManager.showUploadDialog(currentSaveDropboxType, getStage(), embroidery, embroidery.width,embroidery.height, success -> {
             if (success) {
                 enableEscapeMenu = false;
                 if (onSuccess != null) {
@@ -260,7 +257,7 @@ public class Main extends MainBase {
     }
 
     public void handleExitRequest() {
-        DialogUtil.showExitConfirmationDialog(
+        DialogManager.showExitConfirmationDialog(
                 getStage(),
                 Main::confirmExit, // Exit direct
                 () -> showSaveLocallyDialog(currentSaveLocallyType, Main::confirmExit), // Sauvegarde locale puis exit

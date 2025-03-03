@@ -3,12 +3,10 @@ package fr.iamacat.utils;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import fr.iamacat.pembroider_converter.Main;
 
 public class MainBase implements Screen, Translatable , InputProcessor, ApplicationListener {
 
     private static Stage stage;
-
 
     public MainBase() {
         stage = new Stage();

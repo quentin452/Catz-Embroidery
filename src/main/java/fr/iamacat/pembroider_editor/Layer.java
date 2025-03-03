@@ -9,7 +9,7 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import fr.iamacat.utils.UIUtils;
 
-import static fr.iamacat.utils.DialogUtil.showEmptyDialog;
+import static fr.iamacat.manager.DialogManager.showEmptyDialog;
 
 public class Layer {
     public VisTable table;

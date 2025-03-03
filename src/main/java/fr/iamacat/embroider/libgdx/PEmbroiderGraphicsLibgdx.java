@@ -43,6 +43,7 @@ public class PEmbroiderGraphicsLibgdx {
     public List<BezierCurve> currentPath;
     private Texture cachedTexture;
     private SpriteBatch spriteBatch;
+
     // Required renderers
     private final ShapeRenderer shapeRenderer;
     public PEmbroiderGraphicsLibgdx(ShapeRenderer shapeRenderer) {

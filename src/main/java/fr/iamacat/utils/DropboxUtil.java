@@ -157,7 +157,7 @@ public class DropboxUtil {
     }
 
 
-    static void showMessage(Stage stage, Skin skin, String message) {
+    public static void showMessage(Stage stage, Skin skin, String message) {
         final Dialog messageDialog = new Dialog("Message", skin);
         messageDialog.text(message);
         messageDialog.button(Translator.getInstance().translate("ok"), true);

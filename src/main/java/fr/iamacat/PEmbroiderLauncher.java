@@ -15,6 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
+import com.kotcrab.vis.ui.widget.VisDialog;
+import fr.iamacat.manager.DialogManager;
 import fr.iamacat.pembroider_mainmenu.Main;
 import fr.iamacat.utils.FontManager;
 import fr.iamacat.utils.UIUtils;
@@ -113,6 +115,9 @@ public class PEmbroiderLauncher extends Game {
             public boolean closeRequested() {
                 PEmbroiderLauncher launcher = (PEmbroiderLauncher) Gdx.app.getApplicationListener();
                 if (launcher.getScreen() instanceof fr.iamacat.pembroider_converter.Main mainScreen) {
+                    if (DialogManager.dialogEnabled) {
+                        return false;
+                    }
                     if (!fr.iamacat.pembroider_converter.Main.enableEscapeMenu) {
                         return true;
                     }

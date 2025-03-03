@@ -1,4 +1,4 @@
-package fr.iamacat.utils;
+package fr.iamacat.manager;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -10,32 +10,40 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.VisDialog;
-import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.BroideryReader;
 import fr.iamacat.embroider.libgdx.utils.BroideryWriter;
+import fr.iamacat.utils.DropboxUtil;
+import fr.iamacat.utils.FixedFileChooser;
+import fr.iamacat.utils.Translator;
+import fr.iamacat.utils.UIUtils;
 import fr.iamacat.utils.enums.SaveType;
 
 import java.io.File;
 import java.util.function.Consumer;
 
 import static com.kotcrab.vis.ui.util.dialog.Dialogs.showErrorDialog;
+import static fr.iamacat.utils.DropboxUtil.dropboxClient;
 import static fr.iamacat.utils.DropboxUtil.showMessage;
 import static fr.iamacat.utils.UIUtils.t;
 
-public class DialogUtil {
-
+public class DialogManager {
+    public static boolean dialogEnabled = false;
     public static void showFileChooserDialog(Stage stage, Consumer<Image> onImageSelected) {
+        if (dialogEnabled) {
+            return;
+        }
+        dialogEnabled = true;
         // Définir le nom des préférences pour les emplacements favoris
         String userHome = System.getProperty("user.home");
-        FileChooser.setFavoritesPrefsName(userHome + "/.pembroider_converter");
+        FixedFileChooser.setFavoritesPrefsName(userHome + "/.pembroider_converter");
 
         // Créer l'instance du FileChooser
-        final FileChooser fileChooser = new FileChooser(FileChooser.Mode.OPEN);
+        final FixedFileChooser fileChooser = new FixedFileChooser(FixedFileChooser.Mode.OPEN);
 
         // Configurer le FileChooser pour sélectionner uniquement les fichiers
-        fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
+        fileChooser.setSelectionMode(FixedFileChooser.SelectionMode.FILES);
 
         // Ajouter un filtre pour n'afficher que les fichiers PES et PNG
         fileChooser.setFileFilter(file -> {
@@ -45,9 +53,9 @@ public class DialogUtil {
         });
 
         // Définir un fournisseur d'icônes personnalisé
-        fileChooser.setIconProvider(new FileChooser.DefaultFileIconProvider(fileChooser) {
+        fileChooser.setIconProvider(new FixedFileChooser.DefaultFileIconProvider(fileChooser) {
             @Override
-            public Drawable provideIcon(FileChooser.FileItem item) {
+            public Drawable provideIcon(FixedFileChooser.FileItem item) {
                 float iconSize = 48f;
 
                 // Si l'élément est un répertoire
@@ -91,7 +99,7 @@ public class DialogUtil {
             }
 
             @Override
-            public void viewModeChanged(FileChooser.ViewMode viewMode) {
+            public void viewModeChanged(FixedFileChooser.ViewMode viewMode) {
                 // Implement necessary actions if needed
             }
         });
@@ -146,9 +154,14 @@ public class DialogUtil {
                         System.out.println("Failed to load file: " + e.getMessage());
                     }
                 }
+                dialogEnabled = false;
+            }
+            @Override
+            public void canceled() {
+                //dialogEnabled = false;
+                //fileChooser.remove();
             }
         });
-
 
         fileChooser.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);
 
@@ -160,8 +173,12 @@ public class DialogUtil {
     }
 
     public static void showSaveDialog(final SaveType saveType, final Stage stage, final PEmbroiderGraphicsLibgdx brodery, float saveWidth, float saveHeight, Consumer<Boolean> onResult) {
-        final FileChooser fileChooser = new FileChooser(FileChooser.Mode.SAVE);
-        fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
+        if (dialogEnabled) {
+            return;
+        }
+        dialogEnabled = true;
+        final FixedFileChooser fileChooser = new FixedFileChooser(FixedFileChooser.Mode.SAVE);
+        fileChooser.setSelectionMode(FixedFileChooser.SelectionMode.FILES);
         String ext = saveType.toString().toLowerCase();
         fileChooser.setFileFilter(file -> {
             FileHandle fh = new FileHandle(file);
@@ -179,6 +196,7 @@ public class DialogUtil {
                         onResult.accept(false);
                     }
                 }
+                dialogEnabled = false;
             }
         });
         fileChooser.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);
@@ -197,6 +215,10 @@ public class DialogUtil {
     }
 
     public static void showUploadDialog(final SaveType saveType, final Stage stage, PEmbroiderGraphicsLibgdx brodery, float saveWidth,float saveHeight, Consumer<Boolean> onResult) {
+        if (dialogEnabled) {
+            return;
+        }
+        dialogEnabled = true;
         final TextField fileNameField = new TextField("", UIUtils.visSkin);
         VisDialog dialog = new VisDialog(Translator.getInstance().translate("save_options")) {
             @Override
@@ -226,6 +248,7 @@ public class DialogUtil {
                         onResult.accept(false);
                     }
                 }
+                dialogEnabled = false;
             }
         };
         dialog.getContentTable().row().pad(10);
@@ -237,6 +260,10 @@ public class DialogUtil {
     }
 
     public static void showExitConfirmationDialog(Stage stage, Runnable onExit, Runnable onSaveLocally, Runnable onUpload) {
+        if (dialogEnabled) {
+            return;
+        }
+        dialogEnabled = true;
         VisDialog dialog = new VisDialog("Exit Application") {
             @Override
             protected void result(Object object) {
@@ -244,16 +271,21 @@ public class DialogUtil {
                     String result = (String) object;
                     switch (result) {
                         case "SAVE_LOCALLY":
+                            dialogEnabled = false;
                             onSaveLocally.run();
+                            dialogEnabled = true;
                             break;
                         case "UPLOAD":
+                            dialogEnabled = false;
                             onUpload.run();
+                            dialogEnabled = true;
                             break;
                         case "EXIT":
+                            dialogEnabled = false;
                             onExit.run();
                             break;
                         case "CANCEL":
-                            // Do nothing
+                            dialogEnabled = false;
                             break;
                     }
                     hide();
@@ -263,10 +295,11 @@ public class DialogUtil {
 
         dialog.text("Do you want to save your work before exiting?");
         dialog.button("Save Locally", "SAVE_LOCALLY");
-        dialog.button("Upload to Dropbox", "UPLOAD");
+        if (dropboxClient != null) {
+            dialog.button("Upload to Dropbox", "UPLOAD");
+        }
         dialog.button("Exit", "EXIT");
         dialog.button("Cancel", "CANCEL");
-
         dialog.show(stage);
     }
 

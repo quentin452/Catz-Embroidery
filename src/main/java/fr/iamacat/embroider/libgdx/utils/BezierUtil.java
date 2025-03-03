@@ -72,7 +72,7 @@ public class BezierUtil {
             prev = next;
         }
     }
-    
+
     public static void scaleShapes(List<BezierShape> shapes, float scaleX, float scaleY) {
         float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
         float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
