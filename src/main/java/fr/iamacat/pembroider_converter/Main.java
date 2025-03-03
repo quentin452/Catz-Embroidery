@@ -40,7 +40,6 @@ public class Main extends MainBase {
     private VisTable rootTable;
     private boolean showPreview = false;
     public static boolean enableEscapeMenu = false;
-    private Slider progressBar;
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
     private VisLabel statsLabel;
@@ -93,15 +92,6 @@ public class Main extends MainBase {
 
         // OTHER
         createSettingsPanel();
-        progressBar = new VisSlider(0, 100, 1, false); // Min: 0, Max: 100, Step: 1, Horizontal
-        progressBar.setValue(0);
-        progressBar.setVisible(false);
-
-        VisTable sliderContainer = new VisTable();
-        sliderContainer.add(new VisLabel(Translator.getInstance().translate("progress"))).padRight(10);
-        sliderContainer.add(progressBar).width(300).height(20);
-        sliderContainer.setPosition((float) Gdx.graphics.getWidth() / 2 - 150, 240);
-
         if (statsLabel == null) {
             statsLabel = new VisLabel();
             VisLabel.LabelStyle labelStyle = new VisLabel.LabelStyle();
@@ -111,7 +101,6 @@ public class Main extends MainBase {
             statsLabel.setPosition(910, 130);
             getStage().addActor(statsLabel);
         }
-
     }
     private void createSettingsPanel() {
         VisTable settingsTable = new VisTable();
@@ -167,29 +156,14 @@ public class Main extends MainBase {
     private void processImage() {
         enableEscapeMenu = true;
         showPreview = false;
-        updateProgress(0, true);
         embroidery.beginDraw();
-        updateProgress(10);
         Texture texture = ((TextureRegionDrawable) displayedImage.getDrawable()).getRegion().getTexture();
         texture.getTextureData().prepare();
         Pixmap pixmap = texture.getTextureData().consumePixmap();
         embroidery.image(pixmap, 400, -139, exportWidth, exportHeight);
         embroidery.endDraw();
         pixmap.dispose();
-        updateProgress(100);
         showPreview = true;
-    }
-
-    private void updateProgress(int value) {
-        SwingUtilities.invokeLater(() -> progressBar.setValue(value));
-    }
-
-    // Surcharge pour gérer la visibilité
-    private void updateProgress(int value, boolean visible) {
-        SwingUtilities.invokeLater(() -> {
-            progressBar.setValue(value);
-            progressBar.setVisible(visible);
-        });
     }
 
     @Override
