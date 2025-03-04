@@ -1090,7 +1090,6 @@ public class PEmbroiderWriter {
 			        writeInt16LE(0);//int numberOfProgrammableFillPatterns = readInt16LE();
 			        writeInt16LE(0);//int numberOfMotifPatterns = readInt16LE();
 			        writeInt16LE(0);//int featherPatternCount = readInt16LE();
-			        ArrayList<Integer> chart = new ArrayList<Integer>();
 					int color_count = 1;
 					for (int i = 1; i < colors.size(); i++) {
 						if (!colors.get(i).equals(colors.get(i-1))) {
@@ -1098,10 +1097,7 @@ public class PEmbroiderWriter {
 						}
 					}
 			        writeInt16LE(color_count);//int numberOfColors = readInt16LE();
-			        for (Integer t : chart) {
-			            write_pes_thread(t);
-			        }
-			        writeInt16LE(distinctBlockObjects);//number of distinct blocks
+                    writeInt16LE(distinctBlockObjects);//number of distinct blocks
 			    }
 			    public void write_pes_thread(int color) throws IOException {
 			        writePesString8(Integer.toString(find_color(color)));
