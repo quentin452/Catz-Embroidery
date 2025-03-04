@@ -886,68 +886,41 @@ public class PEmbroiderWriter {
 			        return longForm | (TRIM_CODE << 8);
 			    }
 
-			    private void pec_encode() throws IOException {
-			        boolean color_two = true;
+				private void pec_encode() throws IOException {
+					boolean color_two = true;
+					double xx = 0, yy = 0;
 
-			        int dx, dy;
-			        boolean jumping = false;
-			        double xx = 0, yy = 0;
-
-			        for (int i = 0, ie = stitches.size(); i < ie; i++) {
-
-			        	if (i > 0 && !colors.get(i).equals(colors.get(i-1))) {
-			        		// color change
-		                    writeInt8(0xfe);
-		                    writeInt8(0xb0);
-		                    writeInt8((color_two) ? 2 : 1);
-		                    color_two = !color_two;
+					for (int i = 0, ie = stitches.size(); i < ie; i++) {
+						if (i > 0 && !colors.get(i).equals(colors.get(i - 1))) {
+							writeInt8(0xfe);
+							writeInt8(0xb0);
+							writeInt8(color_two ? 2 : 1);
+							color_two = !color_two;
 						}
 
-			            float x = stitches.get(i).x;
-			            float y = stitches.get(i).y;
-			            
-//			            println(x+" "+y);
-			            dx = (int) Math.rint(x - xx);
-			            dy = (int) Math.rint(y - yy);
-			            int odx = dx;
-			            int ody = dy;
-			            xx += dx;
-			            yy += dy;
-			            
-			        	if (i == 0) {
-//		                    jumping = true;
-		                    dx = encode_long_form(dx);
-		                    dx = flagTrim(dx);
-		                    dy = encode_long_form(dy);
-		                    dy = flagTrim(dy);
-		                    writeInt16BE(dx);
-		                    writeInt16BE(dy);
-			            	writeInt8((byte) 0x00);
-			            	writeInt8((byte) 0x00);
-			            	dx = 0;
-			            	dy = 0;
-			        	}
+						int dx = (int) Math.rint(stitches.get(i).x - xx);
+						int dy = (int) Math.rint(stitches.get(i).y - yy);
+						xx += dx;
+						yy += dy;
 
+						if (i == 0) {
+							writeInt16BE(flagTrim(encode_long_form(dx)));
+							writeInt16BE(flagTrim(encode_long_form(dy)));
+							writeInt8(0x00);
+							writeInt8(0x00);
+							continue;
+						}
 
-//			            if ((jumping) && (dx != 0) && (dy != 0)) {
-//			            	writeInt8((byte) 0x00);
-//			            	writeInt8((byte) 0x00);
-//			            	jumping = false;
-//			            }
-			            if (dx < 63 && dx > -64 && dy < 63 && dy > -64) {
-			            	writeInt8(dx & MASK_07_BIT);
-			            	writeInt8(dy & MASK_07_BIT);
-			            } else {
-			            	dx = encode_long_form(dx);
-			            	dy = encode_long_form(dy);
-			            	writeInt16BE(dx);
-			            	writeInt16BE(dy);
-			            }
-	
-			            
-			        }
-			        writeInt8(0xff);//end
-			    }
+						if (dx >= -64 && dx < 63 && dy >= -64 && dy < 63) {
+							writeInt8(dx & MASK_07_BIT);
+							writeInt8(dy & MASK_07_BIT);
+						} else {
+							writeInt16BE(encode_long_form(dx));
+							writeInt16BE(encode_long_form(dy));
+						}
+					}
+					writeInt8(0xff); // End of encoding
+				}
 
 			    public void writePesString16(String string) throws IOException {
 			        writeInt16LE(string.length());
