@@ -49,7 +49,7 @@ public class BroideryWriter {
 					}
 				}
 			}
-			PESUtil.PESWriter.write(filename, bounds, stitches, colors, TITLE, jumps);
+			PESUtil.write(filename, bounds, stitches, colors, TITLE, jumps);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
