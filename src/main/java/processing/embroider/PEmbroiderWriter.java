@@ -658,7 +658,7 @@ public class PEmbroiderWriter {
 				public void writeInt8(int value) throws IOException {
 					position += 1;
 					stream.write(value);
-				};
+				}
 			    public void writeInt16LE(int value) throws IOException {
 			        position += 2;
 			        stream.write(value & 0xFF);
@@ -1139,42 +1139,30 @@ public class PEmbroiderWriter {
 			        writeInt16LE(0x01); // 0 = 100x100 else 130x180 or above
 			        writeInt16LE(distinctBlockObjects);//number of distinct blocks
 			    }
-			    
-			    void write_version_1() throws IOException {
 
-			        write("#PES0001");
+				void write_version_1() throws IOException {
+					write("#PES0001");
 
-			        float pattern_left = bounds[0];
-			        float pattern_top = bounds[1];
-			        float pattern_right = bounds[2];
-			        float pattern_bottom = bounds[3];
+					float cx = (bounds[0] + bounds[2]) / 2;
+					float cy = (bounds[1] + bounds[3]) / 2;
 
-			        float cx = ((pattern_left + pattern_right) / 2);
-			        float cy = ((pattern_top + pattern_bottom) / 2);
-			        
+					int placeholderPecBlock = tell();
+					space_holder(4);
 
-			        float left = pattern_left - cx;
-			        float top = pattern_top - cy;
-			        float right = pattern_right - cx;
-			        float bottom = pattern_bottom - cy;
+					boolean hasStitches = !stitches.isEmpty();
+					write_pes_header_v1(hasStitches ? 1 : 0);
+					writeInt16LE(hasStitches ? 0xFFFF : 0x0000);
+					writeInt16LE(0x0000);
 
-			        int placeholder_pec_block = tell();
-			        space_holder(4);
+					if (hasStitches) {
+						write_pes_blocks(bounds[0] - cx, bounds[1] - cy, bounds[2] - cx, bounds[3] - cy, cx, cy);
+					}
 
-			        if (stitches.size() == 0) {
-			            write_pes_header_v1(0);
-			            writeInt16LE(0x0000);
-			            writeInt16LE(0x0000);
-			        } else {
-			            write_pes_header_v1(1);
-			            writeInt16LE(0xFFFF);
-			            writeInt16LE(0x0000);
-			            write_pes_blocks(left, top, right, bottom, cx, cy);
-			        }
-			        writeSpaceHolder32LE(tell());
-			        write_pec();
-			        stream.close();
-			    }
+					writeSpaceHolder32LE(tell());
+					write_pec();
+					stream.close();
+				}
+
 			    void write_truncated_version_1() throws IOException {
 			        write("#PES0001");
 			        writeInt8(0x16);
