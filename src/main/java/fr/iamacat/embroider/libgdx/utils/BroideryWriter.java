@@ -17,6 +17,7 @@ import java.util.*;
 
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.scaleShapes;
+// TODO FIX ONLY SVG SAVER SAVING SHAPES GOODLY
 public class BroideryWriter {
 	public static String TITLE = null;
 	public static void saveBezierShapesAsPES(String filename, List<BezierShape> shapes, float width, float height) {
