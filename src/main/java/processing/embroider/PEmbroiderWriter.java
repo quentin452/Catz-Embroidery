@@ -983,98 +983,67 @@ public class PEmbroiderWriter {
 			        return colorlog;
 			    }
 
-			    public Object[] write_pes_embsewseg_segments(float left, float bottom, float cx, float cy) throws IOException {
-			        ArrayList<Integer> segment = new ArrayList<>();
-			        ArrayList<Integer> colorlog = new ArrayList<>();
-			        int section = 0;
-			        int flag = -1;
+				public Object[] write_pes_embsewseg_segments(float left, float bottom, float cx, float cy) throws IOException {
+					ArrayList<Integer> segment = new ArrayList<>();
+					ArrayList<Integer> colorlog = new ArrayList<>();
+					int section = 0;
+					int flag = -1;
+					int adjust_x = (int) (left + cx);
+					int adjust_y = (int) (bottom + cy);
+					int colorCode = find_color(colors.get(0));
+					colorlog.add(section);
+					colorlog.add(colorCode);
+					segment.add((int) (-adjust_x));
+					segment.add((int) (-adjust_y));
+					segment.add((int) (stitches.get(0).x - adjust_x));
+					segment.add((int) (stitches.get(0).y - adjust_y));
+					writeSegment(segment, flag = 1, colorCode);
+					section++;
+					for (int i = 0, ie = stitches.size(); i < ie; i++) {
+						int thisColor = colors.get(i);
+						int mode = (i > 0 && !colors.get(i - 1).equals(thisColor)) ? COLOR_CHANGE & COMMAND_MASK : STITCH & COMMAND_MASK;
+						if (mode != END && flag != -1) {
+							writeInt16LE(0x8003);
+						}
+						if (mode == COLOR_CHANGE) {
+							colorCode = find_color(thisColor);
+							colorlog.add(section);
+							colorlog.add(colorCode);
+							flag = 1;
+						} else {  // STITCH mode
+							while (i < ie && colors.get(i).equals(thisColor)) {
+								segment.add((int) (stitches.get(i).x - adjust_x));
+								segment.add((int) (stitches.get(i).y - adjust_y));
+								i++;
+							}
+							i--; // Adjust index after loop
+							flag = 0;
+						}
+						if (!segment.isEmpty()) {
+							writeSegment(segment, flag, colorCode);
+							section++;
+							segment.clear();
+						} else {
+							flag = -1;
+						}
+					}
+					writeInt16LE(colorlog.size() / 2);
+					for (Integer v : colorlog) {
+						writeInt16LE(v);
+					}
+					writeInt16LE(0x0000);
+					writeInt16LE(0x0000);
+					return new Object[]{section, colorlog};
+				}
 
-			        int mode;
-			        int adjust_x = (int) (left + cx);
-			        int adjust_y = (int) (bottom + cy);
-			        
-			        int colorIndex = 0;
-			        int colorCode = 0;
-
-			        colorCode = find_color(colors.get(0));
-			        colorlog.add(section);
-			        colorlog.add(colorCode);
-			        
-			        float lastx = 0, lasty = 0;
-			        float x, y;
-			        
-			        
-                    x = lastx;
-                    y = lasty;
-                    segment.add((int) (x - adjust_x));
-                    segment.add((int) (y - adjust_y));
-                    x = stitches.get(0).x;
-                    y = stitches.get(0).y;
-                    segment.add((int) (x - adjust_x));
-                    segment.add((int) (y - adjust_y));
-                    flag = 1;
-                    writeInt16LE(flag);
-	                writeInt16LE((short) colorCode);
-	                writeInt16LE((short) segment.size() / 2);
-	                for (Integer v : segment) {
-	                    writeInt16LE(v);
-	                }
-	                section++;
-	                segment.clear();
-                    
-			        for (int i = 0, ie = stitches.size(); i < ie; i++) {
-			        	int thisColor = colors.get(i);
-			        	mode = STITCH & COMMAND_MASK;
-			        	if (i > 0 && !colors.get(i-1).equals(thisColor)) {	
-			        		mode = COLOR_CHANGE & COMMAND_MASK;
-			        	}
-			            if ((mode != END) && (flag != -1)) {
-			            	writeInt16LE(0x8003);
-			            }
-			            switch (mode) {
-			                case COLOR_CHANGE:
-			                    colorCode = find_color(colors.get(i));
-			                    colorlog.add(section);
-			                    colorlog.add(colorCode);
-			                    flag = 1;
-			                    break;
-			                case STITCH:
-			                    while (i < ie && colors.get(i).equals(thisColor) ) {
-			                        lastx = stitches.get(i).x;
-			                        lasty = stitches.get(i).y;
-			                        x = lastx;
-			                        y = lasty;
-			                        segment.add((int) (x - adjust_x));
-			                        segment.add((int) (y - adjust_y));
-			                        i++;
-			                    }
-			                    i--;
-			                    flag = 0;
-			                    break;
-			            }
-			            if (segment.size() != 0) {
-			                writeInt16LE(flag);
-			                writeInt16LE((short) colorCode);
-			                writeInt16LE((short) segment.size() / 2);
-			                for (Integer v : segment) {
-//			                	processing.core.PApplet.println(v);
-			                    writeInt16LE(v);
-			                }
-			                section++;
-			            } else {
-			                flag = -1;
-			            }
-			            segment.clear();
-			        }
-			        int count = colorlog.size() / 2;
-			        writeInt16LE(count);
-			        for (Integer v : colorlog) {
-			            writeInt16LE(v);
-			        }
-			        writeInt16LE(0x0000);
-			        writeInt16LE(0x0000);
-			        return new Object[]{section, colorlog};
-			    }
+				private void writeSegment(List<Integer> segment, int flag, int colorCode) throws IOException {
+					writeInt16LE(flag);
+					writeInt16LE((short) colorCode);
+					writeInt16LE((short) (segment.size() / 2));
+					for (Integer v : segment) {
+						writeInt16LE(v);
+					}
+				}
 
 				public int write_pes_sewsegheader(float left, float top, float right, float bottom) throws IOException {
 					float height = bottom - top;
