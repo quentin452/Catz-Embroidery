@@ -1136,39 +1136,6 @@ public class PEmbroiderWriter {
 			        writeInt16LE(distinctBlockObjects);//number of distinct blocks
 			    }
 
-				void write_version_1() throws IOException {
-					write("#PES0001");
-
-					float cx = (bounds[0] + bounds[2]) / 2;
-					float cy = (bounds[1] + bounds[3]) / 2;
-
-					int placeholderPecBlock = tell();
-					space_holder(4);
-
-					boolean hasStitches = !stitches.isEmpty();
-					write_pes_header_v1(hasStitches ? 1 : 0);
-					writeInt16LE(hasStitches ? 0xFFFF : 0x0000);
-					writeInt16LE(0x0000);
-
-					if (hasStitches) {
-						write_pes_blocks(bounds[0] - cx, bounds[1] - cy, bounds[2] - cx, bounds[3] - cy, cx, cy);
-					}
-
-					writeSpaceHolder32LE(tell());
-					write_pec();
-					stream.close();
-				}
-
-			    void write_truncated_version_1() throws IOException {
-			        write("#PES0001");
-			        writeInt8(0x16);
-			        for (int i = 0; i < 13; i++) {
-			            writeInt8(0x00);
-			        }
-			        write_pec();
-			        stream.close();
-			    }
-
 			    void write_truncated_version_6() throws IOException {
 			        write("#PES0060");
 			        space_holder(4);
@@ -1217,20 +1184,13 @@ public class PEmbroiderWriter {
 				}
 
 			} _BinWriter bin = new _BinWriter();
-			if (VERSION == 1) {
-				if (TRUNCATED) {
-					bin.write_truncated_version_1();
-				}else {
-					bin.write_version_1();
-				}
-			}else if (VERSION == 6){
+			if (VERSION == 6) {
 				if (TRUNCATED) {
 					bin.write_truncated_version_6();
 				}else {
 					bin.write_version_6();
 				}
-				
-			}else {
+			} else {
 				println(logPrefix+"Error: PES version inexistent or unimplemented");
 			}
 	        
