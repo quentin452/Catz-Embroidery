@@ -3,6 +3,7 @@ package net.plantabyte.drptrace.intmaps;
 import net.plantabyte.drptrace.IntMap;
 import net.plantabyte.drptrace.geometry.Vec2i;
 
+import java.util.ArrayDeque;
 import java.util.LinkedList;
 
 /**
@@ -18,20 +19,45 @@ public class IntMapUtil {
 	 * @param x x coordinate of start of flood fill
 	 * @param y y coordinate of start of flood fill
 	 */
-	public static void floodFill(final IntMap source, final ZOrderBinaryMap searchedMap, final int x, final int y){
-		final int color = source.get(x,y);
-		final var Q = new LinkedList<Vec2i>();
-		Q.push(new Vec2i(x, y));
-		while(!Q.isEmpty()){
-			var pop = Q.pop();
-			searchedMap.set(pop.x, pop.y, (byte)1);
-			Vec2i[] neighbors = {pop.up(), pop.left(), pop.down(), pop.right()};
-			for(var n : neighbors){
-				if(source.isInRange(n.x, n.y) && source.get(n.x, n.y) == color && searchedMap.get(n.x, n.y) == 0){
-					// n is same color and not yet searched
-					Q.push(n);
-				}
-			}
+	public static void floodFill(final IntMap source, final ZOrderBinaryMap searchedMap, final int x, final int y) {
+		final int color = source.get(x, y);
+		if (searchedMap.get(x, y) != 0) {
+			return; // Already filled
+		}
+		searchedMap.set(x, y, (byte) 1);
+
+		final var xQueue = new ArrayDeque<Integer>();
+		final var yQueue = new ArrayDeque<Integer>();
+		xQueue.add(x);
+		yQueue.add(y);
+
+		while (!xQueue.isEmpty()) {
+			final int currentX = xQueue.poll();
+			final int currentY = yQueue.poll();
+
+			// Check all four directions
+			// Up
+			checkAndEnqueue(source, searchedMap, color, currentX, currentY - 1, xQueue, yQueue);
+			// Left
+			checkAndEnqueue(source, searchedMap, color, currentX - 1, currentY, xQueue, yQueue);
+			// Down
+			checkAndEnqueue(source, searchedMap, color, currentX, currentY + 1, xQueue, yQueue);
+			// Right
+			checkAndEnqueue(source, searchedMap, color, currentX + 1, currentY, xQueue, yQueue);
+		}
+	}
+
+	private static void checkAndEnqueue(
+			final IntMap source, final ZOrderBinaryMap searchedMap, final int targetColor,
+			final int x, final int y,
+			final ArrayDeque<Integer> xQueue, final ArrayDeque<Integer> yQueue
+	) {
+		if (source.isInRange(x, y)
+				&& source.get(x, y) == targetColor
+				&& searchedMap.get(x, y) == 0) {
+			searchedMap.set(x, y, (byte) 1);
+			xQueue.add(x);
+			yQueue.add(y);
 		}
 	}
 }
