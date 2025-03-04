@@ -1,6 +1,5 @@
 package fr.iamacat.embroider.libgdx.utils;
 
-import com.badlogic.gdx.math.Vector2;
 import net.plantabyte.drptrace.geometry.Vec2;
 
 import java.io.ByteArrayOutputStream;
@@ -340,14 +339,14 @@ public class PESUtil {
                 ArrayList<Integer> segment = new ArrayList<>();
                 ArrayList<Integer> colorlog = new ArrayList<>();
                 int section = 0;
-                int flag = -1;
+                int flag;
                 int adjust_x = (int) (left + cx);
                 int adjust_y = (int) (bottom + cy);
                 int colorCode = find_color(colors.get(0));
                 colorlog.add(section);
                 colorlog.add(colorCode);
-                segment.add((int) (-adjust_x));
-                segment.add((int) (-adjust_y));
+                segment.add((-adjust_x));
+                segment.add((-adjust_y));
                 segment.add((int) (stitches.get(0).x - adjust_x));
                 segment.add((int) (stitches.get(0).y - adjust_y));
                 writeSegment(segment, flag = 1, colorCode);
@@ -355,7 +354,7 @@ public class PESUtil {
                 for (int i = 0, ie = stitches.size(); i < ie; i++) {
                     int thisColor = colors.get(i);
                     int mode = (i > 0 && !colors.get(i - 1).equals(thisColor)) ? COLOR_CHANGE & COMMAND_MASK : STITCH & COMMAND_MASK;
-                    if (mode != END && flag != -1) {
+                    if (flag != -1) {
                         writeInt16LE(0x8003);
                     }
                     if (mode == COLOR_CHANGE) {
@@ -470,17 +469,6 @@ public class PESUtil {
                 writeInt16LE(distinctBlockObjects); // number of distinct blocks
             }
 
-            public void write_pes_thread(int color) throws IOException {
-                writePesString8(Integer.toString(find_color(color)));
-                writeInt8((color >> 16) & 255);
-                writeInt8((color >> 8) & 255);
-                writeInt8(color & 255);
-                writeInt8(0); //unknown
-                writeInt32LE(0xA);
-                writePesString8("description");
-                writePesString8("brand");
-                writePesString8("chart");
-            }
             void write_pes_addendum(Object[] color_info) throws IOException {
                 ArrayList<Integer> color_index_list = (ArrayList<Integer>) color_info[0];
                 ArrayList<Integer> rgb_list = (ArrayList<Integer>) color_info[1];
@@ -491,7 +479,6 @@ public class PESUtil {
                 for (int i = count, ie = 128 - count; i < ie; i++) {
                     writeInt8(0x20);
                 }
-
                 for (int s = 0, se = rgb_list.size(); s < se; s++) {
                     for (int i = 0, ie = 0x90; i < ie; i++) {
                         writeInt8(0x00);
@@ -520,35 +507,27 @@ public class PESUtil {
             }
             void write_version_6() throws IOException {
                 write("#PES0060");
-
                 float cx = (bounds[0] + bounds[2]) / 2;
                 float cy = (bounds[1] + bounds[3]) / 2;
-
-                int placeholder_pec_block = tell();
                 space_holder(4);
-
                 boolean hasStitches = !stitches.isEmpty();
                 write_pes_header_v6(hasStitches ? 1 : 0);
                 writeInt16LE(hasStitches ? 0xFFFF : 0x0000);
                 writeInt16LE(0x0000);
-
                 if (hasStitches) {
                     ArrayList<Integer> log = write_pes_blocks(bounds[0] - cx, bounds[1] - cy, bounds[2] - cx, bounds[3] - cy, cx, cy);
-
                     // In version 6, there's some node, tree, order logic.
                     writeInt32LE(0);
                     writeInt32LE(0);
-                    for (int i = 0; i < log.size(); i++) {
+                    for (int i = 0; i < Objects.requireNonNull(log).size(); i++) {
                         writeInt32LE(i);
                         writeInt32LE(0);
                     }
                 }
-
                 writeSpaceHolder32LE(tell());
                 write_pes_addendum(write_pec());
                 writeInt16LE(0x0000); // Found in v6, not in v5, v4.
             }
-
         } _BinWriter bin = new _BinWriter();
         if (VERSION == 6) {
             if (TRUNCATED) {
@@ -559,6 +538,5 @@ public class PESUtil {
         } else {
             System.out.println("Error: PES version inexistent or unimplemented");
         }
-
     }
 }
