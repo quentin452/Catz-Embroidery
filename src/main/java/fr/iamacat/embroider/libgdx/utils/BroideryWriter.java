@@ -18,34 +18,23 @@ import java.util.*;
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.scaleShapes;
 public class BroideryWriter {
-	private static Matrix3 TRANSFORM;
 	public static String TITLE = null;
 	public static void saveBezierShapesAsPES(String filename, List<BezierShape> shapes, float width, float height) {
 		try {
-			float left = 0;
-			float top = 0;
-			float[] bounds = {left, top, width, height};
-
+			float[] bounds = {0, 0, width, height};
 			ArrayList<Vec2> stitches = new ArrayList<>();
 			ArrayList<Integer> colors = new ArrayList<>();
 			ArrayList<Boolean> jumps = new ArrayList<>();
 
 			for (BezierShape shape : shapes) {
 				int color = shape.getColor();
-				for (BezierCurve curve : shape) { // Iterate through each BezierCurve in the shape
-					// Sample points along the Bezier curve
+				for (BezierCurve curve : shape) {
 					List<Vec2> sampledPoints = BezierUtil.sampleBezierCurve(curve);
 					for (int i = 0; i < sampledPoints.size(); i++) {
 						Vec2 point = sampledPoints.get(i);
-						Vector2 vector = new Vector2((float) point.x, (float) point.y);
-
-						// Apply transformation correctly
-						if (TRANSFORM != null) {
-							TRANSFORM.translate(vector); // Correctly apply the matrix to the vector
-						}
-						stitches.add(new Vec2(vector.x, vector.y));
+						stitches.add(point);
 						colors.add(color);
-						jumps.add(i == 0); // Jump to the first point of each sampled curve
+						jumps.add(i == 0);
 					}
 				}
 			}
@@ -89,48 +78,33 @@ public class BroideryWriter {
 		pixmap.dispose(); // Dispose the Pixmap to free resources
 	}
 
+
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
 		if (shapes == null || shapes.isEmpty()) {
 			throw new IllegalArgumentException("Shapes list cannot be null or empty");
 		}
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
-		float scale = PixelUtil.pixelToMm(width,height);
-		width = scale;
-		height = scale;
-		scaleShapes(shapes, width, height);
-		boolean isCustomTitle = true;
-		boolean isCustomMatrix = true;
-		if (TRANSFORM == null) {
-			isCustomMatrix = false;
-			TRANSFORM = new Matrix3();
+		float scale = PixelUtil.pixelToMm(width, height);
+
+		scaleShapes(shapes, scale, scale); // Applique directement la mise à l'échelle
+
+		boolean isCustomTitle = TITLE != null;
+		if (TITLE == null) {
+			String[] strs = tokens[0].split("/|\\\\");
+			TITLE = strs[strs.length - 1].substring(0, 8);
 		}
 
-		if (TITLE == null) {
-			isCustomTitle = false;
-			String[] strs = tokens[0].split("/|\\\\");
-			TITLE = strs[strs.length - 1];
-		}
-		TITLE = TITLE.substring(0, Math.min(8, TITLE.length()));
 		try {
 			switch (tokens[1].toUpperCase()) {
-				case "PES":
-					saveBezierShapesAsPES(tokens[0], shapes, width, height);
-					break;
-				case "SVG":
-					saveBezierShapesAsSVG(tokens[0],tokens[1],shapes, width, height);
-					break;
-				case "PNG":
-					saveBezierShapesAsPNG(tokens[0],tokens[1],shapes, width, height);
-					break;
-				default:
-					throw new IOException("Unimplemented");
+				case "PES" -> saveBezierShapesAsPES(tokens[0], shapes, width * scale, height * scale);
+				case "SVG" -> saveBezierShapesAsSVG(tokens[0], tokens[1], shapes, width * scale, height * scale);
+				case "PNG" -> saveBezierShapesAsPNG(tokens[0], tokens[1], shapes, width * scale, height * scale);
+				default -> throw new IOException("Unimplemented");
 			}
 		} catch (IOException e) {
 			Gdx.app.error("PEmbroiderWriter","IO Error during writing file : " + filename , e);
 		}
 
-		// Cleanup temporary settings
 		if (!isCustomTitle) TITLE = null;
-		if (!isCustomMatrix) TRANSFORM = null;
 	}
 }
