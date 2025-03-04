@@ -19,52 +19,7 @@ public class BroideryWriter {
 
 	public static String TITLE = null;
 	private static void saveBezierShapesAsPES(String filename, String extension, List<BezierShape> shapes, float width, float height) {
-		try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(Paths.get(filename + "." + extension)))) {
-			// Write PES header
-			PESUtil.writePESHeader(out, (int)(width * 10), (int)(height * 10),TITLE); // Convert mm to 0.1mm units
 
-			//Collect all stitches with color changes
-			List<PESUtil.Stitch> stitches = new ArrayList<>();
-
-			int lastColor = -1;
-			Point2D.Float lastPos = new Point2D.Float(0, 0);
-
-			for (BezierShape shape : shapes) {
-				int color = shape.getColor();
-				if (color != lastColor) {
-					// Add color change: trim and jump to start of new shape
-					if (lastColor != -1) {
-						stitches.add(new PESUtil.Stitch(0, 0, PESUtil.StitchType.TRIM));
-					}
-					List<Point2D.Float> points = PESUtil.sampleShape(shape);
-					if (!points.isEmpty()) {
-						stitches.addAll(PESUtil.createJump(lastPos, points.get(0)));
-						lastPos = points.get(0);
-					}
-					lastColor = color;
-				}
-
-				// Add stitches for the current shape
-				List<Point2D.Float> points = PESUtil.sampleShape(shape);
-				for (Point2D.Float point : points) {
-					int dx = (int) (point.x * 10 - lastPos.x); // Convert mm to 0.1mm
-					int dy = (int) (point.y * 10 - lastPos.y);
-					stitches.add(new PESUtil.Stitch(dx, dy, PESUtil.StitchType.NORMAL));
-					lastPos.setLocation(point.x * 10, point.y * 10);
-				}
-			}
-
-			// End with a STOP command
-			stitches.add(new PESUtil.Stitch(0, 0, PESUtil.StitchType.STOP));
-
-			// Write stitches to file
-			PESUtil.writeStitches(out, stitches);
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.err.println("IO Error: " + e.getMessage());
-		} catch (IllegalArgumentException e) {
-			System.err.println("Error: " + e.getMessage());
-		}
 	}
 	private static void saveBezierShapesAsSVG(String filename,String extension,List<BezierShape> shapes, float width, float height) {
 		try (BufferedWriter out = Files.newBufferedWriter(Paths.get(filename + "." + extension))) {
