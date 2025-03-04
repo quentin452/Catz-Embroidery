@@ -729,15 +729,14 @@ public class PEmbroiderWriter {
 				}
 			    public Object[] write_pec() throws IOException {
 
-			    	Object[] data = write_pec_header();
-			        write_pec_block();
-			        write_pec_graphics();
-			        write_pec_graphics();
-			        for (int i = 0; i < colors.size(); i++) {
-			        	if (i > 0 && !colors.get(i-1).equals(colors.get(i))) {
-			        		write_pec_graphics();
-			        	}
-			        }
+					Object[] data = write_pec_header();
+					write_pec_block();
+					write_pec_graphics();
+					for (int i = 1; i < colors.size(); i++) {
+						if (!colors.get(i).equals(colors.get(i - 1))) {
+							write_pec_graphics();
+						}
+					}
 			        
 			        return data;
 			    }
