@@ -46,34 +46,18 @@ public class PESUtil {
                 streamStack = new Stack<>();
             }
 
-            public void writeInt8(int value) throws IOException {
-                position += 1;
-                stream.write(value);
-            }
-            public void writeInt16LE(int value) throws IOException {
-                position += 2;
-                stream.write(value & 0xFF);
-                stream.write((value >> 8) & 0xFF);
-            }
-            public void writeInt16BE(int value) throws IOException {
-                position += 2;
-                stream.write((value >> 8) & 0xFF);
-                stream.write(value & 0xFF);
+            private void writeData(String type, int value, int bytes) throws IOException {
+                byte[] data = new byte[bytes];
+                for(int i = 0; i < bytes; i++)
+                    data[i] = (byte)((value >> (8*(type.equals("LE") ? i : bytes-1-i))) & 0xFF);
+                write(data);
             }
 
-            public void writeInt32LE(int value) throws IOException {
-                position += 4;
-                stream.write(value & 0xFF);
-                stream.write((value >> 8) & 0xFF);
-                stream.write((value >> 16) & 0xFF);
-                stream.write((value >> 24) & 0xFF);
-            }
-            public void writeInt24LE(int value) throws IOException {
-                position += 3;
-                stream.write(value & 0xFF);
-                stream.write((value >> 8) & 0xFF);
-                stream.write((value >> 16) & 0xFF);
-            }
+            public void writeInt8(int v) throws IOException { writeData("BE", v, 1); }
+            public void writeInt16LE(int v) throws IOException { writeData("LE", v, 2); }
+            public void writeInt16BE(int v) throws IOException { writeData("BE", v, 2); }
+            public void writeInt24LE(int v) throws IOException { writeData("LE", v, 3); }
+            public void writeInt32LE(int v) throws IOException { writeData("LE", v, 4); }
 
             public void writeSpaceHolder16LE(int value) throws IOException {
                 ByteArrayOutputStream baos = pop();
