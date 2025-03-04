@@ -109,19 +109,12 @@ public class PESUtil {
                 streamStack.push(push);
                 stream = push;
             }
-            public Object[] write_pec() throws IOException {
-
+            public Object[] write_pes() throws IOException {
                 Object[] data = write_pec_header();
                 write_pec_block();
-                write_pec_graphics();
-                for (int i = 1; i < colors.size(); i++) {
-                    if (!colors.get(i).equals(colors.get(i - 1))) {
-                        write_pec_graphics();
-                    }
-                }
-
                 return data;
             }
+
             public int find_color(int color) {
                 int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
                 int closestIndex = 0;
@@ -191,28 +184,6 @@ public class PESUtil {
                 pec_encode();
                 int stitch_block_length = tell() - stitch_block_start_position;
                 writeSpaceHolder24LE(stitch_block_length);
-            }
-
-            void write_pec_graphics() throws IOException {
-                // Write the initial bytes
-                write(new byte[]{
-                        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-                        (byte) 0xF0, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0x0F,
-                        (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x10,
-                        (byte) 0x04, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x20
-                });
-                // Write the repetitive pattern
-                byte[] repeatedPattern = new byte[]{(byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x40};
-                for (int i = 0; i < 30; i++) { // 30 repetitions of the pattern
-                    write(repeatedPattern);
-                }
-                // Write the final bytes
-                write(new byte[]{
-                        (byte) 0x04, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x20,
-                        (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x10,
-                        (byte) 0xF0, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0x0F,
-                        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
-                });
             }
 
             public int encode_long_form(int value) {
@@ -459,7 +430,7 @@ public class PESUtil {
                 writeInt16LE(0x0000);
                 int current_position = tell();
                 writeSpaceHolder32LE(current_position);
-                Object[] color_info = write_pec();
+                Object[] color_info = write_pes();
                 write_pes_addendum(color_info);
                 writeInt16LE(0x0000); //found v6, not 5,4
                 stream.close();
@@ -484,7 +455,7 @@ public class PESUtil {
                     }
                 }
                 writeSpaceHolder32LE(tell());
-                write_pes_addendum(write_pec());
+                write_pes_addendum(write_pes());
                 writeInt16LE(0x0000); // Found in v6, not in v5, v4.
             }
         } _BinWriter bin = new _BinWriter();
