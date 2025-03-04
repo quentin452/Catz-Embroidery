@@ -1042,63 +1042,54 @@ public class PEmbroiderWriter {
 					return tell();
 				}
 
-			    public void write_pes_header_v6(int distinctBlockObjects) throws IOException {
-			        writeInt16LE(0x01); // 0 = 100x100 else 130x180 or above
-			        writeInt8(0x30);
-			        writeInt8(0x32);
-			        String name = title;
-
-			        writePesString8(name);
-			        writePesString8("category");
-			        writePesString8("author");
-			        writePesString8("keywords");
-			        writePesString8("comments");
-
-			        writeInt16LE(0);//boolean optimizeHoopChange = (readInt16LE() == 1);
-
-			        writeInt16LE(0);//boolean designPageIsCustom = (readInt16LE() == 1);
-
-			        writeInt16LE(0x64); //hoopwidth
-			        writeInt16LE(0x64); //hoopheight
-			        writeInt16LE(0);// 1 means "UseExistingDesignArea" 0 means "Design Page Area"        
-
-			        writeInt16LE(0xC8);//int designWidth = readInt16LE();
-			        writeInt16LE(0xC8);//int designHeight = readInt16LE();
-			        writeInt16LE(0x64);//int designPageSectionWidth = readInt16LE();
-			        writeInt16LE(0x64);//int designPageSectionHeight = readInt16LE();
-			        writeInt16LE(0x64);//int p6 = readInt16LE(); // 100
-
-			        writeInt16LE(0x07);//int designPageBackgroundColor = readInt16LE();
-			        writeInt16LE(0x13);//int designPageForegroundColor = readInt16LE();
-			        writeInt16LE(0x01); //boolean ShowGrid = (readInt16LE() == 1);
-			        writeInt16LE(0x01);//boolean WithAxes = (readInt16LE() == 1);
-			        writeInt16LE(0x00);//boolean SnapToGrid = (readInt16LE() == 1);
-			        writeInt16LE(100);//int GridInterval = readInt16LE();
-
-			        writeInt16LE(0x01);//int p9 = readInt16LE(); // curves?
-			        writeInt16LE(0x00);//boolean OptimizeEntryExitPoints = (readInt16LE() == 1);
-
-			        writeInt8(0);//int fromImageStringLength = readInt8();
-			        //String FromImageFilename = readString(fromImageStringLength);
-
-			        writeInt32LE(Float.floatToIntBits(1f));
-			        writeInt32LE(Float.floatToIntBits(0f));
-			        writeInt32LE(Float.floatToIntBits(0f));
-			        writeInt32LE(Float.floatToIntBits(1f));
-			        writeInt32LE(Float.floatToIntBits(0f));
-			        writeInt32LE(Float.floatToIntBits(0f));
-			        writeInt16LE(0);//int numberOfProgrammableFillPatterns = readInt16LE();
-			        writeInt16LE(0);//int numberOfMotifPatterns = readInt16LE();
-			        writeInt16LE(0);//int featherPatternCount = readInt16LE();
-					int color_count = 1;
+				public void write_pes_header_v6(int distinctBlockObjects) throws IOException {
+					// Write standard header values
+					writeInt16LE(0x01); // Hoop type
+					writeInt8(0x30);
+					writeInt8(0x32);
+					// Write metadata strings
+					String[] metadata = {title, "category", "author", "keywords", "comments"};
+					for (String data : metadata) {
+						writePesString8(data);
+					}
+					// Write default configuration values
+					int[] defaultValues = {
+							0, // optimizeHoopChange
+							0, // designPageIsCustom
+							0x64, 0x64, // hoopWidth and hoopHeight
+							0, // UseExistingDesignArea
+							0xC8, 0xC8, 0x64, 0x64, 0x64, // Design dimensions and sections
+							0x07, // BackgroundColor
+							0x13, // ForegroundColor
+							0x01, 0x01, 0x00, // ShowGrid, WithAxes, SnapToGrid
+							100, // GridInterval
+							0x01, // curves?
+							0x00 // OptimizeEntryExitPoints
+					};
+					for (int value : defaultValues) {
+						writeInt16LE(value);
+					}
+					// Transformation Matrix (identity matrix)
+					float[] transformMatrix = {1f, 0f, 0f, 1f, 0f, 0f};
+					for (float element : transformMatrix) {
+						writeInt32LE(Float.floatToIntBits(element));
+					}
+					// Write patterns (defaulted to zero)
+					int[] patternCounts = {0, 0, 0}; // programmableFillPatterns, motifPatterns, featherPatterns
+					for (int count : patternCounts) {
+						writeInt16LE(count);
+					}
+					// Count distinct colors
+					int colorCount = 1;
 					for (int i = 1; i < colors.size(); i++) {
-						if (!colors.get(i).equals(colors.get(i-1))) {
-							color_count ++;
+						if (!colors.get(i).equals(colors.get(i - 1))) {
+							colorCount++;
 						}
 					}
-			        writeInt16LE(color_count);//int numberOfColors = readInt16LE();
-                    writeInt16LE(distinctBlockObjects);//number of distinct blocks
-			    }
+					writeInt16LE(colorCount); // numberOfColors
+					writeInt16LE(distinctBlockObjects); // number of distinct blocks
+				}
+
 			    public void write_pes_thread(int color) throws IOException {
 			        writePesString8(Integer.toString(find_color(color)));
 			        writeInt8((color >> 16) & 255);
