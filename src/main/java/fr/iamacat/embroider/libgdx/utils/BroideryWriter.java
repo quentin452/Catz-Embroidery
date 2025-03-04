@@ -3,6 +3,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
+import com.badlogic.gdx.math.Matrix3;
+import com.badlogic.gdx.math.Vector2;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.geometry.Vec2;
@@ -16,12 +18,53 @@ import java.util.*;
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
 import static fr.iamacat.embroider.libgdx.utils.BezierUtil.scaleShapes;
 public class BroideryWriter {
-
+	private static Matrix3 TRANSFORM;
 	public static String TITLE = null;
-	private static void saveBezierShapesAsPES(String filename, String extension, List<BezierShape> shapes, float width, float height) {
+	public static void saveBezierShapesAsPES(String filename, List<BezierShape> shapes, float width, float height) {
+		try {
+			// Define bounds (example: left, top, right, bottom)
+			float left = 0;
+			float top = 0;
+			float right = width;
+			float bottom = height;
+			float[] bounds = {left, top, right, bottom};
 
+			// Flatten BezierShapes into stitches and track jumps/colors
+			ArrayList<Vec2> stitches = new ArrayList<>();
+			ArrayList<Integer> colors = new ArrayList<>();
+			ArrayList<Boolean> jumps = new ArrayList<>();
+
+			for (BezierShape shape : shapes) {
+				// Get points from BezierShape (replace with actual method to get vertices)
+				ArrayList<Vec2> shapePoints = shape.getPoints();
+				int color = shape.getColor();
+
+				// Assuming Vec2 has x and y fields as floats.
+				for (int i = 0; i < shapePoints.size(); i++) {
+					// Convert Vec2 to Vector2
+					Vector2 vector = new Vector2((float) shapePoints.get(i).x, (float) shapePoints.get(i).y);
+
+					// Apply the coordinate transformation
+					if (TRANSFORM != null) {
+						TRANSFORM.scl(vector); // Matrix3.mul(Vector2)
+					}
+
+					// Convert back to Vec2 if you need to store the result as Vec2
+					Vec2 p = new Vec2(vector.x, vector.y);
+
+					// Add to the list of stitches
+					stitches.add(p);
+					colors.add(color);
+					jumps.add(i == 0); // First point = jump, others = no jump
+				}
+
+			}
+			PESUtil.PESWriter.write(filename, bounds, stitches, colors, TITLE, jumps);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
-	private static void saveBezierShapesAsSVG(String filename,String extension,List<BezierShape> shapes, float width, float height) {
+	private static void saveBezierShapesAsSVG(String filename, String extension, List<BezierShape> shapes, float width, float height) {
 		try (BufferedWriter out = Files.newBufferedWriter(Paths.get(filename + "." + extension))) {
 			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 			out.write(String.format("<svg width=\"%.2f\" height=\"%.2f\" id=\"svgroot\" version=\"1.1\" viewBox=\"0 0 %.2f %.2f\" xmlns=\"http://www.w3.org/2000/svg\">\n", width, height, width, height));
@@ -64,6 +107,13 @@ public class BroideryWriter {
 		height = scale;
 		scaleShapes(shapes, width, height);
 		boolean isCustomTitle = true;
+		boolean isCustomMatrix = true;
+		if (TRANSFORM == null) {
+			isCustomMatrix = false;
+			TRANSFORM = new Matrix3();
+			TRANSFORM.translate(-width/2, -height/2);
+		}
+
 		if (TITLE == null) {
 			isCustomTitle = false;
 			String[] strs = tokens[0].split("/|\\\\");
@@ -73,7 +123,7 @@ public class BroideryWriter {
 		try {
 			switch (tokens[1].toUpperCase()) {
 				case "PES":
-					saveBezierShapesAsPES(tokens[0], tokens[1], shapes, width, height);
+					saveBezierShapesAsPES(tokens[0], shapes, width, height);
 					break;
 				case "SVG":
 					saveBezierShapesAsSVG(tokens[0],tokens[1],shapes, width, height);
@@ -90,5 +140,6 @@ public class BroideryWriter {
 
 		// Cleanup temporary settings
 		if (!isCustomTitle) TITLE = null;
+		if (!isCustomMatrix) TRANSFORM = null;
 	}
 }

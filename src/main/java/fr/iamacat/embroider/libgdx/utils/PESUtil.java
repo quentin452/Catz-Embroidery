@@ -2,6 +2,7 @@ package fr.iamacat.embroider.libgdx.utils;
 
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
+import net.plantabyte.drptrace.geometry.Vec2;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -42,7 +43,7 @@ public class PESUtil {
         static final int PEC_ICON_WIDTH = 48;
         static final int PEC_ICON_HEIGHT = 38;
 
-        public static void write(String name, float[] bounds, ArrayList<BezierShape> stitches, ArrayList<Integer> colors, String title, ArrayList<Boolean> jumps) throws IOException {
+        public static void write(String name, float[] bounds, ArrayList<Vec2> stitches, ArrayList<Integer> colors, String title, ArrayList<Boolean> jumps) throws IOException {
 
             class _BinWriter{
                 int position = 0;
@@ -59,7 +60,7 @@ public class PESUtil {
                 public void writeInt8(int value) throws IOException {
                     position += 1;
                     stream.write(value);
-                };
+                }
                 public void writeInt16LE(int value) throws IOException {
                     position += 2;
                     stream.write(value & 0xFF);
@@ -312,8 +313,8 @@ public class PESUtil {
                             color_two = !color_two;
                         }
 
-                        float x = stitches.get(i).x;
-                        float y = stitches.get(i).y;
+                        float x = (float) stitches.get(i).x;
+                        float y = (float) stitches.get(i).y;
 
 //			            println(x+" "+y);
                         dx = (int) Math.rint(x - xx);
@@ -417,8 +418,8 @@ public class PESUtil {
                     y = lasty;
                     segment.add((int) (x - adjust_x));
                     segment.add((int) (y - adjust_y));
-                    x = stitches.get(0).x;
-                    y = stitches.get(0).y;
+                    x = (float) stitches.get(0).x;
+                    y = (float) stitches.get(0).y;
                     segment.add((int) (x - adjust_x));
                     segment.add((int) (y - adjust_y));
                     flag = 1;
@@ -430,7 +431,6 @@ public class PESUtil {
                     }
                     section++;
                     segment.clear();
-
                     for (int i = 0, ie = stitches.size(); i < ie; i++) {
                         int thisColor = colors.get(i);
                         mode = STITCH & COMMAND_MASK;
@@ -449,8 +449,8 @@ public class PESUtil {
                                 break;
                             case STITCH:
                                 while (i < ie && colors.get(i).equals(thisColor) ) {
-                                    lastx = stitches.get(i).x;
-                                    lasty = stitches.get(i).y;
+                                    lastx = (float) stitches.get(i).x;
+                                    lasty = (float) stitches.get(i).y;
                                     x = lastx;
                                     y = lasty;
                                     segment.add((int) (x - adjust_x));

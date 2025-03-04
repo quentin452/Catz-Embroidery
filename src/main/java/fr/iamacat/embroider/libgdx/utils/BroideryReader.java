@@ -28,7 +28,7 @@ public class BroideryReader {
         // Draw the BezierShapes directly to the Pixmap with scaling
         for (BezierShape shape : shapes) {
             int color = shape.getColor();
-            Color gdxColor = new Color((color >> 16 & 0xFF) / 255f, (color >> 8 & 0xFF) / 255f, (color & 0xFF) / 255f, 1f);
+            Color gdxColor = new Color((color >> 16 & 0xFF), (color >> 8 & 0xFF), (color & 0xFF), 1f);
             pixmap.setColor(gdxColor);
             for (BezierCurve curve : shape) {
                 renderBezierCurveToPixmap(pixmap, curve, gdxColor/*, scale*/);

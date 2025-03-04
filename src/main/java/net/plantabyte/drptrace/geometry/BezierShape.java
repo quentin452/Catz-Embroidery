@@ -23,6 +23,8 @@ SOFTWARE.
  */
 package net.plantabyte.drptrace.geometry;
 
+import com.badlogic.gdx.math.Vector2;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -208,6 +210,14 @@ public class BezierShape extends ArrayList<BezierCurve> {
 		}
 
 		return shape;
+	}
+	public ArrayList<Vec2> getPoints() {
+		ArrayList<Vec2> points = new ArrayList<>();
+		for (BezierCurve curve : this) {
+			points.add(curve.getP1());  // First point of each Bezier curve
+			points.add(curve.getP4());  // Last point of each Bezier curve
+		}
+		return points;
 	}
 
 	/**

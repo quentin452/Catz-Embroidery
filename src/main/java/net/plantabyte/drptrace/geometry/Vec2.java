@@ -43,7 +43,7 @@ public final class Vec2 {
 	}
 	/** origin point */
 	public static final Vec2 ORIGIN = new Vec2(0,0);
-	
+
 	/**
 	 * Creates a string representation of the coordinates
 	 * @return the coordinates as a sctring
@@ -217,4 +217,5 @@ public final class Vec2 {
 	@Override public int hashCode(){
 		return 2003 * Double.hashCode(this.y) + 1999 * Double.hashCode(this.x);
 	}
+
 }
