@@ -737,7 +737,7 @@ public class PEmbroiderWriter {
 							write_pec_graphics();
 						}
 					}
-			        
+
 			        return data;
 			    }
 			    public int find_color(int color) {
@@ -1076,42 +1076,30 @@ public class PEmbroiderWriter {
 			        return new Object[]{section, colorlog};
 			    }
 
-			    public int write_pes_sewsegheader(float left, float top, float right, float bottom) throws IOException {
+				public int write_pes_sewsegheader(float left, float top, float right, float bottom) throws IOException {
+					float height = bottom - top;
+					float width = right - left;
+					for (int i = 0; i < 8; i++) {
+						writeInt16LE(0);
+					}
+					float transX = 350f + (1300 / 2f) - (width / 2f);
+					float transY = 100f + height + (1800 / 2f) - (height / 2f);
+					writeInt32LE(Float.floatToIntBits(1f));  // Scale X
+					writeInt32LE(Float.floatToIntBits(0f));  // Skew X
+					writeInt32LE(Float.floatToIntBits(0f));  // Skew Y
+					writeInt32LE(Float.floatToIntBits(1f));  // Scale Y
+					writeInt32LE(Float.floatToIntBits(transX));
+					writeInt32LE(Float.floatToIntBits(transY));
+					writeInt16LE(1);
+					writeInt16LE(0);
+					writeInt16LE(0);
+					writeInt16LE((short) width);
+					writeInt16LE((short) height);
+					writeInt32LE(0);
+					writeInt32LE(0);
+					return tell();
+				}
 
-			        float height = bottom - top;
-			        float width = right - left;
-			        int hoopHeight = 1800, hoopWidth = 1300;
-			        writeInt16LE(0);  //writeInt16LE((int) left);
-			        writeInt16LE(0);  //writeInt16LE((int) top);
-			        writeInt16LE(0);  //writeInt16LE((int) right);
-			        writeInt16LE(0);  //writeInt16LE((int) bottom);
-			        writeInt16LE(0);  //writeInt16LE((int) left);
-			        writeInt16LE(0);  //writeInt16LE((int) top);
-			        writeInt16LE(0);  //writeInt16LE((int) right);
-			        writeInt16LE(0);  //writeInt16LE((int) bottom);
-			        float transX = 0;
-			        float transY = 0;
-			        transX += 350f;
-			        transY += 100f + height;
-			        transX += hoopWidth / 2;
-			        transY += hoopHeight / 2;
-			        transX += -width / 2;
-			        transY += -height / 2;
-			        writeInt32LE(Float.floatToIntBits(1f));
-			        writeInt32LE(Float.floatToIntBits(0f));
-			        writeInt32LE(Float.floatToIntBits(0f));
-			        writeInt32LE(Float.floatToIntBits(1f));
-			        writeInt32LE(Float.floatToIntBits(transX));
-			        writeInt32LE(Float.floatToIntBits(transY));
-			        writeInt16LE(1);
-			        writeInt16LE(0);
-			        writeInt16LE(0);
-			        writeInt16LE((short) width);
-			        writeInt16LE((short) height);
-			        writeInt32LE(0);
-			        writeInt32LE(0);
-			        return tell();
-			    }
 			    public void write_pes_header_v6(int distinctBlockObjects) throws IOException {
 			        writeInt16LE(0x01); // 0 = 100x100 else 130x180 or above
 			        writeInt8(0x30);
