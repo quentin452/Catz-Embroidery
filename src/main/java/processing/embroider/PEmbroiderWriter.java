@@ -633,7 +633,7 @@ public class PEmbroiderWriter {
 				0xcf6829, 0x408615, 0xdb1797, 0xffa704, 0xb9ffff, 0x228927, 0xb612cd, 0x00aa00,
 				0xfea9dc, 0xfed510, 0x0097df, 0xffff84, 0xcfe774, 0xffc864, 0xffc8c8, 0xffc8c8
 		};
-		public static int VERSION = 1;
+		public static int VERSION = 6;
 		public static boolean TRUNCATED = false;
 		
 	    static final int MASK_07_BIT = 0b01111111;
