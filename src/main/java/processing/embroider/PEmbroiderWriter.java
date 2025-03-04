@@ -1121,12 +1121,7 @@ public class PEmbroiderWriter {
 			            writeInt24LE(rgb_list.get(s));
 			        }
 			    }
-			    public void write_pes_header_v1(int distinctBlockObjects) throws IOException {
-			        writeInt16LE(0x01); //1 is scale to fit.
-			        writeInt16LE(0x01); // 0 = 100x100 else 130x180 or above
-			        writeInt16LE(distinctBlockObjects);//number of distinct blocks
-			    }
-
+				
 			    void write_truncated_version_6() throws IOException {
 			        write("#PES0060");
 			        space_holder(4);
