@@ -4,22 +4,17 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.BezierUtil;
-import fr.iamacat.embroider.libgdx.utils.PixelUtil;
 import fr.iamacat.utils.enums.ColorType;
 import imagemagick.Quantize;
 import net.plantabyte.drptrace.*;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
-import net.plantabyte.drptrace.geometry.Vec2;
 import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 // TODO OPTIMIZE THIS
 public class TraceBitmapHatch extends BaseHatch {
-    private static final int TRACE_PRECISION = 20;
+    private static final int TRACE_PRECISION = 10;
 
     public TraceBitmapHatch(PEmbroiderGraphicsLibgdx graphicsLibgdx) {
         super(graphicsLibgdx);
@@ -45,24 +40,16 @@ public class TraceBitmapHatch extends BaseHatch {
     }
 
     private Pixmap quantizeToMultiColor(Pixmap input, int maxColors) {
-        // Convertir Pixmap en tableau 2D int
         int width = input.getWidth();
         int height = input.getHeight();
         int[][] pixels = new int[width][height];
-
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 pixels[x][y] = input.getPixel(x, y);
             }
         }
-
-        // Appliquer la quantification
         int[] colormap = Quantize.quantizeImage(pixels, maxColors);
-
-        // Créer le Pixmap de sortie
         Pixmap output = new Pixmap(width, height, Pixmap.Format.RGBA8888);
-
-        // Remplacer les indices par les couleurs de la palette
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 int color = colormap[pixels[x][y]];
@@ -74,7 +61,6 @@ public class TraceBitmapHatch extends BaseHatch {
     }
 
     private Pixmap quantizeToBlackAndWhite(Pixmap input) {
-        // Même implémentation que précédemment
         Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
         for (int y = 0; y < input.getHeight(); y++) {
             for (int x = 0; x < input.getWidth(); x++) {

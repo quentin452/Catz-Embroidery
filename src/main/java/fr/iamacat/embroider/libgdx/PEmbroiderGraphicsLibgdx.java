@@ -17,8 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static fr.iamacat.embroider.libgdx.utils.PixelUtil.pixelToMm;
-
 // TODO FIX STITCH STATS + BRODERY TIME PROBLEM
 // TODO FIX PNG/SVG WRITING AND READING COLORS
 // TODO REMOVE STITCH BORDERS
@@ -29,8 +27,8 @@ public class PEmbroiderGraphicsLibgdx {
 
     public ColorType colorMode = ColorType.MultiColor;
     public HatchModeType hatchMode = HatchModeType.TraceBitmap;
-    public int width = 200; // ATTENTION IF YOU USE TOO HIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
-    public int height = 200; // ATTENTION IF YOU USE TOO HIGH WIDTH AND HEIGHT IT CAN MOVE STITCH POSITIONS OUTSIDE OF WINDOW , so visualize not render correctly
+    public int width = 200;
+    public int height = 200;
     public int hatchSpacing = 50;
     public int maxColors = 10;
     public boolean fillEnabled = true;

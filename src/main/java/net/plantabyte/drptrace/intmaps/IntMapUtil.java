@@ -22,7 +22,7 @@ public class IntMapUtil {
 		final int color = source.get(x,y);
 		final var Q = new LinkedList<Vec2i>();
 		Q.push(new Vec2i(x, y));
-		while(Q.size() > 0){
+		while(!Q.isEmpty()){
 			var pop = Q.pop();
 			searchedMap.set(pop.x, pop.y, (byte)1);
 			Vec2i[] neighbors = {pop.up(), pop.left(), pop.down(), pop.right()};
