@@ -766,46 +766,34 @@ public class PEmbroiderWriter {
 					}
 					return closestIndex + 1;
 				}
-			    
-			    public Object[] write_pec_header() throws IOException {
-			    	ArrayList<Integer> color_index_list = new ArrayList<>();
-
-			        write(String.format(Locale.ENGLISH, "LA:%-16s\r", title).getBytes());
-			        for (int i = 0; i < 12; i++) {
-			            writeInt8(0x20);
-			        }
-			        writeInt8(0xFF);
-			        writeInt8(0x00);
-
-			        writeInt8(PEC_ICON_WIDTH / 8);
-			        writeInt8(PEC_ICON_HEIGHT);
-
-			        
-					ArrayList<Integer> palette = new ArrayList<Integer>();
-					for (int i = 0; i < colors.size(); i++) {
-						if (i==0 || (!colors.get(i).equals(colors.get(i-1)))) {
-//							if (!palette.contains(colors.get(i))) {
-								palette.add(colors.get(i));
-//							}
-						}
+				public Object[] write_pec_header() throws IOException {
+					ArrayList<Integer> colorIndexList = new ArrayList<>();
+					write(String.format(Locale.ENGLISH, "LA:%-16s\r", title).getBytes());
+					writeRepeatedInt8(0x20, 12); // Write 12 spaces
+					writeInt8(0xFF);
+					writeInt8(0x00);
+					writeInt8(PEC_ICON_WIDTH / 8);
+					writeInt8(PEC_ICON_HEIGHT);
+					LinkedHashSet<Integer> paletteSet = new LinkedHashSet<>(colors);
+					ArrayList<Integer> palette = new ArrayList<>(paletteSet);
+					writeRepeatedInt8(0x20, 12); // Write another 12 spaces
+					writeInt8(palette.size() - 1);
+					colorIndexList.add(palette.size() - 1);
+					for (int color : palette) {
+						int idx = find_color(color);
+						colorIndexList.add(idx);
+						writeInt8(idx);
 					}
+					writeRepeatedInt8(0x20, 463 - palette.size()); // Fill remaining space
+					return new Object[]{colorIndexList, palette};
+				}
 
-		            for (int i = 0; i < 12; i++) {
-		                writeInt8(0x20);
-		            }
-		            color_index_list.add(palette.size()-1);
-		            writeInt8(palette.size()-1);
-		            for (int i = 0; i < palette.size(); i++) {
-		            	int idx = find_color(palette.get(i));
-		            	color_index_list.add(idx);
-		            	writeInt8(idx);
-		            }
-		            
-			        for (int i = 0; i < (463-palette.size()); i++) {
-			            writeInt8(0x20);
-			        }
-			        return new Object[] {color_index_list, palette};
-			    }
+				private void writeRepeatedInt8(int value, int count) throws IOException {
+					for (int i = 0; i < count; i++) {
+						writeInt8(value);
+					}
+				}
+
 			    void write_pec_block() throws IOException {
 			        int width = (int) Math.rint(bounds[2]-bounds[0]);
 			        int height = (int) Math.rint(bounds[3]-bounds[1]);
@@ -1121,7 +1109,7 @@ public class PEmbroiderWriter {
 			            writeInt24LE(rgb_list.get(s));
 			        }
 			    }
-				
+
 			    void write_truncated_version_6() throws IOException {
 			        write("#PES0060");
 			        space_holder(4);
