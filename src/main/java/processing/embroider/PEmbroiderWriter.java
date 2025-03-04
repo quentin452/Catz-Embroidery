@@ -1201,50 +1201,38 @@ public class PEmbroiderWriter {
 			        writeInt16LE(0x0000); //found v6, not 5,4
 			        stream.close();
 			    }
-			    void write_version_6() throws IOException {
+				void write_version_6() throws IOException {
+					write("#PES0060");
 
-			        write("#PES0060");
+					float cx = (bounds[0] + bounds[2]) / 2;
+					float cy = (bounds[1] + bounds[3]) / 2;
 
-			        float pattern_left = bounds[0];
-			        float pattern_top = bounds[1];
-			        float pattern_right = bounds[2];
-			        float pattern_bottom = bounds[3];
+					int placeholder_pec_block = tell();
+					space_holder(4);
 
-			        float cx = ((pattern_left + pattern_right) / 2);
-			        float cy = ((pattern_top + pattern_bottom) / 2);
+					boolean hasStitches = !stitches.isEmpty();
+					write_pes_header_v6(hasStitches ? 1 : 0);
+					writeInt16LE(hasStitches ? 0xFFFF : 0x0000);
+					writeInt16LE(0x0000);
 
-			        float left = pattern_left - cx;
-			        float top = pattern_top - cy;
-			        float right = pattern_right - cx;
-			        float bottom = pattern_bottom - cy;
+					if (hasStitches) {
+						ArrayList<Integer> log = write_pes_blocks(bounds[0] - cx, bounds[1] - cy, bounds[2] - cx, bounds[3] - cy, cx, cy);
 
-			        int placeholder_pec_block = tell();
-			        space_holder(4);
+						// In version 6, there's some node, tree, order logic.
+						writeInt32LE(0);
+						writeInt32LE(0);
+						for (int i = 0; i < log.size(); i++) {
+							writeInt32LE(i);
+							writeInt32LE(0);
+						}
+					}
 
-			        if (stitches.size() == 0) {
-			            write_pes_header_v6( 0);
-			            writeInt16LE(0x0000);
-			            writeInt16LE(0x0000);
-			        } else {
-			            write_pes_header_v6( 1);
-			            writeInt16LE(0xFFFF);
-			            writeInt16LE(0x0000);
-			            ArrayList<Integer> log = write_pes_blocks(left, top, right, bottom, cx, cy);
-			            //In version 6 there is some node, tree, order thing.
-			            writeInt32LE(0);
-			            writeInt32LE(0);
-			            for (int i = 0, ie = log.size(); i < ie; i++) {
-			                writeInt32LE(i);
-			                writeInt32LE(0);
-			            }
-			        }
-			        writeSpaceHolder32LE(tell());
-			        Object[] color_info = write_pec();
-			        write_pes_addendum(color_info);
-			        writeInt16LE(0x0000); //found v6, not 5,4
+					writeSpaceHolder32LE(tell());
+					write_pes_addendum(write_pec());
+					writeInt16LE(0x0000); // Found in v6, not in v5, v4.
+				}
 
-			    }
-			}; _BinWriter bin = new _BinWriter();
+			} _BinWriter bin = new _BinWriter();
 			if (VERSION == 1) {
 				if (TRUNCATED) {
 					bin.write_truncated_version_1();
