@@ -170,33 +170,29 @@ public class PESUtil {
             }
 
             void write_pec_block() throws IOException {
-                int width = (int) Math.rint(bounds[2]-bounds[0]);
-                int height = (int) Math.rint(bounds[3]-bounds[1]);
+                int width = (int) (bounds[2] - bounds[0]);
+                int height = (int) (bounds[3] - bounds[1]);
                 int stitch_block_start_position = tell();
                 writeInt8(0x00);
                 writeInt8(0x00);
                 space_holder(3);
-
                 writeInt8(0x31);
                 writeInt8(0xFF);
                 writeInt8(0xF0);
-                /* write 2 byte x size */
-                writeInt16LE((short) Math.round(width));
-                /* write 2 byte y size */
-                writeInt16LE((short) Math.round(height));
-
+                /* Write 2 byte x size */
+                writeInt16LE((short) width);
+                /* Write 2 byte y size */
+                writeInt16LE((short) height);
                 /* Write 4 miscellaneous int16's */
                 writeInt16LE((short) 0x1E0);
                 writeInt16LE((short) 0x1B0);
-
-                writeInt16BE((0x9000 | -Math.round(bounds[0])));
-                writeInt16BE((0x9000 | -Math.round(bounds[1])));
-
+                writeInt16BE((0x9000 | -(int) bounds[0]));
+                writeInt16BE((0x9000 | -(int) bounds[1]));
                 pec_encode();
-
                 int stitch_block_length = tell() - stitch_block_start_position;
                 writeSpaceHolder24LE(stitch_block_length);
             }
+
             void write_pec_graphics() throws IOException {
                 // Write the initial bytes
                 write(new byte[]{
