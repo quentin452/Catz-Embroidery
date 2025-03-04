@@ -6,7 +6,7 @@ public enum SaveType {
     //JPEG,
     //BMP,
     //GIF,
-    //PES,
+    PES,
     SVG,
     //PEC,
     //DST,

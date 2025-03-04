@@ -118,7 +118,7 @@ public class BezierUtil {
     }
     
     public static Texture generateScaledTextureFromBezierShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
-        Texture texture = null;
+        Texture texture;
         List<BezierShape> scaledShapes = new ArrayList<>();
         for (BezierShape original : shapes) {
             BezierShape copy = new BezierShape();
@@ -154,9 +154,6 @@ public class BezierUtil {
             }
         }
 
-        if (texture != null) {
-            texture.dispose();
-        }
         texture = new Texture(renderPixmap);
         renderPixmap.dispose();
         return texture;
