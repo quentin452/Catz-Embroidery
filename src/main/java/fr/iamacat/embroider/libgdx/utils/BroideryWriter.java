@@ -85,9 +85,9 @@ public class BroideryWriter {
 		}
 		String[] tokens = filename.split("\\.(?=[^\\.]+$)");
 		float scale = PixelUtil.pixelToMm(width, height);
-
-		scaleShapes(shapes, scale, scale); // Applique directement la mise à l'échelle
-
+		width = scale;
+		height = scale;
+		scaleShapes(shapes, width, height);
 		boolean isCustomTitle = TITLE != null;
 		if (TITLE == null) {
 			String[] strs = tokens[0].split("/|\\\\");
@@ -96,9 +96,9 @@ public class BroideryWriter {
 
 		try {
 			switch (tokens[1].toUpperCase()) {
-				case "PES" -> saveBezierShapesAsPES(tokens[0], shapes, width * scale, height * scale);
-				case "SVG" -> saveBezierShapesAsSVG(tokens[0], tokens[1], shapes, width * scale, height * scale);
-				case "PNG" -> saveBezierShapesAsPNG(tokens[0], tokens[1], shapes, width * scale, height * scale);
+				case "PES" -> saveBezierShapesAsPES(tokens[0], shapes, width, height);
+				case "SVG" -> saveBezierShapesAsSVG(tokens[0], tokens[1], shapes, width, height);
+				case "PNG" -> saveBezierShapesAsPNG(tokens[0], tokens[1], shapes, width, height);
 				default -> throw new IOException("Unimplemented");
 			}
 		} catch (IOException e) {
