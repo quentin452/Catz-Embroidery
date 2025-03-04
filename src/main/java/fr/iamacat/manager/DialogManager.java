@@ -14,6 +14,7 @@ import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import fr.iamacat.embroider.libgdx.utils.BroideryReader;
 import fr.iamacat.embroider.libgdx.utils.BroideryWriter;
+import fr.iamacat.pembroider_converter.Main;
 import fr.iamacat.utils.DropboxUtil;
 import fr.iamacat.utils.FixedFileChooser;
 import fr.iamacat.utils.Translator;
@@ -186,6 +187,7 @@ public class DialogManager {
                 if (files.size > 0) {
                     FileHandle file = files.first();
                     saveBroderyFile(stage, file.path(), brodery, saveWidth, saveHeight);
+                    Main.enableEscapeMenu = false;
                 } else {
                     if (onResult != null) {
                         onResult.accept(false);
