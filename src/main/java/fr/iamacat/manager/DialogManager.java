@@ -127,12 +127,8 @@ public class DialogManager {
                             Texture texture = BroideryReader.readAsTexture(filePath,500,500);
                             Image newImage = new Image(texture);
 
-                            // Resize and position the image
-                            float windowWidth = Gdx.graphics.getWidth();
-                            float windowHeight = Gdx.graphics.getHeight();
                             newImage.setSize(500, 500);
-                            newImage.setPosition((windowWidth - newImage.getWidth()) / 2,
-                                    (windowHeight - newImage.getHeight()) / 2);
+                            newImage.setPosition((1280 - newImage.getWidth()) / 2, (720 - newImage.getHeight()) / 2);
 
                             // Pass the new image to the callback
                             onImageSelected.accept(newImage);
@@ -141,12 +137,8 @@ public class DialogManager {
                             Texture texture = new Texture(selectedFile);
                             Image newImage = new Image(texture);
 
-                            // Resize and position the image
-                            float windowWidth = Gdx.graphics.getWidth();
-                            float windowHeight = Gdx.graphics.getHeight();
                             newImage.setSize(500, 500);
-                            newImage.setPosition((windowWidth - newImage.getWidth()) / 2,
-                                    (windowHeight - newImage.getHeight()) / 2);
+                            newImage.setPosition((1280 - newImage.getWidth()) / 2, (720 - newImage.getHeight()) / 2);
 
                             // Pass the new image to the callback
                             onImageSelected.accept(newImage);

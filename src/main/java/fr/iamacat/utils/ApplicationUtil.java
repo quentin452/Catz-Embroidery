@@ -84,13 +84,10 @@ public class ApplicationUtil {
             Texture texture = new Texture(fileHandle);
             Image image = new Image(texture);
 
-            // Réglage de la taille et position de l'image
-            float windowWidth = Gdx.graphics.getWidth();
-            float windowHeight = Gdx.graphics.getHeight();
             image.setSize(500, 500); // Taille fixe de l'image, ajuste selon tes besoins
 
-            float x = (windowWidth - image.getWidth()) / 2;
-            float y = (windowHeight - image.getHeight()) / 2;
+            float x = (1280 - image.getWidth()) / 2;
+            float y = (720 - image.getHeight()) / 2;
             image.setPosition(x, y);
 
             // Optionnel : Supprime le fichier temporaire une fois l'image chargée

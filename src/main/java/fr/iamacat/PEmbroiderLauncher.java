@@ -146,9 +146,10 @@ public class PEmbroiderLauncher extends Game {
         displayedImage = new Image(texture);
         displayedImage.setSize(500, 500);
         displayedImage.setPosition(
-                (Gdx.graphics.getWidth() - displayedImage.getWidth()) / 2,
-                (Gdx.graphics.getHeight() - displayedImage.getHeight()) / 2
+                (1280 - displayedImage.getWidth()) / 2,
+                (720 - displayedImage.getHeight()) / 2
         );
+
         fr.iamacat.pembroider_converter.Main.refreshPreview();
     }
 }
