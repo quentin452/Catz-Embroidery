@@ -251,7 +251,7 @@ public class BezierUtil {
 
     static List<Vec2> sampleBezierCurve(BezierCurve curve) {
         List<Vec2> points = new ArrayList<>();
-        int samples = 20;
+        int samples = 50;
         for (int i = 0; i <= samples; i++) {
             double t = (double) i / samples;
             points.add(curve.f(t));
