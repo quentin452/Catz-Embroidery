@@ -62,11 +62,15 @@ public class BroideryWriter {
 			e.printStackTrace();
 		}
 	}
-
 	private static void saveBezierShapesAsPNG(String filename, String extension, List<BezierShape> shapes, float width, float height) {
-		Pixmap pixmap = new Pixmap((int) width, (int) height, Pixmap.Format.RGBA8888);
-		pixmap.setColor(Color.CLEAR);
-		pixmap.fill();
+		int SCALE = 16; // SUPERSAMPLING FOR QUALITY
+		int scaledWidth = (int) (width * SCALE);
+		int scaledHeight = (int) (height * SCALE);
+
+		// Création de la grande Pixmap
+		Pixmap largePixmap = new Pixmap(scaledWidth, scaledHeight, Pixmap.Format.RGBA8888);
+		largePixmap.setColor(Color.CLEAR);
+		largePixmap.fill();
 
 		for (BezierShape shape : shapes) {
 			int color = shape.getColor();
@@ -76,29 +80,35 @@ public class BroideryWriter {
 					(color & 0xFF) / 255f,
 					1f
 			);
-			pixmap.setColor(gdxColor);
+			largePixmap.setColor(gdxColor);
 
 			List<Vec2> polygonPoints = new ArrayList<>();
 			for (BezierCurve curve : shape) {
 				List<Vec2> sampledPoints = BezierUtil.sampleBezierCurve(curve);
-				polygonPoints.addAll(sampledPoints);
+				for (Vec2 point : sampledPoints) {
+					polygonPoints.add(new Vec2(point.x * SCALE, point.y * SCALE));
+				}
 			}
 
 			if (!polygonPoints.isEmpty() && !polygonPoints.get(polygonPoints.size() - 1).equals(polygonPoints.get(0))) {
 				polygonPoints.add(polygonPoints.get(0));
 			}
 
-			BezierUtil.fillPolygon(pixmap, polygonPoints, gdxColor);
+			BezierUtil.fillPolygon(largePixmap, polygonPoints, gdxColor);
 
 			for (BezierCurve curve : shape) {
-				renderBezierCurveToPixmap(pixmap, curve, gdxColor);
+				renderBezierCurveToPixmap(largePixmap, curve, gdxColor, SCALE);
 			}
 		}
 
-		PixmapIO.writePNG(Gdx.files.absolute(filename + "." + extension), pixmap);
-		pixmap.dispose();
-	}
+		Pixmap finalPixmap = new Pixmap((int) width, (int) height, Pixmap.Format.RGBA8888);
+		finalPixmap.drawPixmap(largePixmap, 0, 0, scaledWidth, scaledHeight, 0, 0, (int) width, (int) height);
 
+		PixmapIO.writePNG(Gdx.files.absolute(filename + "." + extension), finalPixmap);
+
+		largePixmap.dispose();
+		finalPixmap.dispose();
+	}
 
 	public static void write(String filename, List<BezierShape> shapes, float width, float height) {
 		if (shapes == null || shapes.isEmpty()) {

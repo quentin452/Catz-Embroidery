@@ -31,7 +31,7 @@ public class BroideryReader {
             Color gdxColor = new Color((color >> 16 & 0xFF), (color >> 8 & 0xFF), (color & 0xFF), 1f);
             pixmap.setColor(gdxColor);
             for (BezierCurve curve : shape) {
-                renderBezierCurveToPixmap(pixmap, curve, gdxColor/*, scale*/);
+                renderBezierCurveToPixmap(pixmap, curve, gdxColor,1);
             }
         }
         Texture texture = new Texture(pixmap);
