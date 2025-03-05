@@ -22,20 +22,27 @@ public class BroideryReader {
         List<BezierShape> shapes = readSVG(filename);
         // Create a Pixmap to draw the shapes
         Pixmap pixmap = new Pixmap((int) desiredWidth, (int) desiredHeight, Pixmap.Format.RGBA8888);
-
         // Draw the BezierShapes directly to the Pixmap with scaling
         for (BezierShape shape : shapes) {
             int color = shape.getColor();
-            Color gdxColor = new Color((color >> 16 & 0xFF), (color >> 8 & 0xFF), (color & 0xFF), 1f);
+            // Normalize RGB values to [0, 1] range
+            float r = ((color >> 16) & 0xFF) / 255f;
+            float g = ((color >> 8) & 0xFF) / 255f;
+            float b = (color & 0xFF) / 255f;
+            Color gdxColor = new Color(r, g, b, 1f); // Fully opaque color (alpha = 1)
+            // Set the color for drawing
             pixmap.setColor(gdxColor);
+            // Render each Bezier curve
             for (BezierCurve curve : shape) {
-                BezierUtil.renderBezierCurveToPixmap(pixmap, curve, gdxColor,1);
+                BezierUtil.renderBezierCurveToPixmap(pixmap, curve, gdxColor, 1);
             }
         }
+        // Create the texture from the pixmap
         Texture texture = new Texture(pixmap);
         pixmap.dispose(); // Dispose the Pixmap to free resources
         return texture;
     }
+
 
     // Helper method to read SVG files
     private static List<BezierShape> readSVG(String filename) {
