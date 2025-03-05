@@ -65,18 +65,38 @@ public class BroideryWriter {
 
 	private static void saveBezierShapesAsPNG(String filename, String extension, List<BezierShape> shapes, float width, float height) {
 		Pixmap pixmap = new Pixmap((int) width, (int) height, Pixmap.Format.RGBA8888);
+		pixmap.setColor(Color.CLEAR);
+		pixmap.fill();
 
-		// Draw the BezierShapes directly to the Pixmap
 		for (BezierShape shape : shapes) {
 			int color = shape.getColor();
-			Color gdxColor = new Color((color >> 16 & 0xFF), (color >> 8 & 0xFF), (color & 0xFF), 1f);
+			Color gdxColor = new Color(
+					(color >> 16 & 0xFF) / 255f,
+					(color >> 8 & 0xFF) / 255f,
+					(color & 0xFF) / 255f,
+					1f
+			);
 			pixmap.setColor(gdxColor);
+
+			List<Vec2> polygonPoints = new ArrayList<>();
+			for (BezierCurve curve : shape) {
+				List<Vec2> sampledPoints = BezierUtil.sampleBezierCurve(curve);
+				polygonPoints.addAll(sampledPoints);
+			}
+
+			if (!polygonPoints.isEmpty() && !polygonPoints.get(polygonPoints.size() - 1).equals(polygonPoints.get(0))) {
+				polygonPoints.add(polygonPoints.get(0));
+			}
+
+			BezierUtil.fillPolygon(pixmap, polygonPoints, gdxColor);
+
 			for (BezierCurve curve : shape) {
 				renderBezierCurveToPixmap(pixmap, curve, gdxColor);
 			}
 		}
+
 		PixmapIO.writePNG(Gdx.files.absolute(filename + "." + extension), pixmap);
-		pixmap.dispose(); // Dispose the Pixmap to free resources
+		pixmap.dispose();
 	}
 
 

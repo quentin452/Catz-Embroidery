@@ -13,6 +13,95 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BezierUtil {
+    public static void fillPolygon(Pixmap pixmap, List<Vec2> points, Color color) {
+        if (points.size() < 3) return; // Not a polygon
+
+        int[] xPoints = new int[points.size()];
+        int[] yPoints = new int[points.size()];
+        for (int i = 0; i < points.size(); i++) {
+            xPoints[i] = (int) Math.round(points.get(i).x);
+            yPoints[i] = (int) Math.round(points.get(i).y);
+        }
+
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        for (int y : yPoints) {
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        }
+        if (minY >= maxY) return;
+
+        List<Edge>[] edgeTable = new ArrayList[maxY - minY + 1];
+        for (int i = 0; i < edgeTable.length; i++) {
+            edgeTable[i] = new ArrayList<>();
+        }
+
+        int numVertices = points.size();
+        for (int i = 0; i < numVertices; i++) {
+            int next = (i + 1) % numVertices;
+            int x0 = xPoints[i], y0 = yPoints[i];
+            int x1 = xPoints[next], y1 = yPoints[next];
+            if (y0 == y1) continue; // Skip horizontal edges
+
+            boolean downwards = y1 > y0;
+            int yStart = downwards ? y0 : y1;
+            int yEnd = downwards ? y1 : y0;
+            int xStart = downwards ? x0 : x1;
+            float slope = (y1 != y0) ? (float) (x1 - x0) / (y1 - y0) : 0;
+
+            Edge edge = new Edge(yStart, yEnd, xStart, slope);
+            edgeTable[yStart - minY].add(edge);
+        }
+
+        List<Edge> activeEdges = new ArrayList<>();
+        for (int y = minY; y <= maxY; y++) {
+            int index = y - minY;
+            if (index >= 0 && index < edgeTable.length) {
+                activeEdges.addAll(edgeTable[index]);
+            }
+
+            int finalY = y;
+            activeEdges.removeIf(edge -> edge.yMax <= finalY);
+
+            activeEdges.sort((a, b) -> {
+                if (a.currentX != b.currentX) return (int) (a.currentX - b.currentX);
+                return Float.compare(a.slope, b.slope);
+            });
+
+            for (int i = 0; i < activeEdges.size(); i += 2) {
+                Edge left = activeEdges.get(i);
+                Edge right = (i + 1 < activeEdges.size()) ? activeEdges.get(i + 1) : left;
+
+                int startX = (int) Math.ceil(left.currentX);
+                int endX = (int) Math.floor(right.currentX);
+
+                if (startX < endX) {
+                    for (int x = startX; x <= endX; x++) {
+                        if (x >= 0 && x < pixmap.getWidth() && y >= 0 && y < pixmap.getHeight()) {
+                            pixmap.drawPixel(x, y);
+                        }
+                    }
+                }
+
+                left.currentX += left.slope;
+                if (i + 1 < activeEdges.size()) {
+                    right.currentX += right.slope;
+                }
+            }
+        }
+    }
+
+    private static class Edge {
+        int yMax;
+        float currentX;
+        float slope;
+
+        Edge(int yStart, int yEnd, int xStart, float slope) {
+            this.yMax = yEnd;
+            this.currentX = xStart;
+            this.slope = slope;
+        }
+    }
     public static void renderBezierCurveToShapeRenderer(ShapeRenderer renderer, BezierCurve curve, BezierShape shape, float offsetX, float offsetY, int visualizeWidth, int visualizeHeight) {
         int color = shape.getColor();
 
