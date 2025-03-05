@@ -171,27 +171,16 @@ public class BezierUtil {
     }
 
     public static Texture generateScaledTextureFromBezierShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
-        List<BezierShape> scaledShapes = new ArrayList<>();
-
-        // Deep copy shapes
-        for (BezierShape original : shapes) {
-            BezierShape copy = new BezierShape();
-            for (BezierCurve curve : original) {
-                copy.add(new BezierCurve(curve.getP1(), curve.getP2(), curve.getP3(), curve.getP4()));
-            }
-            copy.setColor(original.getColor());
-            scaledShapes.add(copy);
-        }
-
-        // Scale shapes
-        scaleShapes(scaledShapes, targetWidth, targetHeight);
+        // Scale the original shapes directly
+        scaleShapes(shapes, targetWidth, targetHeight);
 
         // Create Pixmap
         Pixmap renderPixmap = new Pixmap((int) targetWidth, (int) targetHeight, Pixmap.Format.RGBA8888);
         renderPixmap.setColor(Color.CLEAR);
         renderPixmap.fill();
 
-        for (BezierShape shape : scaledShapes) {
+        // Render shapes
+        for (BezierShape shape : shapes) {
             int color = shape.getColor();
             Color gdxColor = new Color(
                     ((color >> 16) & 0xFF) / 255f,
@@ -205,6 +194,7 @@ public class BezierUtil {
             }
         }
 
+        // Create Texture
         Texture texture = new Texture(renderPixmap);
         renderPixmap.dispose();
         return texture;
