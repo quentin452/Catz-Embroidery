@@ -73,15 +73,14 @@ public class BezierUtil {
             this.slope = slope;
         }
     }
-    public static void renderBezierCurveToShapeRenderer(ShapeRenderer renderer, BezierCurve curve, BezierShape shape, float offsetX, float offsetY, int visualizeWidth, int visualizeHeight) {
+    public static void renderBezierCurveToShapeRenderer(ShapeRenderer renderer, BezierCurve curve, BezierShape shape, float offsetX, float offsetY) {
         int color = shape.getColor();
 
-        // Extraction des composantes RGB (sans alpha)
-        int r = (color >> 16) & 0xFF; // Bits 16-23
-        int g = (color >> 8) & 0xFF;  // Bits 8-15
-        int b = color & 0xFF;         // Bits 0-7
+        // Normalize color components (0-255 -> 0-1)
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
 
-        // Forçage de l'alpha à 1.0 (opaque)
         renderer.setColor(r, g, b, 1.0f);
 
         Vec2 prev = curve.f(0);
@@ -89,17 +88,18 @@ public class BezierUtil {
         for (int i = 1; i <= samples; i++) {
             double t = (double) i / samples;
             Vec2 next = curve.f(t);
-            float aspectRatio = (float) visualizeWidth / visualizeHeight;
-            float x1 = ((float) prev.x + offsetX) * aspectRatio;
+
+            float x1 = (float) prev.x + offsetX;
             float y1 = (float) prev.y + offsetY;
-            float x2 = ((float) next.x + offsetX) * aspectRatio;
+            float x2 = (float) next.x + offsetX;
             float y2 = (float) next.y + offsetY;
+
             renderer.line(x1, y1, x2, y2);
             prev = next;
         }
     }
 
-    public static void renderBezierCurveToPixmap(Pixmap pixmap, BezierCurve curve, Color color, int scale) {
+    public static void renderBezierCurveToPixmap(Pixmap pixmap, BezierCurve curve, Color color, float scale) {
         pixmap.setColor(color);
         Vec2 prev = curve.getP1();
         int samples = 50;
@@ -107,13 +107,12 @@ public class BezierUtil {
             double t = (double) i / samples;
             Vec2 next = curve.f(t);
 
-            // Apply the scale factor to all coordinates
-            float x1 = (float) (prev.x * scale);
-            float y1 = (float) (prev.y * scale);
-            float x2 = (float) (next.x * scale);
-            float y2 = (float) (next.y * scale);
+            int x1 = Math.round((float) prev.x * scale);
+            int y1 = Math.round((float) prev.y * scale);
+            int x2 = Math.round((float) next.x * scale);
+            int y2 = Math.round((float) next.y * scale);
 
-            pixmap.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
+            pixmap.drawLine(x1, y1, x2, y2);
             prev = next;
         }
     }
@@ -135,19 +134,18 @@ public class BezierUtil {
             prev = next;
         }
     }
-
     public static void scaleShapes(List<BezierShape> shapes, float scaleX, float scaleY) {
         float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
         float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
 
-        // Calculer la boîte englobante originale
+        // Find bounding box
         for (BezierShape shape : shapes) {
             for (BezierCurve curve : shape) {
                 for (Vec2 point : new Vec2[]{curve.getP1(), curve.getP2(), curve.getP3(), curve.getP4()}) {
-                    minX = (float) Math.min(minX, point.x);
-                    minY = (float) Math.min(minY, point.y);
-                    maxX = (float) Math.max(maxX, point.x);
-                    maxY = (float) Math.max(maxY, point.y);
+                    minX = Math.min(minX, (float) point.x);
+                    minY = Math.min(minY, (float) point.y);
+                    maxX = Math.max(maxX, (float) point.x);
+                    maxY = Math.max(maxY, (float) point.y);
                 }
             }
         }
@@ -156,49 +154,39 @@ public class BezierUtil {
         float originalHeight = maxY - minY;
         if (originalWidth <= 0 || originalHeight <= 0) return;
 
-        // Calculer le facteur d'échelle
+        // Compute uniform scale factor
         float scaleFactor = Math.min(scaleX / originalWidth, scaleY / originalHeight);
 
-        // Translater toutes les courbes vers l'origine (0,0)
+        // Translate to origin & scale
         for (BezierShape shape : shapes) {
-            List<BezierCurve> translatedCurves = new ArrayList<>();
+            List<BezierCurve> newCurves = new ArrayList<>();
             for (BezierCurve curve : shape) {
-                translatedCurves.add(curve.translate(-minX, -minY));
+                BezierCurve translated = curve.translate(-minX, -minY);
+                BezierCurve scaled = translated.scale(scaleFactor, new Vec2(0, 0));
+                newCurves.add(scaled);
             }
             shape.clear();
-            shape.addAll(translatedCurves);
-        }
-
-        // Mettre à l'échelle toutes les courbes autour de (0,0)
-        for (BezierShape shape : shapes) {
-            List<BezierCurve> scaledCurves = new ArrayList<>();
-            for (BezierCurve curve : shape) {
-                scaledCurves.add(curve.scale(scaleFactor, new Vec2(0, 0)));
-            }
-            shape.clear();
-            shape.addAll(scaledCurves);
+            shape.addAll(newCurves);
         }
     }
-    
+
     public static Texture generateScaledTextureFromBezierShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
-        Texture texture;
         List<BezierShape> scaledShapes = new ArrayList<>();
+
+        // Deep copy shapes
         for (BezierShape original : shapes) {
             BezierShape copy = new BezierShape();
             for (BezierCurve curve : original) {
-                copy.add(new BezierCurve(
-                        curve.getP1(),
-                        curve.getP2(),
-                        curve.getP3(),
-                        curve.getP4()
-                ));
+                copy.add(new BezierCurve(curve.getP1(), curve.getP2(), curve.getP3(), curve.getP4()));
             }
             copy.setColor(original.getColor());
             scaledShapes.add(copy);
         }
 
-        BezierUtil.scaleShapes(scaledShapes, targetWidth, targetHeight);
+        // Scale shapes
+        scaleShapes(scaledShapes, targetWidth, targetHeight);
 
+        // Create Pixmap
         Pixmap renderPixmap = new Pixmap((int) targetWidth, (int) targetHeight, Pixmap.Format.RGBA8888);
         renderPixmap.setColor(Color.CLEAR);
         renderPixmap.fill();
@@ -206,22 +194,21 @@ public class BezierUtil {
         for (BezierShape shape : scaledShapes) {
             int color = shape.getColor();
             Color gdxColor = new Color(
-                    (color >> 16 & 0xFF),
-                    (color >> 8 & 0xFF),
-                    (color & 0xFF),
+                    ((color >> 16) & 0xFF) / 255f,
+                    ((color >> 8) & 0xFF) / 255f,
+                    (color & 0xFF) / 255f,
                     1f
             );
             renderPixmap.setColor(gdxColor);
             for (BezierCurve curve : shape) {
-                BezierUtil.renderBezierCurveToPixmap(renderPixmap, curve, gdxColor,1);
+                renderBezierCurveToPixmap(renderPixmap, curve, gdxColor, 1);
             }
         }
 
-        texture = new Texture(renderPixmap);
+        Texture texture = new Texture(renderPixmap);
         renderPixmap.dispose();
         return texture;
     }
-
 
     static List<Vec2> sampleBezierCurve(BezierCurve curve) {
         List<Vec2> points = new ArrayList<>();

@@ -103,7 +103,7 @@ public class PEmbroiderGraphicsLibgdx {
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             for (BezierShape shape : bezierShapes) {
                 for (BezierCurve curve : shape) {
-                    BezierUtil.renderBezierCurveToShapeRenderer(shapeRenderer, curve, shape, offsetX, offsetY, visualizeWidth, visualizeHeight);
+                    BezierUtil.renderBezierCurveToShapeRenderer(shapeRenderer, curve, shape, offsetX, offsetY);
                 }
             }
             shapeRenderer.end();
