@@ -22,7 +22,7 @@ public class BezierUtil {
         int b = color & 0xFF;         // Bits 0-7
 
         // Forçage de l'alpha à 1.0 (opaque)
-        renderer.setColor(r / 255f, g / 255f, b / 255f, 1.0f);
+        renderer.setColor(r, g, b, 1.0f);
 
         Vec2 prev = curve.f(0);
         for (int i = 1; i <= 20; i++) {
@@ -143,9 +143,9 @@ public class BezierUtil {
         for (BezierShape shape : scaledShapes) {
             int color = shape.getColor();
             Color gdxColor = new Color(
-                    (color >> 16 & 0xFF) / 255f,
-                    (color >> 8 & 0xFF) / 255f,
-                    (color & 0xFF) / 255f,
+                    (color >> 16 & 0xFF),
+                    (color >> 8 & 0xFF),
+                    (color & 0xFF),
                     1f
             );
             renderPixmap.setColor(gdxColor);
