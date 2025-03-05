@@ -128,7 +128,7 @@ public class Main extends MainBase {
         });
         settingsTable.add(checkBox).left().padLeft(10).padRight(10).row();
         ScrollPane scrollPane = new ScrollPane(settingsTable);
-        scrollPane.setScrollingDisabled(false, true);
+        scrollPane.setScrollingDisabled(true, true);
         scrollPane.setPosition(50, 50);
         scrollPane.setSize(250, 200);
 
