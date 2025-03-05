@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Objects;
 
 // TODO FIX STITCH STATS + BRODERY TIME PROBLEM
-// TODO FIX PNG/SVG WRITING AND READING COLORS
-// TODO REMOVE STITCH BORDERS
 // TODO FIX DRAWED STITCH RENDER AT Z INDEX HIGHER THAN DIALOGS UTILS THINGS
 // TODO ADD a variable in TraceBitmapHatch to increase/reduce quality of the shape by reducing triangle
 public class PEmbroiderGraphicsLibgdx {
