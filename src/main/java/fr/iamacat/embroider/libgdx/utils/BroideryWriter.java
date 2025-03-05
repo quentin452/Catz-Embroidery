@@ -118,7 +118,6 @@ public class BroideryWriter {
 		float scale = PixelUtil.pixelToMm(width, height);
 		width = scale;
 		height = scale;
-		scaleShapes(shapes, width, height);
 		boolean isCustomTitle = TITLE != null;
 		if (TITLE == null) {
 			String[] strs = tokens[0].split("/|\\\\");
