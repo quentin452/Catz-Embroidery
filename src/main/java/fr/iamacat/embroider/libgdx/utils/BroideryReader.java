@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+// TODO ADD PES READER
 public class BroideryReader {
 
     private static Texture readSVGAsTexture(String filename, float desiredWidth, float desiredHeight) {

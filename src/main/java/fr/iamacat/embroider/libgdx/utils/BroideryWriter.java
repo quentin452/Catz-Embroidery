@@ -15,7 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-// TODO FIX ONLY SVG SAVER SAVING SHAPES GOODLY
+// TODO FIX SCALING IS NOT GOOD FOR ,WE CAN SEE MISSING USED PIXELS
+// TODO FIX PES COLORS AND FILL NOT GOOD
 public class BroideryWriter {
 	public static String TITLE = null;
 	public static void saveBezierShapesAsPES(String filename, List<BezierShape> shapes, float width, float height) {

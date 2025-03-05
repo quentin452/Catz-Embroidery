@@ -43,23 +43,31 @@ public class TraceBitmapHatch extends BaseHatch {
         int width = input.getWidth();
         int height = input.getHeight();
         int[][] pixels = new int[width][height];
+
+        // 1. Extract correct RGB composants (without alpha)
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                pixels[x][y] = input.getPixel(x, y);
+                int rgba = input.getPixel(x, y);
+                // Convert RGBA8888 to RGB888 (mask alpha)
+                int rgb = (rgba >> 8) & 0x00FFFFFF;
+                pixels[x][y] = rgb;
             }
         }
+
         int[] colormap = Quantize.quantizeImage(pixels, maxColors);
         Pixmap output = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+
+        // 2. Reinject alpha when writing
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                int color = colormap[pixels[x][y]];
-                output.drawPixel(x, y, color);
+                int quantizedRGB = colormap[pixels[x][y]];
+                int quantizedRGBA = (quantizedRGB << 8) | 0xFF; // Alpha to 255
+                output.drawPixel(x, y, quantizedRGBA);
             }
         }
 
         return output;
     }
-
     private Pixmap quantizeToBlackAndWhite(Pixmap input) {
         Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
         for (int y = 0; y < input.getHeight(); y++) {
@@ -82,10 +90,14 @@ public class TraceBitmapHatch extends BaseHatch {
 
     private ZOrderIntMap convertToDrPTraceMap(Pixmap gdxPixmap) {
         ZOrderIntMap map = new ZOrderIntMap(gdxPixmap.getWidth(), gdxPixmap.getHeight());
-        for(int y = 0; y < gdxPixmap.getHeight(); y++) {
-            for(int x = 0; x < gdxPixmap.getWidth(); x++) {
-                int pixel = gdxPixmap.getPixel(x, y);
-                map.set(x, y, pixel);
+        for (int y = 0; y < gdxPixmap.getHeight(); y++) {
+            for (int x = 0; x < gdxPixmap.getWidth(); x++) {
+                int rgba = gdxPixmap.getPixel(x, y);
+                int argb = ( (rgba & 0xFF) << 24) | // A
+                        ((rgba >> 8) & 0xFF0000) | // R
+                        ((rgba >> 8) & 0x00FF00) | // G
+                        ((rgba >> 8) & 0x0000FF);  // B
+                map.set(x, y, argb);
             }
         }
         return map;
