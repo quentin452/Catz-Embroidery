@@ -151,10 +151,8 @@ public class DialogManager {
             }
         });
 
-        fileChooser.setSize(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.75f);
-
-        // Centrer le FileChooser sur l'écran
-        fileChooser.setPosition(Gdx.graphics.getWidth() * 0.125f, Gdx.graphics.getHeight() * 0.125f);
+        fileChooser.setSize(1280 * 0.75f, 720 * 0.75f);
+        fileChooser.setPosition(1280 * 0.125f, 720 * 0.125f);
 
         // Ajouter le FileChooser à la scène et l'afficher
         stage.addActor(fileChooser.fadeIn());
