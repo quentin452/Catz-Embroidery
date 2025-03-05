@@ -42,11 +42,8 @@ public class PEmbroiderGraphicsLibgdx {
     private Texture cachedTexture;
     private SpriteBatch spriteBatch;
 
-    // Required renderers
-    private final ShapeRenderer shapeRenderer;
     public PEmbroiderGraphicsLibgdx(ShapeRenderer shapeRenderer) {
         this.traceBitmapHach = new TraceBitmapHatch(this);
-        this.shapeRenderer = shapeRenderer;
         this.spriteBatch = new SpriteBatch();
     }
 
