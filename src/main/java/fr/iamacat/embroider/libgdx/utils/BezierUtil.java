@@ -3,7 +3,6 @@ package fr.iamacat.embroider.libgdx.utils;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import fr.iamacat.embroider.libgdx.PEmbroiderGraphicsLibgdx;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
@@ -71,31 +70,6 @@ public class BezierUtil {
             this.yMax = yMax;
             this.currentX = xStart;
             this.slope = slope;
-        }
-    }
-    public static void renderBezierCurveToShapeRenderer(ShapeRenderer renderer, BezierCurve curve, BezierShape shape, float offsetX, float offsetY) {
-        int color = shape.getColor();
-
-        // Normalize color components (0-255 -> 0-1)
-        float r = ((color >> 16) & 0xFF) / 255f;
-        float g = ((color >> 8) & 0xFF) / 255f;
-        float b = (color & 0xFF) / 255f;
-
-        renderer.setColor(r, g, b, 1.0f);
-
-        Vec2 prev = curve.f(0);
-        int samples = 50;
-        for (int i = 1; i <= samples; i++) {
-            double t = (double) i / samples;
-            Vec2 next = curve.f(t);
-
-            float x1 = (float) prev.x + offsetX;
-            float y1 = (float) prev.y + offsetY;
-            float x2 = (float) next.x + offsetX;
-            float y2 = (float) next.y + offsetY;
-
-            renderer.line(x1, y1, x2, y2);
-            prev = next;
         }
     }
 

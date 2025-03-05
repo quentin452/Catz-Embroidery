@@ -93,20 +93,13 @@ public class PEmbroiderGraphicsLibgdx {
             traceBitmapHach.apply(this, pixmap, x, y);
         }
     }
-    public void visualizeCacheOrNo(float offsetX, float offsetY, int visualizeWidth, int visualizeHeight) {
+    public void visualizeCache(float offsetX, float offsetY, int visualizeWidth, int visualizeHeight) {
         if (cachedTexture != null) {
             spriteBatch.begin();
             spriteBatch.draw(cachedTexture, offsetX, offsetY, visualizeWidth, visualizeHeight);
             spriteBatch.end();
         } else {
-            // Fallback to original rendering if no cached texture
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            for (BezierShape shape : bezierShapes) {
-                for (BezierCurve curve : shape) {
-                    BezierUtil.renderBezierCurveToShapeRenderer(shapeRenderer, curve, shape, offsetX, offsetY);
-                }
-            }
-            shapeRenderer.end();
+            throw new RuntimeException("cachedTexture is null while using visualizeCache");
         }
     }
     public void updateStats() {
