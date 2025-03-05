@@ -72,6 +72,33 @@ public class BezierUtil {
             this.slope = slope;
         }
     }
+    public static void renderShapesToPixmap(Pixmap pixmap, List<BezierShape> shapes, int scale) {
+        for (BezierShape shape : shapes) {
+            int color = shape.getColor();
+            Color gdxColor = new Color(
+                    (color >> 16 & 0xFF) / 255f,
+                    (color >> 8 & 0xFF) / 255f,
+                    (color & 0xFF) / 255f,
+                    1f
+            );
+
+            // Collect and render the polygon points
+            List<Vec2> polygonPoints = new ArrayList<>();
+            for (BezierCurve curve : shape) {
+                List<Vec2> sampledPoints = sampleBezierCurve(curve);
+                for (Vec2 point : sampledPoints) {
+                    polygonPoints.add(new Vec2(point.x * scale, point.y * scale));
+                }
+                renderBezierCurveToPixmap(pixmap, curve, gdxColor, scale);
+            }
+
+            // Close and fill the polygon
+            if (!polygonPoints.isEmpty() && !polygonPoints.get(polygonPoints.size() - 1).equals(polygonPoints.get(0))) {
+                polygonPoints.add(polygonPoints.get(0));
+            }
+            fillPolygon(pixmap, polygonPoints, gdxColor);
+        }
+    }
 
     public static void renderBezierCurveToPixmap(Pixmap pixmap, BezierCurve curve, Color color, float scale) {
         pixmap.setColor(color);

@@ -15,8 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
-import static fr.iamacat.embroider.libgdx.utils.BezierUtil.scaleShapes;
 // TODO FIX ONLY SVG SAVER SAVING SHAPES GOODLY
 public class BroideryWriter {
 	public static String TITLE = null;
@@ -63,49 +61,26 @@ public class BroideryWriter {
 		}
 	}
 	private static void saveBezierShapesAsPNG(String filename, String extension, List<BezierShape> shapes, float width, float height) {
-		int SCALE = 16; // SUPERSAMPLING FOR QUALITY
+		int SCALE = 16; // Supersampling for quality
 		int scaledWidth = (int) (width * SCALE);
 		int scaledHeight = (int) (height * SCALE);
 
-		// Création de la grande Pixmap
+		// Create a scaled Pixmap
 		Pixmap largePixmap = new Pixmap(scaledWidth, scaledHeight, Pixmap.Format.RGBA8888);
 		largePixmap.setColor(Color.CLEAR);
 		largePixmap.fill();
 
-		for (BezierShape shape : shapes) {
-			int color = shape.getColor();
-			Color gdxColor = new Color(
-					(color >> 16 & 0xFF) / 255f,
-					(color >> 8 & 0xFF) / 255f,
-					(color & 0xFF) / 255f,
-					1f
-			);
-			largePixmap.setColor(gdxColor);
+		// Delegate rendering of Bezier shapes to BezierUtil
+		BezierUtil.renderShapesToPixmap(largePixmap, shapes, SCALE);
 
-			List<Vec2> polygonPoints = new ArrayList<>();
-			for (BezierCurve curve : shape) {
-				List<Vec2> sampledPoints = BezierUtil.sampleBezierCurve(curve);
-				for (Vec2 point : sampledPoints) {
-					polygonPoints.add(new Vec2(point.x * SCALE, point.y * SCALE));
-				}
-			}
-
-			if (!polygonPoints.isEmpty() && !polygonPoints.get(polygonPoints.size() - 1).equals(polygonPoints.get(0))) {
-				polygonPoints.add(polygonPoints.get(0));
-			}
-
-			BezierUtil.fillPolygon(largePixmap, polygonPoints, gdxColor);
-
-			for (BezierCurve curve : shape) {
-				renderBezierCurveToPixmap(largePixmap, curve, gdxColor, SCALE);
-			}
-		}
-
+		// Scale down to final size
 		Pixmap finalPixmap = new Pixmap((int) width, (int) height, Pixmap.Format.RGBA8888);
 		finalPixmap.drawPixmap(largePixmap, 0, 0, scaledWidth, scaledHeight, 0, 0, (int) width, (int) height);
 
+		// Save to file
 		PixmapIO.writePNG(Gdx.files.absolute(filename + "." + extension), finalPixmap);
 
+		// Dispose Pixmaps
 		largePixmap.dispose();
 		finalPixmap.dispose();
 	}

@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static fr.iamacat.embroider.libgdx.utils.BezierUtil.renderBezierCurveToPixmap;
-
 public class BroideryReader {
 
     private static Texture readSVGAsTexture(String filename, float desiredWidth, float desiredHeight) {
@@ -31,7 +29,7 @@ public class BroideryReader {
             Color gdxColor = new Color((color >> 16 & 0xFF), (color >> 8 & 0xFF), (color & 0xFF), 1f);
             pixmap.setColor(gdxColor);
             for (BezierCurve curve : shape) {
-                renderBezierCurveToPixmap(pixmap, curve, gdxColor,1);
+                BezierUtil.renderBezierCurveToPixmap(pixmap, curve, gdxColor,1);
             }
         }
         Texture texture = new Texture(pixmap);
