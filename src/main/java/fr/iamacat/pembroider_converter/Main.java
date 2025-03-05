@@ -21,7 +21,6 @@ import fr.iamacat.utils.enums.HatchModeType;
 import fr.iamacat.utils.enums.SaveType;
 
 import static fr.iamacat.utils.UIUtils.*;
-// TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 public class Main extends MainBase {
     private static PEmbroiderGraphicsLibgdx embroidery = null;
     private PopupMenu fileMenu,editMenu,broderyMachineMenu;
