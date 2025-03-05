@@ -23,15 +23,18 @@ import fr.iamacat.utils.enums.SaveType;
 import static fr.iamacat.utils.UIUtils.*;
 // TODO FIX IF I LOAD AN IMAGE AND I USE FULLSCREEN MODE THE IMAGE ISNT ADDED IN THE RIGHT LOCATION
 public class Main extends MainBase {
-    private final PEmbroiderGraphicsLibgdx embroidery;
+    private static PEmbroiderGraphicsLibgdx embroidery = null;
     private PopupMenu fileMenu,editMenu,broderyMachineMenu;
     private SaveType currentSaveLocallyType = SaveType.SVG;
     private SaveType currentSaveDropboxType = SaveType.SVG;
-    private int exportHeight = 95 , exportWidth = 95,visualizeHeight = 320 , visualizeWidth = 320;
+    private static int exportHeight = 95;
+    private static int exportWidth = 95;
+    private int visualizeHeight = 320;
+    private int visualizeWidth = 320;
     public static Image displayedImage;
     private MenuItem saveLocallyButton , saveToDropboxButton;
     private VisTable rootTable;
-    private boolean showPreview = false;
+    private static boolean showPreview = false;
     public static boolean enableEscapeMenu = false;
     private static boolean exitConfirmed = false;
     private ShapeRenderer shapeRenderer;
@@ -60,7 +63,7 @@ public class Main extends MainBase {
         }
         addMenuItem(fileMenu, t("load_file"), this::showLoadDialog);
         addMenuItem(fileMenu, t("exit"), Gdx.app::exit);
-        VisTextButton fileButton = UIUtils.createMenuButton("file", true, fileMenu, getStage());
+        VisTextButton fileButton = createMenuButton("file", true, fileMenu, getStage());
         menuBar.add(fileButton).expandX().fillX().pad(0).left();
 
         // EDIT MENU
@@ -73,7 +76,7 @@ public class Main extends MainBase {
             embroidery.hatchMode = value;
             refreshPreview();
         });
-        VisTextButton editButton = UIUtils.createMenuButton("edit", true, editMenu, getStage());
+        VisTextButton editButton = createMenuButton("edit", true, editMenu, getStage());
         menuBar.add(editButton).expandX().fillX().pad(0).left();
 
         // BRODERY MACHINE MENU
@@ -81,7 +84,7 @@ public class Main extends MainBase {
         addSubmenu(broderyMachineMenu, t("brodery_tab"), EmbroideryMachine.class, value -> {
             embroidery.selectedMachine = value;
         });
-        VisTextButton broderyMachineButton = UIUtils.createMenuButton("brodery_tab", true, broderyMachineMenu, getStage());
+        VisTextButton broderyMachineButton = createMenuButton("brodery_tab", true, broderyMachineMenu, getStage());
         menuBar.add(broderyMachineButton).expandX().fillX().pad(0).left();
 
         // OTHER
@@ -142,12 +145,12 @@ public class Main extends MainBase {
         displayedImage.setPosition((Gdx.graphics.getWidth() - displayedImage.getWidth()) / 2, (Gdx.graphics.getHeight() - displayedImage.getHeight()) / 2);
     }
 
-    public void refreshPreview(){
+    public static void refreshPreview(){
         if (displayedImage != null) {
             processImage();
         }
     }
-    private void processImage() {
+    private static void processImage() {
         enableEscapeMenu = true;
         showPreview = false;
         embroidery.beginDraw();

@@ -107,7 +107,7 @@ public class PEmbroiderLauncher extends Game {
                     FileHandle file = Gdx.files.absolute(path);
                     if (isImageFile(file)) {
                         fr.iamacat.pembroider_converter.Main.enableEscapeMenu = true;
-                        loadAndDisplayImage(file, fr.iamacat.pembroider_converter.Main.getStage());
+                        loadAndDisplayImage(file);
                     }
                 }
             }
@@ -138,7 +138,7 @@ public class PEmbroiderLauncher extends Game {
         return ext.matches("png|jpg|jpeg|bmp|gif");
     }
 
-    private static void loadAndDisplayImage(FileHandle file, Stage stage) {
+    private static void loadAndDisplayImage(FileHandle file) {
         Texture texture = new Texture(file);
         if (displayedImage != null) {
             displayedImage.remove();
@@ -149,5 +149,6 @@ public class PEmbroiderLauncher extends Game {
                 (Gdx.graphics.getWidth() - displayedImage.getWidth()) / 2,
                 (Gdx.graphics.getHeight() - displayedImage.getHeight()) / 2
         );
+        fr.iamacat.pembroider_converter.Main.refreshPreview();
     }
 }
