@@ -172,7 +172,7 @@ public class BezierUtil {
     }
 
     public static Texture generateScaledTextureFromBezierShapes(List<BezierShape> shapes, float targetWidth, float targetHeight) {
-        // Scale the original shapes directly
+        // Scale the original shapes
         scaleShapes(shapes, targetWidth, targetHeight);
 
         // Create Pixmap
@@ -180,22 +180,10 @@ public class BezierUtil {
         renderPixmap.setColor(Color.CLEAR);
         renderPixmap.fill();
 
-        // Render shapes
-        for (BezierShape shape : shapes) {
-            int color = shape.getColor();
-            Color gdxColor = new Color(
-                    ((color >> 16) & 0xFF) / 255f,
-                    ((color >> 8) & 0xFF) / 255f,
-                    (color & 0xFF) / 255f,
-                    1f
-            );
-            renderPixmap.setColor(gdxColor);
-            for (BezierCurve curve : shape) {
-                renderBezierCurveToPixmap(renderPixmap, curve, gdxColor, 1);
-            }
-        }
+        // Render shapes to pixmap
+        renderShapesToPixmap(renderPixmap, shapes, 1);
 
-        // Create Texture
+        // Create and return Texture
         Texture texture = new Texture(renderPixmap);
         renderPixmap.dispose();
         return texture;
