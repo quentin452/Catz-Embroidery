@@ -218,4 +218,8 @@ public final class Vec2 {
 		return 2003 * Double.hashCode(this.y) + 1999 * Double.hashCode(this.x);
 	}
 
+
+	public Vec2 midpoint(Vec2 other) {
+		return new Vec2((this.x + other.x) / 2, (this.y + other.y) / 2);
+	}
 }

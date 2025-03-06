@@ -1,6 +1,5 @@
 package fr.iamacat.embroider.libgdx;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -13,6 +12,7 @@ import fr.iamacat.utils.enums.ColorType;
 import fr.iamacat.utils.enums.HatchModeType;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
+import net.plantabyte.drptrace.geometry.Vec2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,11 +119,16 @@ public class PEmbroiderGraphicsLibgdx {
         int total = 0;
         for (BezierShape shape : bezierShapes) {
             for (BezierCurve curve : shape) {
-                total += hatchSpacing;
+                int numSamples = 50;
+                Vec2[] points = curve.makePoints(numSamples);
+                int stitchesForCurve = points.length - 1;
+                total += stitchesForCurve;
             }
         }
         return total;
     }
+
+
     public String getStatsText() {
         return statsText;
     }

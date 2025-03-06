@@ -103,7 +103,14 @@ public final class BezierCurve {
 	public Vec2 getP4(){
 		return p[3];
 	}
-	
+
+	public void setP2(Vec2 p2) {
+		this.p[1] = p2;
+	}
+
+	public void setP3(Vec2 p3) {
+		this.p[2] = p3;
+	}
 	/**
 	 * Computes bezier curve coordinate as a function of t, where t ranged from 0 to 1
 	 * @param t double from 0 to 1
@@ -292,5 +299,25 @@ public final class BezierCurve {
 	@Override
 	public int hashCode() {
 		return Arrays.hashCode(p);
+	}
+
+	public double approximateLength() {
+		Vec2 prev = getPoint(0);
+		double length = 0;
+		for (double t = 0.1; t <= 1.0; t += 0.1) {
+			Vec2 next = getPoint(t);
+			length += prev.dist(next);
+			prev = next;
+		}
+		return length;
+	}
+
+	public Vec2 getPoint(double t) {
+		// Standard Bezier curve calculation
+		double u = 1 - t;
+		return p[0].mul(u*u*u)
+				.add(p[1].mul(3*u*u*t))
+				.add(p[2].mul(3*u*t*t))
+				.add(p[3].mul(t*t*t));
 	}
 }
