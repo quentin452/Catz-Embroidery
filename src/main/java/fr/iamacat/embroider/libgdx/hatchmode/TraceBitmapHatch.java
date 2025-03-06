@@ -14,7 +14,6 @@ import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 import java.util.List;
 // TODO OPTIMIZE THIS
 public class TraceBitmapHatch extends BaseHatch {
-    private static final int TRACE_PRECISION = 10;
 
     public TraceBitmapHatch(PEmbroiderGraphicsLibgdx graphicsLibgdx) {
         super(graphicsLibgdx);
@@ -23,7 +22,7 @@ public class TraceBitmapHatch extends BaseHatch {
     public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y) {
         Pixmap quantizedPixmap = quantize(pixmap, brodery.colorMode, brodery.maxColors);
         ZOrderIntMap tracedImage = convertToDrPTraceMap(quantizedPixmap);
-        Tracer tracer = new IntervalTracer(TRACE_PRECISION);
+        Tracer tracer = new IntervalTracer(brodery.hatchSpacing);
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
         for (BezierShape shape : shapes) {
             BezierUtil.addBezierShape(brodery, shape);

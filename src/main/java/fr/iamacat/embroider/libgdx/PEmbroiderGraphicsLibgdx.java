@@ -1,5 +1,6 @@
 package fr.iamacat.embroider.libgdx;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-// TODO FIX STITCH STATS + BRODERY TIME PROBLEM
 // TODO FIX DRAWED STITCH RENDER AT Z INDEX HIGHER THAN DIALOGS UTILS THINGS
 // TODO ADD a variable in TraceBitmapHatch to increase/reduce quality of the shape by reducing triangle
 public class PEmbroiderGraphicsLibgdx {
@@ -77,6 +77,7 @@ public class PEmbroiderGraphicsLibgdx {
         endShape();
         float scale = PixelUtil.pixelToMm(width,height);
         cachedTexture = BezierUtil.generateScaledTextureFromBezierShapes(bezierShapes,scale,scale);
+        updateStats();
     }
 
     /**
@@ -109,21 +110,20 @@ public class PEmbroiderGraphicsLibgdx {
         int maxTimeSeconds = (int) ((maxTime - maxTimeMinutes) * 60);
 
         statsText = String.format(
-                "Points: %d\nTemps estimé: %d min %d sec - %d min %d sec\nMachine: %s\n\n*Fonctionnalité en Bêta*",
+                "Points estimé: %d\nTemps estimé: %d min %d sec - %d min %d sec\nMachine: %s\n\n*Fonctionnalité en Bêta*",
                 totalStitches, minTimeMinutes, minTimeSeconds, maxTimeMinutes, maxTimeSeconds, selectedMachine.displayName
         );
     }
 
     private int calculateTotalStitches() {
-        int count = 0;
+        int total = 0;
         for (BezierShape shape : bezierShapes) {
             for (BezierCurve curve : shape) {
-                count += hatchSpacing; // Chaque courbe génère 'hatchSpacing' points
+                total += hatchSpacing;
             }
         }
-        return count;
+        return total;
     }
-
     public String getStatsText() {
         return statsText;
     }

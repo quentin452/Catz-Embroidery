@@ -183,7 +183,6 @@ public class Main extends MainBase {
             embroidery.visualizeCache(910,190,visualizeWidth,visualizeHeight);
         }
         if (showPreview && embroidery != null) {
-            embroidery.updateStats();
             statsLabel.setText(embroidery.getStatsText());
             statsLabel.setColor(Color.WHITE);
         }
