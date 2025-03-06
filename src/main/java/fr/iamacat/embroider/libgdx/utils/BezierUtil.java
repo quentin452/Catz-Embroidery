@@ -79,7 +79,7 @@ public class BezierUtil {
                     (color >> 16 & 0xFF) / 255f,
                     (color >> 8 & 0xFF) / 255f,
                     (color & 0xFF) / 255f,
-                    1f
+                    (color >> 24 & 0xFF) / 255f
             );
 
             // Collect and render the polygon points

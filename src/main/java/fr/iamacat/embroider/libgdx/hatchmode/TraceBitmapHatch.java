@@ -12,7 +12,6 @@ import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 
 import java.util.List;
-// TODO OPTIMIZE THIS
 public class TraceBitmapHatch extends BaseHatch {
 
     public TraceBitmapHatch(PEmbroiderGraphicsLibgdx graphicsLibgdx) {
@@ -35,60 +34,87 @@ public class TraceBitmapHatch extends BaseHatch {
 
     private Pixmap quantize(Pixmap input, ColorType colorType, int maxColors) {
         if (colorType == ColorType.BlackAndWhite) {
-            return quantizeToBlackAndWhite(input);
+            return quantizeToGrayscale(input, maxColors);
         } else {
             return quantizeToMultiColor(input, maxColors);
         }
+    }
+
+    private Pixmap quantizeToGrayscale(Pixmap input, int maxColors) {
+        Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
+        float[] levels = generateGrayLevels(maxColors);
+
+        for (int y = 0; y < input.getHeight(); y++) {
+            for (int x = 0; x < input.getWidth(); x++) {
+                int rgba = input.getPixel(x, y);
+                int alpha = rgba & 0xFF;
+
+                if (alpha == 0) {
+                    output.drawPixel(x, y, 0);
+                    continue;
+                }
+
+                Color color = new Color(rgba);
+                float luminance = 0.299f * color.r + 0.587f * color.g + 0.114f * color.b;
+                float gray = findClosestLevel(luminance, levels);
+
+                int quantized = Color.rgba8888(gray, gray, gray, alpha / 255f);
+                output.drawPixel(x, y, quantized);
+            }
+        }
+        return output;
+    }
+
+    private float[] generateGrayLevels(int maxColors) {
+        float[] levels = new float[maxColors];
+        for (int i = 0; i < maxColors; i++) {
+            levels[i] = i / (float) (maxColors - 1);
+        }
+        return levels;
+    }
+
+    private float findClosestLevel(float luminance, float[] levels) {
+        float closest = levels[0];
+        float minDiff = Math.abs(luminance - closest);
+
+        for (float level : levels) {
+            float diff = Math.abs(luminance - level);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = level;
+            }
+        }
+        return closest;
     }
 
     private Pixmap quantizeToMultiColor(Pixmap input, int maxColors) {
         int width = input.getWidth();
         int height = input.getHeight();
         int[][] pixels = new int[width][height];
+        int[][] alphas = new int[width][height]; // Store alpha values
 
-        // 1. Extract RGB components (without alpha)
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 int rgba = input.getPixel(x, y);
-                // Convert RGBA8888 to RGB888 (mask alpha)
-                int rgb = (rgba >> 8) & 0x00FFFFFF;
-                pixels[x][y] = rgb;
+                pixels[x][y] = (rgba >> 8) & 0x00FFFFFF; // RGB components
+                alphas[x][y] = rgba & 0xFF; // Alpha component
             }
         }
 
-        // 2. Perform color quantization to reduce the number of colors
         int[] colormap = Quantize.quantizeImage(pixels, maxColors);
-
-        // 3. Rebuild the output Pixmap
         Pixmap output = new Pixmap(width, height, Pixmap.Format.RGBA8888);
 
-        // 4. Re-inject the alpha while writing the quantized colors
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 int quantizedRGB = colormap[pixels[x][y]];
-                int alpha = 0xFF; // Hardcoded alpha as full opacity
-                int quantizedRGBA = (quantizedRGB << 8) | alpha; // Combine RGB and alpha
-                output.drawPixel(x, y, quantizedRGBA);
-            }
-        }
-
-        return output;
-    }
-
-    private Pixmap quantizeToBlackAndWhite(Pixmap input) {
-        Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
-        for (int y = 0; y < input.getHeight(); y++) {
-            for (int x = 0; x < input.getWidth(); x++) {
-                Color color = new Color(input.getPixel(x, y));
-                float luminance = (color.r + color.g + color.b) / 3.0f;
-                int quantizedColor = luminance > 0.5f ?
-                        Color.WHITE.toIntBits() :
-                        Color.BLACK.toIntBits();
-                output.drawPixel(x, y, quantizedColor);
+                int alpha = alphas[x][y]; // Preserve original alpha
+                output.drawPixel(x, y, (quantizedRGB << 8) | alpha);
             }
         }
         return output;
     }
+
+
     private void processBezierShape(PEmbroiderGraphicsLibgdx brodery, BezierShape shape) {
         for (BezierCurve curve : shape) {
             BezierUtil.addBezierStitches(brodery, curve);

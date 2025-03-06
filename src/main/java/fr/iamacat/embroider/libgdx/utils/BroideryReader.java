@@ -34,7 +34,7 @@ public class BroideryReader {
             float r = ((color >> 16) & 0xFF) / 255f;
             float g = ((color >> 8) & 0xFF) / 255f;
             float b = (color & 0xFF) / 255f;
-            Color gdxColor = new Color(r, g, b, 1f); // Fully opaque color (alpha = 1)
+            Color gdxColor = new Color(r, g, b, (color >> 24 & 0xFF) / 255f); // Fully opaque color (alpha = 1)
             // Set the color for drawing
             pixmap.setColor(gdxColor);
             // Render each Bezier curve
@@ -131,7 +131,7 @@ public class BroideryReader {
                         ((color >> 16) & 0xFF) / 255f,
                         ((color >> 8) & 0xFF) / 255f,
                         (color & 0xFF) / 255f,
-                        1f
+                        (color >> 24 & 0xFF) / 255f
                 );
 
                 if (prevX != -1 && prevY != -1) {
