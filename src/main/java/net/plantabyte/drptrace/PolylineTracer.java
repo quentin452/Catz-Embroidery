@@ -4,7 +4,6 @@ import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.geometry.Vec2;
 import java.util.ArrayList;
 import java.util.List;
-// TODO IF interval is high it should decrease stitchs count instead of increasing it
 
 public class PolylineTracer extends Tracer {
 	private final int interval;
