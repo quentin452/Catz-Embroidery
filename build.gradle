@@ -9,7 +9,7 @@ plugins {
 group = 'org.example'
 version = '1.0-SNAPSHOT'
 ext {
-    visuiVersion = '1.5.5'  // Remplacez par la version appropriée de VisUI
+    visuiVersion = '1.5.5'
 }
 
 repositories {
@@ -17,16 +17,13 @@ repositories {
     maven { url "https://maven.org/processing" }
     maven { url "https://jogamp.org/deployment/maven"}
 }
-javafx {
-    version = '17.0.6'
-    modules = ['javafx.controls', 'javafx.fxml', 'javafx.swing' , 'javafx.media']
-}
+
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.9'
-    implementation 'javax.xml.bind:jaxb-api:2.1'
+    implementation 'com.google.code.gson:gson:2.12.1'
+    implementation 'javax.xml.bind:jaxb-api:2.4.0-b180830.0359'
     implementation 'com.yuvimasory:orange-extensions:1.3.0'
-    implementation 'com.dropbox.core:dropbox-core-sdk:4.0.0'
-    testImplementation platform('org.junit:junit-bom:5.10.0')
+    implementation 'com.dropbox.core:dropbox-core-sdk:7.0.0'
+    testImplementation platform('org.junit:junit-bom:5.12.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
 
@@ -74,33 +71,6 @@ launch4j {
     outfile = 'Catz-EmbroideryLauncher.exe'
     copyConfigurable = files(tasks.named("shadowJar").get().archiveFile)
 }
-
-tasks.register('buildEditor', ShadowJar) {
-    archiveFileName = 'PEmbroiderEditor.jar'
-    manifest {
-        attributes 'Main-Class': 'fr.iamacat.pembroider_editor.Main'
-    }
-}
-
-tasks.register('buildConverter', ShadowJar) {
-    archiveFileName = 'PEmbroiderConverter.jar'
-    manifest {
-        attributes 'Main-Class': 'fr.iamacat.pembroider_converter.Main'
-    }
-}
-tasks.register('buildViewer', ShadowJar) {
-    archiveFileName = 'PEmbroiderConverter.jar'
-    manifest {
-        attributes 'Main-Class': 'fr.iamacat.pembroider_viewer.Main'
-    }
-}
-tasks.register('buildInfiniteDraw', ShadowJar) {
-    archiveFileName = 'PEmbroiderInfiniteDraw.jar'
-    manifest {
-        attributes 'Main-Class': 'fr.iamacat.pembroider_infinitedraw.Main'
-    }
-}
 tasks.named("build") {
-    dependsOn buildEditor, buildConverter, buildViewer, buildInfiniteDraw
     finalizedBy tasks.named("createExe")
 }
