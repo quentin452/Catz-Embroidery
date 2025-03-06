@@ -300,24 +300,4 @@ public final class BezierCurve {
 	public int hashCode() {
 		return Arrays.hashCode(p);
 	}
-
-	public double approximateLength() {
-		Vec2 prev = getPoint(0);
-		double length = 0;
-		for (double t = 0.1; t <= 1.0; t += 0.1) {
-			Vec2 next = getPoint(t);
-			length += prev.dist(next);
-			prev = next;
-		}
-		return length;
-	}
-
-	public Vec2 getPoint(double t) {
-		// Standard Bezier curve calculation
-		double u = 1 - t;
-		return p[0].mul(u*u*u)
-				.add(p[1].mul(3*u*u*t))
-				.add(p[2].mul(3*u*t*t))
-				.add(p[3].mul(t*t*t));
-	}
 }
