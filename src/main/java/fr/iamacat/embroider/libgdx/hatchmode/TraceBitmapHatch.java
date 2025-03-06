@@ -46,7 +46,7 @@ public class TraceBitmapHatch extends BaseHatch {
         int height = input.getHeight();
         int[][] pixels = new int[width][height];
 
-        // 1. Extract correct RGB composants (without alpha)
+        // 1. Extract RGB components (without alpha)
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 int rgba = input.getPixel(x, y);
@@ -56,20 +56,25 @@ public class TraceBitmapHatch extends BaseHatch {
             }
         }
 
+        // 2. Perform color quantization to reduce the number of colors
         int[] colormap = Quantize.quantizeImage(pixels, maxColors);
+
+        // 3. Rebuild the output Pixmap
         Pixmap output = new Pixmap(width, height, Pixmap.Format.RGBA8888);
 
-        // 2. Reinject alpha when writing
+        // 4. Re-inject the alpha while writing the quantized colors
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 int quantizedRGB = colormap[pixels[x][y]];
-                int quantizedRGBA = (quantizedRGB << 8) | 0xFF; // Alpha to 255
+                int alpha = 0xFF; // Hardcoded alpha as full opacity
+                int quantizedRGBA = (quantizedRGB << 8) | alpha; // Combine RGB and alpha
                 output.drawPixel(x, y, quantizedRGBA);
             }
         }
 
         return output;
     }
+
     private Pixmap quantizeToBlackAndWhite(Pixmap input) {
         Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
         for (int y = 0; y < input.getHeight(); y++) {
