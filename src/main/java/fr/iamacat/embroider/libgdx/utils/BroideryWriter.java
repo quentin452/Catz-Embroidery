@@ -8,6 +8,10 @@ import com.badlogic.gdx.math.Vector2;
 import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.geometry.Vec2;
+import org.embroideryio.embroideryio.EmbConstant;
+import org.embroideryio.embroideryio.EmbPattern;
+import org.embroideryio.embroideryio.EmbThread;
+import org.embroideryio.embroideryio.PesWriter;
 
 import java.awt.geom.Point2D;
 import java.io.*;
@@ -21,29 +25,52 @@ public class BroideryWriter {
 	public static String TITLE = null;
 	public static void saveBezierShapesAsPES(String filename, List<BezierShape> shapes, float width, float height) {
 		try {
-			float[] bounds = {0, 0, width, height};
-			ArrayList<Vec2> stitches = new ArrayList<>();
-			ArrayList<Integer> colors = new ArrayList<>();
-			ArrayList<Boolean> jumps = new ArrayList<>();
+			EmbPattern pattern = new EmbPattern();
 
-			for (BezierShape shape : shapes) {
-				int color = shape.getColor();
-				for (BezierCurve curve : shape) {
-					List<Vec2> sampledPoints = BezierUtil.sampleBezierCurve(curve);
-					for (int i = 0; i < sampledPoints.size(); i++) {
-						Vec2 point = sampledPoints.get(i);
-						stitches.add(point);
-						colors.add(color);
-						jumps.add(i == 0);
+			if (!shapes.isEmpty()) {
+				// Assume all shapes share the same color; adjust if needed
+				int color = shapes.get(0).getColor();
+				EmbThread thread = new EmbThread(color);
+				pattern.addThread(thread);
+
+				Vec2 lastPosition = null;
+				for (BezierShape shape : shapes) {
+					boolean firstPointInShape = true;
+					for (BezierCurve curve : shape) {
+						List<Vec2> sampledPoints = BezierUtil.sampleBezierCurve(curve);
+						for (Vec2 point : sampledPoints) {
+							float x = (float) point.x;
+							float y = (float) point.y;
+							if (firstPointInShape) {
+								// JUMP only if not starting from the last point
+								if (lastPosition == null || !isConnected(lastPosition, point)) {
+									pattern.addStitchAbs(x, y, EmbConstant.JUMP);
+								}
+								firstPointInShape = false;
+							} else {
+								pattern.addStitchAbs(x, y, EmbConstant.STITCH);
+							}
+							lastPosition = point;
+						}
 					}
 				}
+				pattern.addStitchAbs(0, 0, EmbConstant.STOP); // Single STOP at the end
 			}
-			PESUtil.write(filename, bounds, stitches, colors, TITLE, jumps);
+
+			PesWriter writer = new PesWriter();
+			writer.set(PesWriter.PROP_PES_VERSION, 6);
+			try (FileOutputStream out = new FileOutputStream(filename + ".pes")) {
+				writer.write(pattern, out);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
+	// Helper method to check continuity between shapes
+	private static boolean isConnected(Vec2 last, Vec2 current) {
+		return last.x == current.x && last.y == current.y;
+	}
 	private static void saveBezierShapesAsSVG(String filename, String extension, List<BezierShape> shapes, float width, float height) {
 		try (BufferedWriter out = Files.newBufferedWriter(Paths.get(filename + "." + extension))) {
 			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");

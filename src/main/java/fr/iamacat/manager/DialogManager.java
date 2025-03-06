@@ -50,7 +50,7 @@ public class DialogManager {
         fileChooser.setFileFilter(file -> {
             FileHandle fileHandle = new FileHandle(file);
             String ext = fileHandle.extension().toLowerCase();
-            return file.isDirectory() || (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif")|| ext.equals("svg"));
+            return file.isDirectory() || (ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("bmp") || ext.equals("gif")|| ext.equals("svg")|| ext.equals("pes"));
         });
 
         // Définir un fournisseur d'icônes personnalisé
@@ -75,7 +75,7 @@ public class DialogManager {
                     thumbnail.setMinHeight(iconSize); // Définir la hauteur de l'icône
                     return thumbnail;
                 }
-                if (ext.equals("svg")) {
+                if (ext.equals("svg") || ext.equals("pes")) {
                     Drawable thumbnail = this.style.iconFileImage;
                     thumbnail.setMinWidth(iconSize);  // Définir la largeur de l'icône
                     thumbnail.setMinHeight(iconSize); // Définir la hauteur de l'icône
@@ -122,7 +122,7 @@ public class DialogManager {
                         String filePath = selectedFile.file().getAbsolutePath();
                         String extension = BroideryReader.getFileExtension(filePath);
 
-                        if ("SVG".equalsIgnoreCase(extension)) {
+                        if ("SVG".equalsIgnoreCase(extension) || "PES".equalsIgnoreCase(extension)) {
                             // Handle SVG file
                             Texture texture = BroideryReader.readAsTexture(filePath,500,500);
                             Image newImage = new Image(texture);

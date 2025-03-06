@@ -108,6 +108,7 @@ public class PEmbroiderLauncher extends Game {
                     if (isImageFile(file)) {
                         fr.iamacat.pembroider_converter.Main.enableEscapeMenu = true;
                         loadAndDisplayImage(file);
+                        // TODO SUPPORT SVG , PES AND MORE DROPPED FILES
                     }
                 }
             }

@@ -146,7 +146,7 @@ public class Main extends MainBase {
 
     public static void refreshPreview(){
         if (displayedImage != null) {
-            processImage();
+           processImage(); // TODO THIS CAUSE NOT ENOUGHT MEMORY
         }
     }
     private static void processImage() {

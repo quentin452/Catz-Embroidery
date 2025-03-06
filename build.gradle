@@ -13,9 +13,11 @@ ext {
 }
 
 repositories {
+    google()
     mavenCentral()
     maven { url "https://maven.org/processing" }
     maven { url "https://jogamp.org/deployment/maven"}
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -34,6 +36,8 @@ dependencies {
     implementation 'com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-desktop'
     implementation "com.badlogicgames.gdx:gdx-freetype:1.13.1"
     implementation "com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-desktop"
+
+    implementation 'com.github.EmbroidePy.EmbroideryIO:embroideryio-jvm:0.1.23'
 
     implementation "com.kotcrab.vis:vis-ui:$visuiVersion"
 
@@ -61,8 +65,8 @@ shadowJar {
 launch4j {
     mainClassName = 'fr.iamacat.PEmbroiderLauncher'
     jreMinVersion = '17'
-    initialHeapSize = 512
-    maxHeapSize = 4096
+    initialHeapSize = 1024
+    maxHeapSize = 8192
     jvmOptions = [
             '-XX:+UseZGC'
     ]
