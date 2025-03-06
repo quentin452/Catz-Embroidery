@@ -11,6 +11,7 @@ import net.plantabyte.drptrace.geometry.BezierCurve;
 import net.plantabyte.drptrace.geometry.BezierShape;
 import net.plantabyte.drptrace.intmaps.ZOrderIntMap;
 
+import java.util.Arrays;
 import java.util.List;
 public class TraceBitmapHatch extends BaseHatch {
 
@@ -42,7 +43,7 @@ public class TraceBitmapHatch extends BaseHatch {
 
     private Pixmap quantizeToGrayscale(Pixmap input, int maxColors) {
         Pixmap output = new Pixmap(input.getWidth(), input.getHeight(), Pixmap.Format.RGBA8888);
-        float[] levels = generateGrayLevels(maxColors);
+        float[] levels = generateGrayLevels(Math.min(4,maxColors));
 
         for (int y = 0; y < input.getHeight(); y++) {
             for (int x = 0; x < input.getWidth(); x++) {
@@ -74,18 +75,13 @@ public class TraceBitmapHatch extends BaseHatch {
     }
 
     private float findClosestLevel(float luminance, float[] levels) {
-        float closest = levels[0];
-        float minDiff = Math.abs(luminance - closest);
-
-        for (float level : levels) {
-            float diff = Math.abs(luminance - level);
-            if (diff < minDiff) {
-                minDiff = diff;
-                closest = level;
-            }
+        int index = Arrays.binarySearch(levels, luminance);
+        if (index < 0) {
+            index = -index - 1;
         }
-        return closest;
+        return levels[Math.min(index, levels.length - 1)];
     }
+
 
     private Pixmap quantizeToMultiColor(Pixmap input, int maxColors) {
         int width = input.getWidth();
