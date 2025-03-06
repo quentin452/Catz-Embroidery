@@ -36,6 +36,7 @@ import static net.plantabyte.drptrace.math.Util.RMSE;
  * </p>
  */
 public class PolylineTracer extends Tracer{
+	private int interval;
 	/**
 	 * The <code>PolylineTracer</code> traces paths by detecting corners and
 	 * inflection points, making it potentially a better choice than <code>IntervalTracer</code>
@@ -43,8 +44,11 @@ public class PolylineTracer extends Tracer{
 	 * producing fewer nodes on straight edges and more nodes around small
 	 * features in the path.
 	 */
-	public PolylineTracer(){
-		//
+	public PolylineTracer(int interval) {
+		if (interval < 1) {
+			throw new IllegalArgumentException("Interval must be greater than or equal to 1");
+		}
+		this.interval = interval;
 	}
 	/**
 	 * Traces a series of points as a sequence of bezier curves, looping back to
@@ -61,31 +65,34 @@ public class PolylineTracer extends Tracer{
 	 * invalid (eg too few points)
 	 */
 	@Override
-	public BezierShape tracePath(Vec2[] pathPoints, boolean closedLoop)
-			throws IllegalArgumentException{
-		//
+	public BezierShape tracePath(Vec2[] pathPoints, boolean closedLoop) throws IllegalArgumentException {
 		final int min_pts = closedLoop ? 3 : 2;
 		final int e_offset = closedLoop ? 0 : -1;
-		if(pathPoints.length < min_pts){
-			throw new IllegalArgumentException(String.format("Must have at least %s points to trace %s path",
-					min_pts, closedLoop ? "closed" : "open"));
+		if (pathPoints.length < min_pts) {
+			throw new IllegalArgumentException(String.format("Must have at least %s points to trace %s path", min_pts, closedLoop ? "closed" : "open"));
 		}
+
 		final int fittingWindowSize = 5;
-		final var nodeIndices = new ArrayList<Integer>(pathPoints.length/2);
+		final var nodeIndices = new ArrayList<Integer>(pathPoints.length / 2);
 		nodeIndices.add(0);
-		if(pathPoints.length <= 16) {
+
+		for (int i = 1; i < pathPoints.length; i += interval) {
+			nodeIndices.add(i);
+		}
+
+		if (pathPoints.length <= 16) {
 			// too small for fancy stuff
-			nodeIndices.add(pathPoints.length/4);
-			nodeIndices.add(pathPoints.length/2);
-			nodeIndices.add((3*pathPoints.length)/4);
+			nodeIndices.add(pathPoints.length / 4);
+			nodeIndices.add(pathPoints.length / 2);
+			nodeIndices.add((3 * pathPoints.length) / 4);
 		} else {
 			final double cornerAngleThreshold = 0.75 * Math.PI;
 			final int limit = pathPoints.length - 2;
 			final int quarterCount = Math.max(1, pathPoints.length / 4);
-			double beforeLastAngle = Math.PI; // remember, sharp turn equals small angle
+			double beforeLastAngle = Math.PI;
 			double lastAngle = Math.PI;
 			var curvitureBuffer = new double[pathPoints.length];
-			//Arrays.fill(curvitureBuffer, 0);
+			// Arrays.fill(curvitureBuffer, 0);
 			for (int i = 1; i < limit; i++) {
 				final var p = pathPoints[i];
 				final int start = Math.max(0, i - fittingWindowSize);
@@ -96,75 +103,77 @@ public class PolylineTracer extends Tracer{
 				var angle = p.angleBetween(preWindowAve, postWindowAve);
 				var curviture = Vec2.curvitureOf(preWindowAve, thisWindowAve, postWindowAve);
 				curvitureBuffer[i] = curviture;
+
 				// first, make sure interval is never more than 25% of total path
 				final int lastIndex = nodeIndices.isEmpty() ? 0 : nodeIndices.get(nodeIndices.size() - 1);
 				if ((i - lastIndex) >= quarterCount) {
 					nodeIndices.add(i);
-				} else
 					// second, detect corners
-					if (angle < cornerAngleThreshold && angle > lastAngle && lastAngle < beforeLastAngle) {
-						// local turn maximum just passed (local angle minumum)
-						nodeIndices.add(i - 1);
-					} else
-
-						beforeLastAngle = lastAngle;
+				} else if (angle < cornerAngleThreshold && angle > lastAngle && lastAngle < beforeLastAngle) {
+					// local turn maximum just passed (local angle minumum)
+					nodeIndices.add(i - 1);
+				} else {
+					beforeLastAngle = lastAngle;
+				}
 				lastAngle = angle;
-
 			}
+
 			// third, add inflection points (and then resort to put things back in order)
 			final double[] curvitures = Util.rollingAverage(curvitureBuffer, 7);
 			for (int i = 2; i < curvitures.length - 2; ++i) {
 				if (curvitures[i] < curvitures[i - 1] && curvitures[i - 1] < curvitures[i - 2]
 						&& curvitures[i] < curvitures[i + 1] && curvitures[i + 1] < curvitures[i + 2]) {
-					// i is local minimum, thus is an inflection point
 					nodeIndices.add(i);
 				}
 			}
 			nodeIndices.sort(Integer::compareTo);
 		}
-		nodeIndices.add((pathPoints.length+e_offset)%pathPoints.length);
+
+		nodeIndices.add((pathPoints.length + e_offset) % pathPoints.length);
+
 		// deduplicate (should be a rare occurence)
-		for(int i = nodeIndices.size()-1; i > 0; --i){
-			if(nodeIndices.get(i).equals(nodeIndices.get(i-1))){
+		for (int i = nodeIndices.size() - 1; i > 0; --i) {
+			if (nodeIndices.get(i).equals(nodeIndices.get(i - 1))) {
 				nodeIndices.remove(i);
 			}
 		}
+
 		// now fit to point data
-		final var segments = new BezierShape(nodeIndices.size()+2);
+		final var segments = new BezierShape(nodeIndices.size() + 2);
 		final var startIndices = new ArrayList<Integer>();
 		final var endIndices = new ArrayList<Integer>();
 		segments.setClosed(closedLoop);
-		for(int i = 1; i < nodeIndices.size(); ++i){
-			final int start = nodeIndices.get(i-1);
+
+		for (int i = 1; i < nodeIndices.size(); ++i) {
+			final int start = nodeIndices.get(i - 1);
 			startIndices.add(start);
 			final int end = nodeIndices.get(i);
 			endIndices.add(end);
 			final int endi = end == 0 ? pathPoints.length : end;
 			final var p1 = pathPoints[start];
-			final var p2 = pathPoints[(start+1)% pathPoints.length];
-			final var p3 = pathPoints[(end+pathPoints.length-1)% pathPoints.length];
+			final var p2 = pathPoints[(start + 1) % pathPoints.length];
+			final var p3 = pathPoints[(end + pathPoints.length - 1) % pathPoints.length];
 			final var p4 = pathPoints[end];
 			var bc = new BezierCurve(p1, p2, p3, p4);
-			bc.fitToPoints(pathPoints, start, endi-start);
+			bc.fitToPoints(pathPoints, start, endi - start);
 			segments.add(bc);
 		}
+
 		// smooth out almost smooth nodes
-		final double smoothAngleThreshold = 0.75*Math.PI;
-		for(int n = 0; n < segments.size()-1-e_offset; ++n){
+		final double smoothAngleThreshold = 0.75 * Math.PI;
+		for (int n = 0; n < segments.size() - 1 - e_offset; ++n) {
 			final int start = startIndices.get(n);
 			final int middle = endIndices.get(n);
-			final int end = endIndices.get((n+1)%segments.size());
-			var curr = segments.get(n%segments.size());
-			var next = segments.get((n+1)%segments.size());
+			final int end = endIndices.get((n + 1) % segments.size());
+			var curr = segments.get(n % segments.size());
+			var next = segments.get((n + 1) % segments.size());
 			var angle = curr.getP4().angleBetween(curr.getP3(), next.getP2());
-			if(angle > smoothAngleThreshold) {
+			if (angle > smoothAngleThreshold) {
 				var r = smoothOut(curr, next, pathPoints, start, middle, end == 0 ? pathPoints.length : end);
-				segments.set(n%segments.size(), r[0]);
-				segments.set((n+1)%segments.size(), r[1]);
+				segments.set(n % segments.size(), r[0]);
+				segments.set((n + 1) % segments.size(), r[1]);
 			}
 		}
-
-
 
 		return segments;
 	}

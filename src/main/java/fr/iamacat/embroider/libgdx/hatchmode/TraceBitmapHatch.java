@@ -22,10 +22,10 @@ public class TraceBitmapHatch extends BaseHatch {
     public void apply(PEmbroiderGraphicsLibgdx brodery, Pixmap pixmap, float x, float y) {
         Pixmap quantizedPixmap = quantize(pixmap, brodery.colorMode, brodery.maxColors);
         ZOrderIntMap tracedImage = convertToDrPTraceMap(quantizedPixmap);
-        if (brodery.hatchSpacing <= 1) {
-            brodery.hatchSpacing = 2;
+        if (brodery.hatchSpacing <= 0) {
+            brodery.hatchSpacing = 1;
         }
-        Tracer tracer = new IntervalTracer(brodery.hatchSpacing);
+        Tracer tracer = new PolylineTracer(brodery.hatchSpacing);
         List<BezierShape> shapes = tracer.traceAllShapes(tracedImage);
         for (BezierShape shape : shapes) {
             BezierUtil.addBezierShape(brodery, shape);
