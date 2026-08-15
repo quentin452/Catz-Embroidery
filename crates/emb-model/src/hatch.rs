@@ -1,8 +1,15 @@
 //! Hatch fills, ported from `PEmbroiderGraphics`.
 
+use crate::Error;
 use crate::geom::{self, BCircle, Point};
+use crate::raster::Raster;
+use crate::trace;
 
 const HALF_PI: f32 = std::f32::consts::PI / 2.0;
+
+/// The Java's `CONCENTRIC_ANTIALIGN` default: corners sharper than 0.6 rad
+/// survive the even-level antialias pass.
+const CONCENTRIC_ANTIALIGN: f32 = 0.6;
 
 /// `PEmbroiderGraphics.hatchParallel`: parallel lines across the polygon's
 /// bounding circle, crossing the polygon pairwise. Returns one 2-point
@@ -40,4 +47,42 @@ pub fn hatch_parallel(poly: &[Point], ang: f32, d: f32) -> Vec<Vec<Point>> {
         }
     }
     hatch
+}
+
+/// `PEmbroiderGraphics.isolines(im, d)`: the CONCENTRIC/SPIRAL raster hatch.
+/// Each distance-transform level is traced and simplified; even levels get the
+/// antialign pass (sharp corners kept, midpoints inserted).
+pub fn isolines(raster: &Raster, d: f32) -> Result<Vec<Vec<Point>>, Error> {
+    let isos = trace::find_isolines(raster, -1, d)?;
+    let mut polys: Vec<Vec<Point>> = Vec::new();
+    for (i, level) in isos.iter().enumerate() {
+        for poly in level {
+            if CONCENTRIC_ANTIALIGN > 0.0 && i % 2 == 0 {
+                let mut qq: Vec<Point> = Vec::new();
+                for k in 0..poly.len() + 1 {
+                    if k != poly.len() {
+                        let a = poly[(k + poly.len() - 1) % poly.len()];
+                        let b = poly[k];
+                        let c = poly[(k + 1) % poly.len()];
+                        let u = Point::new(b.x - a.x, b.y - a.y);
+                        let v = Point::new(c.x - b.x, c.y - b.y);
+                        let mut ang = Point::angle_between(u, v).abs();
+                        if ang > std::f32::consts::PI {
+                            ang = std::f32::consts::TAU - ang;
+                        }
+                        if ang > CONCENTRIC_ANTIALIGN {
+                            qq.push(b);
+                        }
+                    }
+                    let pa = poly[k % poly.len()];
+                    let pb = poly[(k + 1) % poly.len()];
+                    qq.push(Point::new(pa.x * 0.5 + pb.x * 0.5, pa.y * 0.5 + pb.y * 0.5));
+                }
+                polys.push(qq);
+            } else {
+                polys.push(poly.clone());
+            }
+        }
+    }
+    Ok(polys)
 }

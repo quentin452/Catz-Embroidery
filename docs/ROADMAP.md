@@ -21,14 +21,14 @@ and a row is `done` only when its exit criteria run green.**
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
 
-> **M2 progress (2026-08-16, slice 2):** raster path — `Raster` (binary mask),
-> `trace` (findContours + approxPolyDP), `hatch_parallel_raster`,
-> `resample_cross_intersection` + the CROSS assembly (the converter's PARALLEL
-> and CROSS modes). All tolerance-compared against headless Java fixtures.
-> Slice 1 delivered the model core, geometry, resample, hatch_parallel, TSP.
-> Still to port inside M2: hatch CONCENTRIC/SPIRAL/PERLIN (isolines, perlinField),
-> stroke (perpendicular/tangent — _stroke + strokePolyNormal), inset/offset,
-> satin.
+> **M2 progress (2026-08-16, slice 3a):** `isolines` (CONCENTRIC/SPIRAL raster
+> modes) — Meijster distance transform + contour tracing + the antialign pass.
+> Slices 1-2 delivered the model core, geometry, resample, hatch_parallel, TSP,
+> trace, hatchParallelRaster and the CROSS assembly. **Deferred by D003 (Java2D
+> rasterization):** PERLIN, strokes, spirals v2-v4, offset/inset — eleven
+> families render through `app.createGraphics`; they enter with the converter
+> (M5). Remaining in M2's vector-pure scope: `hatchParallelComplex`,
+> `hatchInset` (the editor's CONCENTRIC), satin.
 >
 > **Named exceptions (pin 3):** `resample(randomize != 0)` refuses with an error —
 > no consumer uses it (RESAMPLE_NOISE = 0 everywhere); queued until a consumer asks.

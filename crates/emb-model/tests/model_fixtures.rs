@@ -221,3 +221,10 @@ fn cross_mode_matches_the_converter_path() {
     .expect("cross hatch");
     assert_polylines_close(&got, &expected, TOLERANCE_MM);
 }
+
+#[test]
+fn isolines_match_the_concentric_path() {
+    let expected = fixture_polylines("isolines.txt");
+    let got = hatch::isolines(&circle_mask(), 4.0).expect("isolines");
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}

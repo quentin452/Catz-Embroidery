@@ -131,6 +131,11 @@ public class GenModelFixtures {
         dumpPolylines(cr, E.resampleCrossIntersection(cross, PApplet.QUARTER_PI, 4f, 10f, 0.5f, 0f));
         cr.close();
 
+        // CONCENTRIC/SPIRAL raster mode: the distance-transform isolines.
+        PrintWriter is = new PrintWriter("fixtures/model/isolines.txt", "UTF-8");
+        dumpPolylines(is, E.isolines(circle, 4f));
+        is.close();
+
         System.out.println("model fixtures written");
     }
 }
