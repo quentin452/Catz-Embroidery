@@ -13,7 +13,7 @@ and a row is `done` only when its exit criteria run green.**
 |---|---|---|---|
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
 | M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
-| M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | planned |
+| M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (see D003 deferrals below) |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | planned |
 | M4 | editor | stitch editing on real files; save via emb-data | planned |
 | M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
@@ -21,13 +21,14 @@ and a row is `done` only when its exit criteria run green.**
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
 
-> **M2 progress (2026-08-16, slice 3b):** `hatchParallelComplex` (holes via the
-> even-odd rule) — the last vector-pure algorithm. Slices 1-3a delivered the
-> model core, geometry, resample, hatch_parallel, TSP, trace,
-> hatchParallelRaster, CROSS and isolines. **Deferred by D003 (Java2D
-> rasterization):** PERLIN, strokes, spirals v2-v4, offset/inset, hatchInset,
-> satin — plus `offsetPolygon`'s random fragment culling (measured,
-> docs/LESSONS.md). They enter with the converter (M5).
+> **M2 is done with named deferrals (D003):** every vector-pure algorithm is
+> ported and tolerance-compared against headless Java fixtures — model core,
+> geometry, resample, hatch_parallel, hatchParallelComplex, TSP, trace
+> (findContours + approxPolyDP), hatchParallelRaster + CROSS, isolines.
+> Deferred to the converter phase (M5): PERLIN, strokes, spirals v2-v4,
+> offset/inset, hatchInset, satin — each renders through `app.createGraphics`
+> (Java2D rasterization) and/or `app.random` (measured in docs/LESSONS.md and
+> ruled in docs/decisions/D003.md).
 >
 > **Named exceptions (pin 3):** `resample(randomize != 0)` refuses with an error —
 > no consumer uses it (RESAMPLE_NOISE = 0 everywhere); queued until a consumer asks.
