@@ -136,6 +136,19 @@ public class GenModelFixtures {
         dumpPolylines(is, E.isolines(circle, 4f));
         is.close();
 
+        // Complex polygon with a hole: the L-shape plus an inner square.
+        ArrayList<ArrayList<PVector>> complex = new ArrayList<>();
+        complex.add(L);
+        ArrayList<PVector> hole = new ArrayList<>();
+        float[][] hpts = {{55f, 20f}, {75f, 20f}, {75f, 40f}, {55f, 40f}};
+        for (float[] p : hpts) {
+            hole.add(new PVector(p[0], p[1]));
+        }
+        complex.add(hole);
+        PrintWriter cp = new PrintWriter("fixtures/model/parallelcomplex.txt", "UTF-8");
+        dumpPolylines(cp, E.hatchParallelComplex(complex, 0.3f, 4f));
+        cp.close();
+
         System.out.println("model fixtures written");
     }
 }

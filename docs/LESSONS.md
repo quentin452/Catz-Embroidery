@@ -130,3 +130,12 @@ invisible in the output.
 the hole/parent bookkeeping of the 3-argument variant, which no consumer uses
 (the converter calls the 2-argument version).
 **Ruling:** not ported; noted here so nobody re-adds it "for completeness".
+
+### offsetPolygon is raster- AND random-dependent
+**Measurement:** beyond the createGraphics raster (the fill + miter stroke
+"ring" filter, D003), `offsetPolygon` culls its self-intersection fragments
+with up to 5 × 99 `randomPointInPolygon` samples (`app.random`) — the fragment
+survival is non-deterministic per run. `hatchInset` (the editor's CONCENTRIC)
+inherits both via `insetPolygon → offsetPolygon`.
+**Ruling:** joins the D003 deferred class; the random sampling alone would make
+a fixture comparison meaningless even with a rasterizer.

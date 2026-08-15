@@ -228,3 +228,19 @@ fn isolines_match_the_concentric_path() {
     let got = hatch::isolines(&circle_mask(), 4.0).expect("isolines");
     assert_polylines_close(&got, &expected, TOLERANCE_MM);
 }
+
+/// The L-shape plus an inner hole square the Java generator hatches.
+fn complex_polys() -> Vec<Vec<Point>> {
+    let hole = [(55.0, 20.0), (75.0, 20.0), (75.0, 40.0), (55.0, 40.0)];
+    vec![
+        l_shape(),
+        hole.iter().map(|&(x, y)| Point::new(x, y)).collect(),
+    ]
+}
+
+#[test]
+fn hatch_parallel_complex_handles_the_hole() {
+    let expected = fixture_polylines("parallelcomplex.txt");
+    let got = hatch::hatch_parallel_complex(&complex_polys(), 0.3, 4.0);
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}

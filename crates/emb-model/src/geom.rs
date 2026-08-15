@@ -116,6 +116,26 @@ pub fn segment_intersect_polygon(p0: Point, p1: Point, poly: &[Point]) -> Vec<Po
         .collect()
 }
 
+/// `PEmbroiderGraphics.segmentIntersectPolygons`: all intersections of a segment
+/// with several polygons' edges, sorted by the segment's lerp parameter.
+pub fn segment_intersect_polygons(p0: Point, p1: Point, polys: &[Vec<Point>]) -> Vec<Point> {
+    let mut iparams: Vec<f32> = Vec::new();
+    for poly in polys {
+        for i in 0..poly.len() {
+            let v0 = poly[i];
+            let v1 = poly[(i + 1) % poly.len()];
+            if let Some((t, _)) = segment_intersect(p0, p1, v0, v1) {
+                iparams.push(t);
+            }
+        }
+    }
+    iparams.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    iparams
+        .iter()
+        .map(|&t| Point::new(p0.x * (1.0 - t) + p1.x * t, p0.y * (1.0 - t) + p1.y * t))
+        .collect()
+}
+
 /// `PEmbroiderGraphics.centerpoint`: the arithmetic mean of the points.
 pub fn centerpoint(poly: &[Point]) -> Point {
     let (mut x, mut y) = (0.0f32, 0.0f32);
