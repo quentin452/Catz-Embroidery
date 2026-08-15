@@ -13,13 +13,22 @@ and a row is `done` only when its exit criteria run green.**
 |---|---|---|---|
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
 | M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
-| M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms byte-compare with Java model outputs on shared fixtures | planned |
+| M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | planned |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | planned |
 | M4 | editor | stitch editing on real files; save via emb-data | planned |
 | M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
 
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
+
+> **M2 progress (2026-08-16, slice 1):** model core (Model, geometry primitives),
+> `resample` (deterministic path), `hatch_parallel`, TSP (`solve` + `Model::optimize`)
+> — all tolerance-compared against headless Java fixtures. Still to port inside M2:
+> hatch CROSS/CONCENTRIC/SPIRAL/PERLIN, stroke (perpendicular/tangent), inset/offset,
+> trace (image vectorization), satin.
+>
+> **Named exceptions (pin 3):** `resample(randomize != 0)` refuses with an error —
+> no consumer uses it (RESAMPLE_NOISE = 0 everywhere); queued until a consumer asks.
 
 ## How to resume
 

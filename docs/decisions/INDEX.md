@@ -6,6 +6,7 @@ re-edited except to add history. The table below is the index.
 | # | Ruling | Date |
 |---|---|---|
 | D001 | **Architecture ruling** — workspace shape, crates, dependency directions, rendering choice, format scope | 2026-08-16 |
+| D002 | **Float comparison tolerance** — geometry algorithms compare with |diff| < 0.001 mm; byte-compare stays for the binary writers | 2026-08-16 |
 
 ## Writing a ruling
 

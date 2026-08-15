@@ -37,6 +37,7 @@ name = "emb-model"
 version = "0.1.0"
 dependencies = [
  "emb-data",
+ "thiserror",
 ]
 
 [[package]]

@@ -90,3 +90,26 @@ THREE identical points. The round-trip test pins the read-back exactly.
 **Measurement:** the Java's `pec_encode` applies `flagTrim` only in the `i == 0`
 branch; later long forms are `0x80xx`, not `0xA0xx` (byte 728 of `simple.pes`).
 **Ruling:** replicated exactly — this is what the fixture says.
+
+### TSP trials >= 3 are non-deterministic in the Java (Math.random)
+**Measurement:** `PEmbroiderTSP.solve` starts trials 0, 1, 2 at fixed points
+(0, y-min, x-min) and trials >= 3 at `Math.random()` — a design's stitch order
+changes from run to run, and `optimize()` (5 trials) is never reproducible.
+**Ruling:** the Rust port uses a fixed-seed PRNG for trials >= 3 (deterministic
+runs). Fixture tests use trials=3, which is deterministic in both. Noted as a
+design change the Java should have had.
+
+### TSP mutates its input polylines
+**Measurement:** `PEmbroiderTSP.solve` reverses the input polylines in place
+(`Collections.reverse` on the caller's ArrayList instances) — the output shares
+the input's storage.
+**Ruling:** the Rust port takes `&[Vec<Point>]` and returns new reversed copies.
+
+### resample's randomize path is dead weight
+**Measurement:** `PEmbroiderGraphics.resample` rolls random values on EVERY long
+segment (`app.random` + `randomGaussian`) but multiplies them by `randomize`,
+which is 0.0 in every consumer (RESAMPLE_NOISE defaults to 0). The output is
+deterministic; the random calls are noise.
+**Ruling:** the Rust port errors on `randomize != 0` (named exception, queued in
+ROADMAP) and skips the dead random calls — byte-identical output for the ported
+path.
