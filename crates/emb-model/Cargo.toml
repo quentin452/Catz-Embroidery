@@ -10,6 +10,4 @@ workspace = true
 
 [dependencies]
 thiserror = "2"
-
-[dev-dependencies]
 emb-data = { path = "../emb-data" }

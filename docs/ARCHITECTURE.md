@@ -13,7 +13,7 @@ vocabulary crate.
 | Crate | Owns | Depends on |
 |---|---|---|
 | `emb-data` | PES (read+write), DST (write), SVG (write) — typed, bounds-checked, structured errors | — |
-| `emb-model` | the single stitch model (paths, stitches, colours, transforms) + algorithms (hatch, satin, trace, TSP, boolean shapes) | emb-data (tests) |
+| `emb-model` | the single stitch model (paths, stitches, colours, transforms) + algorithms (hatch, satin, trace, TSP, boolean shapes) | emb-data (Design → Model + PES loading; fixtures in tests) |
 | `emb-draw` | the preview draw-list vocabulary + visual identity — one source, renderers can't drift | emb-model |
 | `emb-editor` (app) | interactive editor | emb-data, emb-model, emb-draw |
 | `emb-viewer` (app) | design viewer | emb-model, emb-draw |

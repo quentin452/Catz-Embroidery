@@ -18,7 +18,8 @@ allow = []
 
 [emb-model]
 # The single stitch model + algorithms (hatch, satin, trace, TSP, boolean shapes).
-# Consumes emb-data's types in tests (fixtures).
+# Consumes emb-data at runtime: Design -> Model conversion + the PES loader
+# (Model::from_pes), and in tests (fixtures).
 allow = ["emb-data"]
 
 [emb-draw]

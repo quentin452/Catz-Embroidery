@@ -14,7 +14,7 @@ and a row is `done` only when its exit criteria run green.**
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
 | M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (see D003 deferrals below) |
-| M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | planned |
+| M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **in progress** (emb-draw done + viewer first slice, see wrap) |
 | M4 | editor | stitch editing on real files; save via emb-data | planned |
 | M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
 
@@ -44,28 +44,44 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16)
+### Next-session strategy (wrap 2026-08-16, evening — M3 slice 1)
 
 State: **M0, M1, M2 done** (D003 deferrals named below). Branch `rs-greenfield`.
-All gates green; the Java suite in `src/` is untouched and is the MODEL, never a
-source (pin 2).
+All gates green. M3 slice 1 landed this session: **emb-draw** (the vocabulary:
+`Rgb`, `VisualIdentity`, `Command`, `Bounds`, `DrawList::from_model` — commands
+carry precomputed bounds so culling is O(1) per command) and **emb-viewer**
+(eframe 0.35 glow, open PES via `Model::from_pes`, pan/zoom, viewport culling,
+overview texture cache with LOD switch to vectors when zoomed in). The M3 exit
+criterion is proven headlessly by `crates/emb-draw/tests/real_file.rs` (the
+exact Open… pipeline on the committed fixture); the exe smoke-runs.
 
-1. **M3 — emb-draw + emb-viewer** (the immediate resume):
-   - `emb-draw`: the shared draw-list vocabulary (commands + visual identity) —
-     the contract between the apps and the renderer; emb-model types only.
-   - `emb-viewer`: the first egui/eframe app — **glow backend** (OpenGL 2.1+,
-     D001), viewport culling, overview texture cache. Renders a design loaded
-     via emb-data (PES reader) from the model.
-   - Dependency decisions to make first: egui/eframe version + features
-     (default-features off for wgpu, glow on), and the matrix.toml row for
-     emb-viewer (already `allow = ["emb-model", "emb-draw"]`).
-2. **M4 — emb-editor** (the layer/element model of the Java editor, undo/redo).
-3. **M5 — emb-converter + emb-infinitedraw + emb-launcher + packaging** — the
-   converter reopens the **D003 deferrals**: PERLIN, strokes, spirals v2-v4,
-   offset/inset, hatchInset, satin (all Java2D-rasterized and/or random; see
-   docs/decisions/D003.md and the measured notes in docs/LESSONS.md). The
-   Java2D-rasterization question is decided there (raster-level comparison, a
-   rasterizer port, or a deviation ruling).
+Decisions taken this slice (each documented where it lives):
+
+- **eframe 0.35, not 0.36.1**: 0.36.1 needs rust 1.95, the toolchain is pinned
+  at 1.92.0 (D001). `default-features = false`, `features = ["glow",
+  "default_fonts"]` — wgpu/accesskit/x11/wayland off.
+- **Design → Model conversion lives in emb-model** (`Model::from_design`, split
+  on colour change and jump — the Java SVG writer's rule); **`Model::from_pes`**
+  is the one loader every app uses. The viewer's matrix row stays
+  `["emb-model", "emb-draw"]`; emb-model gained a runtime emb-data dep (its row
+  already allowed it; matrix comment + ARCHITECTURE.md updated in the same
+  commit).
+
+Remaining M3 work (the viewer's first slice is a viewer, not a finished one):
+
+1. **Manual acceptance on real designs** — run the exe on several PES files
+   (designs with jumps, multiple colours, big designs) and check pan/zoom,
+   the texture↔vector LOD switch, and the fit-on-open. The texture switch
+   threshold (`canvas smaller than the cache texels`) is a code-review item
+   until a benchmark gate exists (D001).
+2. **Visual identity tuning** — `VisualIdentity::default()` (white canvas, grey
+   backdrop, 0.4 mm stitch) is a first guess taken from the Java editor's look;
+   tune it from what the screen shows.
+3. **Texture invalidation on edit** is a non-issue until M4 edits; the
+   rasteriser in `apps/emb-viewer/src/overview.rs` is the second renderer of
+   the same draw list — keep it fed from `DrawList`, never from the model.
+
+Then M4 — emb-editor (layer/element model, undo/redo).
 
 ### Deferred by D003 (reopened at M5, converter in front)
 
