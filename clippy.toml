@@ -1,0 +1,9 @@
+# `unwrap_used` is denied workspace-wide (docs/CODE.md). A test may unwrap: its
+# failure IS the report, and there is no author to hand a diagnostic to.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+
+# docs/CODE.md: a file that holds more than one reason to change is two files.
+# This is a nudge, not the rule — the rule is a signal a human reports, because a
+# number that can be raised will be raised.
+too-many-lines-threshold = 400

@@ -40,3 +40,12 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Rust ###
+/target
+**/*.rs.bk
+# Cargo.lock is COMMITTED (reproducible builds across machines, same pin as
+# rust-toolchain.toml) — listed here only to say so.
+
+### Local environment (per-machine, never committed) ###
+.env.local

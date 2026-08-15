@@ -1,0 +1,47 @@
+# The allowed-dependency matrix — the single declaration of which workspace crate may
+# depend on which (docs/ARCHITECTURE.md §1).
+#
+# `tests/arch.rs` holds the manifests on disk to this file: an edge that appears without a row,
+# a row nobody uses, or a listed name that is not a crate, fails `cargo test`.
+# A dependency on a crate not listed here is refused in whatever dependency section it appears —
+# dev-dependencies included, because a test-only edge is still an edge.
+#
+# `all` means every crate under `crates/` + `apps/`, discovered — a crate added later joins
+# the `all` rows without this file changing.
+#
+# Locked by the architecture ruling (docs/decisions/D001.md). `tests/arch.rs` enforces
+# it against the manifests once the crates exist (M0).
+
+[emb-data]
+# Parsers/writers for machine formats (DST, PES, CSV): the leaf. No model dependency.
+allow = []
+
+[emb-model]
+# The single stitch model + algorithms (hatch, satin, trace, TSP, boolean shapes).
+# Consumes emb-data's types in tests (fixtures).
+allow = ["emb-data"]
+
+[emb-draw]
+# The shared preview draw-list vocabulary (commands + visual identity): the contract
+# between the apps and the renderer. A leaf — never pulls an app.
+allow = ["emb-model"]
+
+[emb-editor]
+# The interactive editor (egui): consumes the model, emits the draw list.
+allow = ["emb-data", "emb-model", "emb-draw"]
+
+[emb-viewer]
+# The design viewer: consumes the model, emits the draw list. No formats.
+allow = ["emb-model", "emb-draw"]
+
+[emb-converter]
+# Headless format conversion (DST <-> PES <-> CSV): formats + model only.
+allow = ["emb-data", "emb-model"]
+
+[emb-infinitedraw]
+# The infinite-canvas drawing app: model + draw list.
+allow = ["emb-model", "emb-draw"]
+
+[gates]
+# The cross-crate gate tests: no workspace crate is on their path.
+allow = []

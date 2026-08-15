@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/emb-data",
+    "crates/emb-model",
+    "crates/emb-draw",
+    "apps/emb-editor",
+    "apps/emb-viewer",
+    "apps/emb-converter",
+    "apps/emb-infinitedraw",
+    "tests",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-proprietary"
+publish = false
+
+[workspace.lints.rust]
+# unsafe_code = "forbid" is declared per-crate (docs/decisions/D001.md).
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
