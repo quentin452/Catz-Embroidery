@@ -40,6 +40,40 @@ session left it:
 
 ```powershell
 cargo test --workspace   # expect: all green, incl. the gate tests
+cargo clippy --workspace --all-targets
+cargo fmt --check
 ```
 
-Where the next session starts: the first `planned` row of the phase table.
+### Next-session strategy (wrap 2026-08-16)
+
+State: **M0, M1, M2 done** (D003 deferrals named below). Branch `rs-greenfield`.
+All gates green; the Java suite in `src/` is untouched and is the MODEL, never a
+source (pin 2).
+
+1. **M3 — emb-draw + emb-viewer** (the immediate resume):
+   - `emb-draw`: the shared draw-list vocabulary (commands + visual identity) —
+     the contract between the apps and the renderer; emb-model types only.
+   - `emb-viewer`: the first egui/eframe app — **glow backend** (OpenGL 2.1+,
+     D001), viewport culling, overview texture cache. Renders a design loaded
+     via emb-data (PES reader) from the model.
+   - Dependency decisions to make first: egui/eframe version + features
+     (default-features off for wgpu, glow on), and the matrix.toml row for
+     emb-viewer (already `allow = ["emb-model", "emb-draw"]`).
+2. **M4 — emb-editor** (the layer/element model of the Java editor, undo/redo).
+3. **M5 — emb-converter + emb-infinitedraw + emb-launcher + packaging** — the
+   converter reopens the **D003 deferrals**: PERLIN, strokes, spirals v2-v4,
+   offset/inset, hatchInset, satin (all Java2D-rasterized and/or random; see
+   docs/decisions/D003.md and the measured notes in docs/LESSONS.md). The
+   Java2D-rasterization question is decided there (raster-level comparison, a
+   rasterizer port, or a deviation ruling).
+
+### Deferred by D003 (reopened at M5, converter in front)
+
+PERLIN, strokePolyNormal/Tangent, hatchSpiral_v2-v4, offsetPolygon/inset,
+hatchInset, satin — each renders through `app.createGraphics` (Java2D) and/or
+`app.random`. Do NOT claim any of them ported until a ruling says how they are
+compared.
+
+### Named exceptions (pin 3)
+
+- `resample(randomize != 0)` refuses with an error — no consumer uses it.
