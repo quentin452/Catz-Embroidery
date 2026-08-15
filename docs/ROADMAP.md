@@ -12,7 +12,7 @@ and a row is `done` only when its exit criteria run green.**
 | Phase | Delivers | Exit criteria | Status |
 |---|---|---|---|
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
-| M1 | emb-data: DST/PES/CSV read + write | parsers round-trip on real files; structured errors; no model dependency | planned |
+| M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms byte-compare with Java model outputs on shared fixtures | planned |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | planned |
 | M4 | editor | stitch editing on real files; save via emb-data | planned |

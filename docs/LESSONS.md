@@ -46,3 +46,47 @@ weeks; the matrix gate cannot.
 ## Pending capture
 
 - Nothing in the queue.
+
+---
+
+## Measured defects in the Java model (M1, 2026-08-16)
+
+Each defect is measured (fixtures + probe in `tools/java-fixtures/`) and the Rust
+port deviates deliberately, with the deviation encoded in the fixture tests rather
+than replicated silently.
+
+### DST writer drops the END record
+**Measurement:** `PEmbroiderWriter.java:206-207` encodes the END record and closes
+the stream without writing it; the fixture `simple.dst` has no trailing
+`00 00 F3`. A DST without an END marker is non-conformant (machines stop on file
+end).
+**Ruling:** the Rust writer writes the END record; the fixture test asserts
+`rust == fixture + [0x00, 0x00, 0xF3]`.
+
+### SVG writer is locale-dependent
+**Measurement:** `svgString` uses `String.format("%.3f", ...)` without a locale —
+on a French-locale machine the coordinates are comma-separated (`10,000`) and the
+file is unparsable. Fixtures are therefore generated with
+`-Duser.language=en -Duser.country=US`.
+**Ruling:** the Rust writer always emits dots (`{:.3}`).
+
+### PES reader is fundamentally misaligned
+**Measurement:** `PEmbroiderReader.PES.read` reads the 4-byte PEC offset from the
+v1 header instead of the offset field (`dataOffset = 0xFFFF0001` on our own file),
+the `skipBytes(dataOffset - 16)` is negative and skips nothing, and the reader
+decodes the CEmbOne/CSewSeg text and the PEC icon graphics as a stitch stream —
+it cannot read the files its own writer produces. Reproduced with
+`tools/java-fixtures/PesProbe.java` (committed as the measurement).
+**Ruling:** the Rust reader parses the real PES v1 structure (PEC offset, delta
+records, palette); round-trip `reader(writer(design))` is a test.
+
+### PES writer's first stitch emits two redundant records
+**Measurement:** `pec_encode` writes, for the first stitch: the long-form pair,
+two spare 0x00 bytes, and a short (0,0) record — the first stitch reads back as
+THREE identical points. The round-trip test pins the read-back exactly.
+**Ruling:** kept as-is (byte-fidelity with the Java writer); the test documents it.
+
+### PES long-form records: trim flag only on the first stitch
+**Measurement:** the Java's `pec_encode` applies `flagTrim` only in the `i == 0`
+branch; later long forms are `0x80xx`, not `0xA0xx` (byte 728 of `simple.pes`).
+**Ruling:** replicated exactly — this is what the fixture says.

@@ -49,8 +49,8 @@ Rules a change can violate silently, so each names what catches it.
 ## 3. Structure
 
 ```
-crates/emb-data    parsers/writers for machine formats (DST, PES, CSV) — typed, bounds-checked,
-                   structured errors. No model dependency.
+crates/emb-data    parsers/writers for machine formats (PES read+write, DST and SVG write) —
+                   typed, bounds-checked, structured errors. No model dependency.
 crates/emb-model   the single stitch model + algorithms (hatch, satin, trace, TSP, boolean
                    shapes). Consumes emb-data's types in tests.
 crates/emb-draw    the shared preview draw-list vocabulary (commands + visual identity):

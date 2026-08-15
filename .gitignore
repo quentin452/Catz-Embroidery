@@ -49,3 +49,6 @@ bin/
 
 ### Local environment (per-machine, never committed) ###
 .env.local
+
+### Java fixture tooling (compiled classes) ###
+tools/java-fixtures/out/
