@@ -16,8 +16,10 @@
 //    fixed-seed PRNG there, so fixture tests stay on trials=3.
 
 import processing.core.PApplet;
+import processing.core.PImage;
 import processing.core.PVector;
 import processing.embroider.PEmbroiderGraphics;
+import processing.embroider.PEmbroiderTrace;
 import processing.embroider.PEmbroiderTSP;
 
 import java.io.File;
@@ -91,6 +93,43 @@ public class GenModelFixtures {
         PrintWriter ts = new PrintWriter("fixtures/model/tsp.txt", "UTF-8");
         dumpPolylines(ts, PEmbroiderTSP.solve(tsp, 3, 999));
         ts.close();
+
+        // Binary mask: a filled circle, 40x40, white inside (the thresholded
+        // PImage the converter's image() path would produce).
+        PImage circle = new PImage(40, 40, PApplet.ARGB);
+        circle.loadPixels();
+        for (int i = 0; i < 40 * 40; i++) {
+            int x = i % 40;
+            int y = i / 40;
+            float dx = x - 19.5f;
+            float dy = y - 19.5f;
+            circle.pixels[i] = (dx * dx + dy * dy <= 15f * 15f) ? 0xFFFFFFFF : 0xFF000000;
+        }
+        circle.updatePixels();
+
+        PrintWriter fc = new PrintWriter("fixtures/model/findcontours.txt", "UTF-8");
+        dumpPolylines(fc, PEmbroiderTrace.findContours(circle));
+        fc.close();
+
+        PrintWriter ap = new PrintWriter("fixtures/model/approxpolydp.txt", "UTF-8");
+        ArrayList<ArrayList<PVector>> conts = PEmbroiderTrace.findContours(circle);
+        if (!conts.isEmpty()) {
+            dumpPolyline(ap, PEmbroiderTrace.approxPolyDP(conts.get(0), 1f));
+        }
+        ap.close();
+
+        // The converter's raster path: HATCH_SPACING 4, STITCH_LENGTH 10,
+        // PARALLEL_RESAMPLING_OFFSET_FACTOR 0.5, effective angle QUARTER_PI
+        // (HALF_PI - HATCH_ANGLE with the default HATCH_ANGLE = QUARTER_PI).
+        PrintWriter hr = new PrintWriter("fixtures/model/hatchraster.txt", "UTF-8");
+        dumpPolylines(hr, E.hatchParallelRaster(circle, PApplet.QUARTER_PI, 4f, 1f));
+        hr.close();
+
+        ArrayList<ArrayList<PVector>> cross = E.hatchParallelRaster(circle, PApplet.QUARTER_PI, 4f, 1f);
+        cross.addAll(E.hatchParallelRaster(circle, PApplet.QUARTER_PI + PApplet.HALF_PI, 4f, 1f));
+        PrintWriter cr = new PrintWriter("fixtures/model/cross.txt", "UTF-8");
+        dumpPolylines(cr, E.resampleCrossIntersection(cross, PApplet.QUARTER_PI, 4f, 10f, 0.5f, 0f));
+        cr.close();
 
         System.out.println("model fixtures written");
     }

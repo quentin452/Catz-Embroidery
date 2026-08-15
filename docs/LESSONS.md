@@ -113,3 +113,20 @@ deterministic; the random calls are noise.
 **Ruling:** the Rust port errors on `randomize != 0` (named exception, queued in
 ROADMAP) and skips the dead random calls — byte-identical output for the ported
 path.
+
+### The multi-polygon centerpoint divides by the POLYLINE count, not the point count
+**Measurement:** `PEmbroiderGraphics.centerpoint(polys, 0)` (line 682) sums ALL
+points but divides by `poly.size()` — the number of polylines. For the CROSS
+hatch fixture the resulting bounding circle center is (40, 40) instead of the
+true mean (20, 20); the cross-resampling grid is shifted by that amount.
+Measured by comparing the Rust port's naive mean against the Java's output
+(CrossProbe.java).
+**Ruling:** replicated — the shifted grid produces a valid hatch (same spacing,
+different phase), so fixture fidelity wins over fixing a quirk whose effect is
+invisible in the output.
+
+### The trace's lnbd state is dead for our consumers
+**Measurement:** `PEmbroiderTrace.findContours` maintains `lnbd` only to feed
+the hole/parent bookkeeping of the 3-argument variant, which no consumer uses
+(the converter calls the 2-argument version).
+**Ruling:** not ported; noted here so nobody re-adds it "for completeness".

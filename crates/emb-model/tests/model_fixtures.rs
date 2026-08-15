@@ -10,7 +10,8 @@
 use std::path::PathBuf;
 
 use emb_model::geom::Point;
-use emb_model::{hatch, model::Model, resample, tsp};
+use emb_model::raster::Raster;
+use emb_model::{hatch, hatch_raster, model::Model, resample, trace, tsp};
 
 /// The D002 tolerance: 0.001 mm, 100x finer than the 0.1 mm machine grid.
 const TOLERANCE_MM: f32 = 0.001;
@@ -167,4 +168,56 @@ fn model_optimize_orders_one_colour_block() {
     let expected = fixture_polylines("tsp.txt");
     assert_polylines_close(&m.polylines, &expected, TOLERANCE_MM);
     assert_eq!(m.colors.len(), m.polylines.len());
+}
+
+/// The 40x40 binary circle the Java generator traces and hatches (white inside,
+/// radius 15 at (19.5, 19.5)).
+fn circle_mask() -> Raster {
+    let (w, h) = (40usize, 40usize);
+    let mut px = Vec::with_capacity(w * h);
+    for y in 0..h {
+        for x in 0..w {
+            let dx = x as f32 - 19.5;
+            let dy = y as f32 - 19.5;
+            px.push(dx * dx + dy * dy <= 15.0 * 15.0);
+        }
+    }
+    Raster::new(w, h, px).expect("40x40 pixels")
+}
+
+#[test]
+fn find_contours_traces_the_circle() {
+    let expected = fixture_polylines("findcontours.txt");
+    let got = trace::find_contours(&circle_mask()).expect("contours");
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}
+
+#[test]
+fn approx_poly_dp_simplifies_the_contour() {
+    let expected = fixture_polylines("approxpolydp.txt");
+    let contours = trace::find_contours(&circle_mask()).expect("contours");
+    let got = trace::approx_poly_dp(&contours[0], 1.0);
+    assert_polylines_close(&[got], &expected, TOLERANCE_MM);
+}
+
+#[test]
+fn hatch_parallel_raster_matches() {
+    let expected = fixture_polylines("hatchraster.txt");
+    let got =
+        hatch_raster::hatch_parallel_raster(&circle_mask(), std::f32::consts::PI / 4.0, 4.0, 1.0);
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}
+
+#[test]
+fn cross_mode_matches_the_converter_path() {
+    let expected = fixture_polylines("cross.txt");
+    let got = hatch_raster::hatch_cross_raster(
+        &circle_mask(),
+        std::f32::consts::PI / 4.0,
+        4.0,
+        10.0,
+        0.5,
+    )
+    .expect("cross hatch");
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
 }

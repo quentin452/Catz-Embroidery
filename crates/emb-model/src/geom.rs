@@ -126,6 +126,21 @@ pub fn centerpoint(poly: &[Point]) -> Point {
     Point::new(x / poly.len() as f32, y / poly.len() as f32)
 }
 
+/// `PEmbroiderGraphics.centerpoint(polys, 0)`: sums ALL points but divides by
+/// the POLYLINE count — a measured Java quirk (PEmbroiderGraphics.java:682,
+/// docs/LESSONS.md). Replicated: the shifted cross-grid it produces is a valid
+/// hatch (same spacing, different phase), so fixture fidelity wins.
+pub fn centerpoint_polys(polys: &[Vec<Point>]) -> Point {
+    let (mut x, mut y) = (0.0f32, 0.0f32);
+    for poly in polys {
+        for p in poly {
+            x += p.x;
+            y += p.y;
+        }
+    }
+    Point::new(x / polys.len() as f32, y / polys.len() as f32)
+}
+
 /// `PEmbroiderGraphics.BCircle`: the bounding circle around a polygon.
 #[derive(Debug, Clone, Copy)]
 pub struct BCircle {
@@ -140,6 +155,24 @@ impl BCircle {
         let mut rmax = 0.0f32;
         for p in poly {
             rmax = rmax.max(c.dist(*p));
+        }
+        Self {
+            x: c.x,
+            y: c.y,
+            r: rmax,
+        }
+    }
+
+    /// `BCircle(polys, whatever)`: the bounding circle around several
+    /// polylines (used by the raster hatches). The center comes from the
+    /// Java's quirky `centerpoint(polys, 0)` — see that function's doc.
+    pub fn from_polys(polys: &[Vec<Point>]) -> Self {
+        let c = centerpoint_polys(polys);
+        let mut rmax = 0.0f32;
+        for poly in polys {
+            for p in poly {
+                rmax = rmax.max(c.dist(*p));
+            }
         }
         Self {
             x: c.x,

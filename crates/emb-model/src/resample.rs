@@ -6,15 +6,10 @@
 //! the Java's random values are multiplied by `randomize` so the deterministic
 //! core here produces byte-identical output for `randomize == 0.0`.
 
+use crate::Error;
 use crate::geom::Point;
 
 const MAX_TURN: f32 = 0.2;
-
-#[derive(Debug, thiserror::Error)]
-pub enum ResampleError {
-    #[error("resample randomize != 0 is not ported (no consumer demands it; ROADMAP)")]
-    RandomizeNotPorted,
-}
 
 /// `PEmbroiderGraphics.resample`: merge short segments when the corner turns
 /// less than MAX_TURN, split long segments at max_len intervals.
@@ -24,9 +19,9 @@ pub fn resample(
     max_len: f32,
     randomize: f32,
     randomize_offset: f32,
-) -> Result<Vec<Point>, ResampleError> {
+) -> Result<Vec<Point>, Error> {
     if randomize != 0.0 || randomize_offset != 0.0 {
-        return Err(ResampleError::RandomizeNotPorted);
+        return Err(Error::ResampleRandomizeNotPorted);
     }
     let mut poly2: Vec<Point> = Vec::new();
     if poly.is_empty() {

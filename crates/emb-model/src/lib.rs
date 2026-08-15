@@ -10,6 +10,23 @@
 
 pub mod geom;
 pub mod hatch;
+pub mod hatch_raster;
 pub mod model;
+pub mod raster;
 pub mod resample;
+pub mod trace;
 pub mod tsp;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("resample randomize != 0 is not ported (no consumer demands it; ROADMAP)")]
+    ResampleRandomizeNotPorted,
+    #[error("raster pixel count {found} does not match {width}x{height}")]
+    RasterSizeMismatch {
+        width: usize,
+        height: usize,
+        found: usize,
+    },
+    #[error("contour tracing failed: {0}")]
+    Trace(String),
+}
