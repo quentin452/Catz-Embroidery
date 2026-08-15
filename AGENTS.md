@@ -55,8 +55,8 @@ crates/emb-model   the single stitch model + algorithms (hatch, satin, trace, TS
                    shapes). Consumes emb-data's types in tests.
 crates/emb-draw    the shared preview draw-list vocabulary (commands + visual identity):
                    the contract between the apps and the renderer.
-apps/              thin binaries (editor, viewer, converter, infinite-draw) — egui/eframe
-                   glow backend; the converter is headless.
+apps/              thin binaries (editor, viewer, converter, infinite-draw, launcher hub) —
+                   egui/eframe glow backend; each app is a native exe.
 tools/             CLI helpers (fixture conversion, benching).
 tests/             cross-crate gates (arch.rs holds matrix.toml to the manifests;
                    memory.rs holds memory/MEMORY.md to the directory).

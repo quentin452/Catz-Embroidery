@@ -35,8 +35,12 @@ allow = ["emb-data", "emb-model", "emb-draw"]
 allow = ["emb-model", "emb-draw"]
 
 [emb-converter]
-# Headless format conversion (DST <-> PES <-> CSV): formats + model only.
-allow = ["emb-data", "emb-model"]
+# The image->embroidery app (UI like the Java original): formats + model + draw list.
+allow = ["emb-data", "emb-model", "emb-draw"]
+
+[emb-launcher]
+# The hub (app choice, language, update check): a thin menu, no model knowledge.
+allow = []
 
 [emb-infinitedraw]
 # The infinite-canvas drawing app: model + draw list.

@@ -26,6 +26,10 @@ name = "emb-infinitedraw"
 version = "0.1.0"
 
 [[package]]
+name = "emb-launcher"
+version = "0.1.0"
+
+[[package]]
 name = "emb-model"
 version = "0.1.0"
 dependencies = [

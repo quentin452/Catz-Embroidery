@@ -17,8 +17,9 @@ vocabulary crate.
 | `emb-draw` | the preview draw-list vocabulary + visual identity — one source, renderers can't drift | emb-model |
 | `emb-editor` (app) | interactive editor | emb-data, emb-model, emb-draw |
 | `emb-viewer` (app) | design viewer | emb-model, emb-draw |
-| `emb-converter` (app) | headless format converter | emb-data, emb-model |
+| `emb-converter` (app) | image → embroidery (UI, like the Java original) | emb-data, emb-model, emb-draw |
 | `emb-infinitedraw` (app) | infinite-canvas drawing | emb-model, emb-draw |
+| `emb-launcher` (app) | the hub: app choice, language, update check | — |
 
 ## 2. Rendering
 
@@ -49,6 +50,6 @@ graph), so the divergence that exists between the Java apps cannot recur.
 ## 5. Rejected shapes
 
 Named in D001 with their costs: wgpu backend (DX12/Vulkan required), GDI (Windows-only,
-re-implements everything), iced (second data model), one crate for all apps (leaks egui
-into the headless converter), DST-only first (M4 blocks), porting without fixtures
+re-implements everything), iced (second data model), one crate for all apps (every app
+forced onto the same dependency set), DST-only first (M4 blocks), porting without fixtures
 (0.1 mm errors show on the machine, not in tests).

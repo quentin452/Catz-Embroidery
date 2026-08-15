@@ -16,7 +16,7 @@ and a row is `done` only when its exit criteria run green.**
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms byte-compare with Java model outputs on shared fixtures | planned |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | planned |
 | M4 | editor | stitch editing on real files; save via emb-data | planned |
-| M5 | converter + infinite-draw + packaging | both apps work on real files; exe builds | planned |
+| M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
 
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
