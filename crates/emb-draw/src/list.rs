@@ -137,6 +137,32 @@ impl DrawList {
             b
         }
     }
+
+    /// The union of the polylines' bounds only — the stitched motif, ignoring
+    /// the canvas. What a viewer should fit to: a design whose stitches sit
+    /// far from the declared canvas (offsets, odd hoops) must still be
+    /// centred on what is actually drawn.
+    pub fn content_bounds(&self) -> Bounds {
+        let mut b = Bounds {
+            min_x: f32::INFINITY,
+            min_y: f32::INFINITY,
+            max_x: f32::NEG_INFINITY,
+            max_y: f32::NEG_INFINITY,
+        };
+        for item in &self.items {
+            if matches!(item.command, Command::Polyline { .. }) {
+                b.min_x = b.min_x.min(item.bounds.min_x);
+                b.min_y = b.min_y.min(item.bounds.min_y);
+                b.max_x = b.max_x.max(item.bounds.max_x);
+                b.max_y = b.max_y.max(item.bounds.max_y);
+            }
+        }
+        if b.min_x.is_infinite() {
+            self.bounds()
+        } else {
+            b
+        }
+    }
 }
 
 #[cfg(test)]

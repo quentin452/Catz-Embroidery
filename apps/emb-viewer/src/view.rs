@@ -115,6 +115,7 @@ impl RenderView {
     ) {
         let identity = &draw_list.identity;
         let canvas = draw_list.bounds();
+        let motif = draw_list.content_bounds();
 
         // Backdrop behind the canvas.
         painter.rect_filled(
@@ -131,27 +132,32 @@ impl RenderView {
             self.viewport.mm_to_screen(canvas.min_x, canvas.min_y),
             self.viewport.mm_to_screen(canvas.max_x, canvas.max_y),
         );
-
-        // Overview LOD: when the canvas is small on screen, the cached texture
-        // has all the detail we need and vector work drops to zero.
-        if let Some(o) = overview
-            && canvas_rect.width() < o.size[0] as f32
-            && canvas_rect.height() < o.size[1] as f32
-        {
-            painter.image(
-                o.handle.id(),
-                canvas_rect,
-                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
-                Color32::WHITE,
-            );
-            return;
-        }
+        let motif_rect = Rect::from_min_max(
+            self.viewport.mm_to_screen(motif.min_x, motif.min_y),
+            self.viewport.mm_to_screen(motif.max_x, motif.max_y),
+        );
 
         painter.rect_filled(
             canvas_rect,
             0.0,
             Color32::from_rgb(identity.canvas.r, identity.canvas.g, identity.canvas.b),
         );
+
+        // Overview LOD: when the MOTIF is small on screen, the cached texture
+        // (which covers the motif, not the canvas) has all the detail we need
+        // and vector work drops to zero.
+        if let Some(o) = overview
+            && motif_rect.width() < o.size[0] as f32
+            && motif_rect.height() < o.size[1] as f32
+        {
+            painter.image(
+                o.handle.id(),
+                motif_rect,
+                Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+                Color32::WHITE,
+            );
+            return;
+        }
 
         let visible = self.viewport.visible_mm(panel);
         let width_px = (identity.stitch_width_mm * self.viewport.scale).max(1.0);

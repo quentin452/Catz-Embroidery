@@ -1,12 +1,12 @@
-//! The overview texture cache (D001): the full design rasterised once, drawn
-//! scaled instead of vector-drawn when the design is small on screen.
+//! The overview texture cache (D001): the stitched motif rasterised once,
+//! drawn scaled instead of vector-drawn when the motif is small on screen.
 
 use eframe::egui::{self, Color32, ColorImage, TextureHandle, TextureOptions};
 
-use emb_draw::{Command, DrawList};
+use emb_draw::{Bounds, Command, DrawList};
 use emb_model::geom::Point;
 
-/// Longest side of the cached texture, in texels. The design is scaled to fit.
+/// Longest side of the cached texture, in texels. The motif is scaled to fit.
 const MAX_TEXELS: usize = 2048;
 
 pub struct OverviewTexture {
@@ -16,35 +16,47 @@ pub struct OverviewTexture {
 }
 
 impl OverviewTexture {
-    /// Rasterise the whole draw list once. Called on load only — the design is
+    /// Rasterise the stitched motif once. Called on load only — the design is
     /// static between edits (D001), so the per-frame cost stays near zero.
+    ///
+    /// The texture covers the MOTIF (`content_bounds`), not the canvas: a
+    /// design whose stitches sit far from its declared canvas (offsets, odd
+    /// hoops) must still be rasterised in full. The canvas is painted by the
+    /// viewport as a background rect, not baked into the texture.
     pub fn new(ctx: &egui::Context, draw_list: &DrawList) -> Self {
-        let bounds = draw_list.bounds();
+        let bounds = draw_list.content_bounds();
         let (w_mm, h_mm) = (bounds.max_x - bounds.min_x, bounds.max_y - bounds.min_y);
         let scale = (MAX_TEXELS as f32 / w_mm.max(h_mm).max(1.0)).max(1.0);
         let size = [
             ((w_mm * scale).round() as usize).max(1),
             ((h_mm * scale).round() as usize).max(1),
         ];
-        let mut image = ColorImage::filled(
-            size,
-            color32(
-                draw_list.identity.canvas.r,
-                draw_list.identity.canvas.g,
-                draw_list.identity.canvas.b,
-            ),
-        );
+        let mut image = ColorImage::filled(size, Color32::TRANSPARENT);
         for item in &draw_list.items {
             if let Command::Polyline { points, color, .. } = &item.command {
                 let c = color32(color.r, color.g, color.b);
                 for w in points.windows(2) {
-                    stroke_line(&mut image.pixels, size[0], size[1], w[0], w[1], scale, c);
+                    stroke_line(
+                        &mut image.pixels,
+                        size[0],
+                        size[1],
+                        translate(w[0], &bounds),
+                        translate(w[1], &bounds),
+                        scale,
+                        c,
+                    );
                 }
             }
         }
         let handle = ctx.load_texture("overview", image, TextureOptions::LINEAR);
         Self { handle, size }
     }
+}
+
+/// The motif's origin may be far from (0, 0) — offset points so the texture
+/// pixel grid starts at the motif's own corner.
+fn translate(p: Point, bounds: &Bounds) -> Point {
+    Point::new(p.x - bounds.min_x, p.y - bounds.min_y)
 }
 
 /// Stamp a thick line between two design-space points into the pixel buffer.
