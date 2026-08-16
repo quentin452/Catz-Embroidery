@@ -8,6 +8,7 @@
 //! Java-generated fixtures with a 0.001 mm tolerance (docs/decisions/D002.md):
 //! last-ulp libm differences are noise, the machine grid is 0.1 mm.
 
+pub mod convert;
 pub mod geom;
 pub mod hatch;
 pub mod hatch_raster;
@@ -22,6 +23,10 @@ pub mod tsp;
 pub enum Error {
     #[error("resample randomize != 0 is not ported (no consumer demands it; ROADMAP)")]
     ResampleRandomizeNotPorted,
+    #[error(
+        "PERLIN hatch is not ported (D003/D005): the Java walks app.noise through a Java2D raster; refuses until a consumer demands it"
+    )]
+    PerlinNotPorted,
     #[error("raster pixel count {found} does not match {width}x{height}")]
     RasterSizeMismatch {
         width: usize,
