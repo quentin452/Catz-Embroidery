@@ -59,15 +59,15 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, night — M5 done)
+### Next-session strategy (wrap 2026-08-16, late night — M5 done, parity audited)
 
-State: **M0-M5 done.** M5: converter ACCEPTED, infinite canvas ACCEPTED
-(user verdict 2026-08-16), launcher accepted (buttons work), packaging
-done — `tools/package-release.ps1` builds the release exes into `dist/`
-(git-ignored), the launcher's GitHub update check is live (see below).
+State: **M0-M5 done** (phase table: M5 done, packaging user-acceptance
+pending). 4 commits this session (aa084f1, ba0087f, 609e8de + this wrap).
+Working tree clean, gates green (`cargo test --workspace` incl. the gate
+tests, `cargo clippy --workspace --all-targets`, `cargo fmt --check`).
 Branch `rs-greenfield`.
 
-**Done this session (M5 close-out, after the 11-commit b174372..be8eb54 run):**
+**Done this session (after the 11-commit b174372..be8eb54 run):**
 
 - **Stroke oracle perf fix** (the converter froze on a big stroke_weight):
   exact `SegmentGrid` index in `emb-model`'s PERPENDICULAR stroke (D004
@@ -85,13 +85,21 @@ Branch `rs-greenfield`.
   **Note:** GitHub already carries release `V0.2.0` (the Java's tag), so the
   launcher WILL offer it as an update until the first Rust release is
   published (a `v0.1.0` tag makes the check go quiet).
+- **Parity audit** (4 parallel agents, Java suite vs Rust — see the audit
+  section at the bottom): every named deferral verified true against the
+  code; stale docs fixed (D001 line counts, convert.rs clamp citation,
+  launcher Dropbox pointer). Then ported the unlisted gaps: shared exit
+  dialog (`emb_egui::exit_dialog`, editor + converter), 42×42 layer
+  thumbnails (editor), P-key preview toggle (converter); ESC kept as a
+  documented deviation. Remaining named exceptions: FPS/V-sync, i18n,
+  Dropbox (launcher + save), DRUNK.
 
 **Next (prioritised, 1 = resume immediately):**
 
 1. **Accept the packaging** (built, not accepted): run
    `tools/package-release.ps1`, then `dist\emb-launcher.exe` and click the
-   three buttons (they must launch the packaged siblings). Then M5's exit
-   criteria are all green and the phase table can claim done.
+   three buttons (they must launch the packaged siblings). With that, M5's
+   exit criteria are all green AND user-accepted.
 2. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
    Java's infinite-draw is an empty skeleton, so the app is greenfield.
    `catz-render` is already decoupled (GPU-only, headless boot, offscreen
@@ -104,7 +112,11 @@ Branch `rs-greenfield`.
    (hatchInset), the stroke mode toggle (TANGENT).
 4. **Converter follow-ups** (queued): PES input (rasterize a .pes back
    through the pipeline), the progress bar / background thread, Dropbox
-   save (not ported).
+   save (not ported). The progress bar also kills the frozen-UI aspect of
+   the stroke sample-count floor (perf note below).
+5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
+   update check (it currently offers the Java's `V0.2.0`) and gives the
+   packaging a real distributable.
 
 > **2026-08-16 perf, stroke bottleneck (fixed):** a big stroke_weight froze
 > the converter. Cause: `stroke_poly_normal`'s oracle scanned every segment
@@ -117,7 +129,7 @@ Branch `rs-greenfield`.
 > sample count itself, quadratic in the weight — the Java pays it too, so
 > the converter UI caps stroke_weight at 64 px with a tooltip explaining
 > the cost (2026-08-16); the queued background-thread item (next-session
-> #5) will make even the cap-free case non-blocking.
+> #4) will make even the cap-free case non-blocking.
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 
