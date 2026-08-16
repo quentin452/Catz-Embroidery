@@ -59,91 +59,63 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, late — converter slice 1 accepted)
+### Next-session strategy (wrap 2026-08-16, night — M5 nearly done)
 
-State: **M0-M4 done, M5 slice 1 (converter) ACCEPTED 2026-08-16** (cat.png,
-Java vs Rust PNG comparison — every measured difference maps to a ruled
-deviation, see below). Branch `rs-greenfield`. Working tree clean, gates
-green.
+State: **M0-M4 done; M5: converter ACCEPTED, launcher built, infinite
+canvas + LIN tools + performance done; packaging is the last M5 piece.**
+Branch `rs-greenfield`. Working tree clean, gates green
+(`cargo test --workspace` incl. the gate tests, `cargo clippy
+--workspace --all-targets`, `cargo fmt --check`).
 
-**Done this session (M5 slice 1, converter):**
+**Done this session (11 commits, b174372..be8eb54):**
 
-- `emb_model::convert` (D005): the whole raster pipeline — binarize (the
-  THRESHOLD max(r,g,b) >= 127 gate) → findContours → drop <3 →
-  approxPolyDP(1) → fill (PARALLEL/CROSS/CONCENTRIC/SPIRAL) →
-  PERPENDICULAR outline (D004) → colors (B&W black / MultiColor
-  deterministic palette / Realistic histogram+resample) — 12 invariant +
-  determinism tests; PERLIN refuses (`Error::PerlinNotPorted`, disabled in
-  the UI, D005).
-- `emb_converter` app: load button / drag-drop / Ctrl+V (arboard), the
-  Java's control surface (hatch+color dropdowns, fill toggle, spacing,
-  stroke weight, max colors, export mm), source image + stitched preview
-  overlaid through the shared draw list, save → optimize() → centred
-  PES/DST/SVG (never scaled, D005). E2E test: PNG file → pipeline → PES →
-  read-back.
-- D006 (found by the first real multicolor fill): the PES palette is the
-  design's unique colours, clamped to the 256 the count byte can express;
-  the reader wraps colour changes onto the palette.
-- Shared save helpers extracted (derivation, not a copy): `emb_data::
-  write_design` + `file_title`, `Model::centered_design(title, w, h)` — the
-  editor now calls them too.
-- `tools/java-fixtures/GenConverterPng.java`: the headless Java acceptance
-  harness (also measured the Java's flat-stream multicolor artifact:
-  `pushPolyline` adds N-1 colour entries per polyline, the writer reads one
-  per polyline — `colors.size() == polylines.size()` despite 48.6 avg
-  points per polyline, colours cycle `gc[j % k]`).
+- **M5 slice 1 — converter** (D005): `emb_model::convert` (the whole raster
+  pipeline, 12 invariant tests; PERLIN refuses), the `emb_converter` app
+  (Java control surface, drag-drop/clipboard, stitched preview, PES/DST/SVG
+  save), shared save helpers (`emb_data::write_design`/`file_title`,
+  `Model::centered_design`). **ACCEPTED on cat.png** vs the Java harness
+  (`tools/java-fixtures/GenConverterPng.java`; measured: outline 197=197,
+  cross 1745 vs 1746; the pixel diff = the ruled D004/D005 deviations).
+- **D006 + D007** (found by real files): the PES palette clamps to the 256
+  the count byte can express; the writer measures deltas from the offset
+  origin (the Java disagrees with its own offset words).
+- **emb-launcher** (thin hub: version, en/fr, spawns the sibling exes).
+- **Infinite canvas in emb-editor** (greenfield — the Java's infinite-draw
+  is an empty skeleton): `Infinite` toggle (fit + save on the content).
+- **Performance, measured**: the preview ran the TSP per refresh (D008: the
+  TSP now stops at the first non-improving pass — a 4-circle save 265 s →
+  0.34 s); edit-drag re-stitches at drag-stop; edit handles culled;
+  **emb-egui** — the shared batched renderer (ONE mesh per frame, the three
+  apps' single paint path).
+- **Editor tools all coherent** (user verdict): LIN elements stitch via the
+  D004 stroke (their M5 consumer — rasterised line contour, layer stroke
+  settings in the layer row), raw TXT drafts drawn, and the element-local
+  mask projection fixed (contours must return to the design space).
+- **Save path audited end to end** (polygon + LIN, bounded + infinite,
+  PES/DST/SVG): formats handle centred/negative designs; E2E regression
+  test added.
 
-**Measured acceptance facts (cat.png):** outline polylines **197 = 197**
-(Java = Rust); cross fill 1745 vs 1746 (one bar at a contour seam — the
-D004 comparison level). The outline pixel diff = the two ruled deviations
-(D004 stroke: the Java's thin fringe offset from the contour vs the port's
-ribbon on the path — 2.08× painted pixels; D005 colours) + the D005-noted
-resize pre-step (fill lines differ ~10% on real-image edges; the M2 fixture
-fills are solid shapes, unaffected). Harness trap (in its header): a
-headless `PGraphicsJava2D` needs `colorMode()` — `PApplet.color()` delegates
-to `g.color()` when `g != null`, and uninitialized colorMode fields are 0.
+**Next (prioritised, 1 = resume immediately):**
 
-**Next (the roadmap's M5 order):**
-
-1. ~~emb-launcher~~ — **built 2026-08-16** (thin egui menu, matrix
-   `allow = []`: version line, en/fr dropdown, editor/converter/viewer
-   buttons that spawn the sibling exes; the Java's viewer was a TODO, ours
-   exists). Not accepted yet — `cargo run -p emb-launcher`, click the
-   buttons. Not ported (nothing consumes them today): the GitHub update
-   check (no releases exist; lands with packaging) and Dropbox connect
-   (save paths are local-only).
-2. **Infinite canvas in emb-editor — built 2026-08-16** (the "éditeur sans
-   contraintes de canvas", greenfield: the Java has no model — its
-   infinite-draw is an empty skeleton). The `Infinite` toggle in the
-   toolbar: no hoop (the view fits the drawn content,
-   `Document::content_bounds`), the save centres on the content
-   (`write_out_content_centered`). The build exposed **D007**: the PES
-   writer measured deltas from 0 while its offset words declared the origin
-   `-bounds[0]` — a latent misalignment for any nonzero-origin design
-   (fixed: deltas from the origin; M1 fixtures unchanged). Not accepted
-   yet: draw away from the origin in infinite mode, save, reload in the
-   viewer.
-   **The freeze fixed the same session (measured, D008):** the preview ran
-   the TSP on every refresh (the Java optimises only at save) — O(999·n²),
-   73 ms of TSP for 9 ms of stitching on one circle, 4 circles = minutes.
-   Now: the preview stitches only (28 ms for 4 circles), the save runs the
-   TSP once, and `opt2` stops at the first non-improving pass (a 4-circle
-   save: 265 s → 0.34 s). Edit-drag no longer re-stitches per frame and
-   the edit handles are culled by the visible region.
-3. **infinite-draw, redefined 2026-08-16**: the Java's infinite-draw is an
-   empty skeleton — nothing to port. The user's split: the suite's
-   stitching stays on egui/emb-draw (works on many PCs), while a
-   **pure-drawing infinite canvas** ("dessin pur", no stitching) rides the
-   CatzEngine renderer (`catz-render` is already decoupled: GPU-only,
-   headless boot, offscreen capture; no shell coupling). Queued — it is a
-   CatzEngine workstream: a ruling naming Catz-Embroidery as consumer
-   (D110 portfolio amendment), the external consumption route (git path
-   dep; publish=false + proprietary licence), and the 2D draw line (D109
+1. **Accept the launcher + the infinite canvas** (they are built, not
+   accepted): `cargo run -p emb-launcher` and click the three buttons;
+   in the editor, tick `Infinite`, draw far from the origin, save, reload
+   the .pes in the viewer (it must be centred on the content).
+2. **Packaging — exe builds** (the last M5 piece; the GitHub update check
+   lands here). Then M5 is done.
+3. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
+   Java's infinite-draw is an empty skeleton, so the app is greenfield.
+   `catz-render` is already decoupled (GPU-only, headless boot, offscreen
+   capture). Needs: a ruling naming Catz-Embroidery as consumer (D110
+   portfolio amendment), the external consumption route (git path dep;
+   publish=false + proprietary licence), and the 2D draw line (D109
    refused a 2D path until a consumer exists — this app would be it).
-4. **Packaging**: exe builds.
-5. Converter follow-ups (queued, not blocking): PES input (rasterize the
-   stitches of a .pes back through the pipeline — D005 refused it), the
-   progress bar / background thread, Dropbox save (not ported).
+4. **Editor follow-ups** (named exceptions): TXT stitching (font
+   rasteriser), the cull toggle (raster compositing), CONCENTRIC
+   (hatchInset), the stroke mode toggle (TANGENT).
+5. **Converter follow-ups** (queued): PES input (rasterize a .pes back
+   through the pipeline), the progress bar / background thread, Dropbox
+   save (not ported).
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 
