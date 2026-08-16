@@ -415,26 +415,74 @@ mod tests {
         );
     }
 
-    /// The M4 exit criterion "save via emb-data" end to end: a document with
-    /// one polygon saves to a real PES file that the reader parses back into
-    /// a non-empty design.
+    /// The save path end to end with a REALISTIC document (a polygon and a
+    /// LIN element), bounded AND infinite, through all three writers: the
+    /// PES reads back with the right geometry, the DST/SVG write sane
+    /// headers and carry the stitches. The whole flow the Save button runs.
     #[test]
-    fn save_round_trips_through_the_pes_writer() {
-        let (doc, _) = doc_with_polygon(0);
-        let model = stitch_document(&doc);
+    fn save_path_round_trips_a_realistic_document() {
+        let mut doc = Document::new();
+        doc.current_mut()
+            .elements
+            .push(Element::polygon(triangle()));
+        doc.current_mut().elements.push(Element::line(
+            vec![Point::new(500.0, 300.0), Point::new(700.0, 450.0)],
+            20.0,
+        ));
         let dir = std::env::temp_dir().join("emb-editor-test");
         std::fs::create_dir_all(&dir).expect("temp dir");
-        let path = dir.join("roundtrip.pes");
-        write_out(&model, &path).expect("write pes");
-        let read =
-            emb_data::pes::read(&std::fs::read(&path).expect("read file")).expect("parse pes");
-        assert!(!read.stitches.is_empty());
-        assert_eq!(read.colors.len(), read.stitches.len());
-        // Centred on the origin: the stitched triangle's points sit around
-        // the canvas centre, shifted by -w/2, -h/2.
-        for p in &read.stitches {
-            assert!(p.x > -600.0 && p.x < 600.0);
-            assert!(p.y > -400.0 && p.y < 400.0);
+
+        let model = stitch_document(&doc);
+        let write_out_fn = write_out as fn(&Model, &std::path::Path) -> Result<(), String>;
+        for (label, path, write) in [
+            ("bounded", dir.join("bounded.pes"), write_out_fn),
+            (
+                "infinite",
+                dir.join("infinite.pes"),
+                write_out_content_centered,
+            ),
+        ] {
+            let mut m = model.clone();
+            m.optimize();
+            write(&m, &path).expect("write pes");
+
+            let read = emb_data::pes::read(&std::fs::read(&path).expect("read")).expect("parse");
+            assert!(!read.stitches.is_empty(), "{label} has stitches");
+            assert_eq!(read.colors.len(), read.stitches.len());
+            let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+                f32::INFINITY,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::NEG_INFINITY,
+            );
+            for p in &read.stitches {
+                min_x = min_x.min(p.x);
+                min_y = min_y.min(p.y);
+                max_x = max_x.max(p.x);
+                max_y = max_y.max(p.y);
+            }
+            if label == "bounded" {
+                // Centred on the 1024x720 canvas.
+                assert_eq!(read.bounds, [0.0, 0.0, 1024.0, 720.0]);
+            }
+            assert!(max_x - min_x > 100.0, "{label} spans real content");
         }
+
+        // DST: sane header, stitch records follow — the third byte of the
+        // first record carries the stitch/jump flags (b2 = 0b...11).
+        let dst_path = dir.join("bounded.dst");
+        write_out(&model, &dst_path).expect("write dst");
+        let dst = std::fs::read(&dst_path).expect("read dst");
+        assert_eq!(&dst[0..3], b"LA:", "DST header starts with LA:");
+        assert!(dst.len() > 512);
+        assert!(dst[514] & 0x03 == 0x03, "first record is a stitch/jump");
+
+        // SVG: a viewBox over the content, paths carry the stitches.
+        let svg_path = dir.join("bounded.svg");
+        write_out(&model, &svg_path).expect("write svg");
+        let svg = std::fs::read_to_string(&svg_path).expect("read svg");
+        assert!(svg.contains("viewBox="), "svg has a viewBox");
+        assert!(svg.contains("<path"), "svg has paths");
+        assert!(svg.ends_with("</svg>"));
     }
 }

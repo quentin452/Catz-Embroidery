@@ -578,7 +578,7 @@ impl EditorApp {
         };
         let model = crate::stitch::stitch_document(&self.doc);
         if model.polylines.is_empty() {
-            self.status = Some("Nothing to stitch yet — draw a polygon first".into());
+            self.status = Some("Nothing to stitch yet — draw a polygon or a line first".into());
             return;
         }
         // The Java's writeOut: optimize() then write. The preview skips the
