@@ -1,8 +1,8 @@
 # Dependency licence policy. See LICENCE.md — this file is the enforcement, that
 # document is the reasoning.
 #
-# The suite is proprietary ("All Rights Reserved"). A permissive dependency is compatible
-# with that but imposes attribution on a distributed binary; a copyleft one arriving
+# The Rust workspace is MIT. A permissive dependency is compatible with that but
+# imposes attribution on a distributed binary; a copyleft one arriving
 # transitively through a `Cargo.lock` update is silent and expensive. That is why this is
 # a gate and not a habit.
 
@@ -29,9 +29,9 @@ confidence-threshold = 0.93
 # permitted, so it is usually fine — but "usually" is not a policy. It stops the build
 # until somebody rules on that specific dependency, and the ruling goes in docs/decisions/INDEX.md.
 
-# Our own crates carry `LicenseRef-proprietary`, which is not an SPDX licence and never
-# will be. They are skipped by being UNPUBLISHED, derived from `publish = false` in each
-# manifest — not by an exception list here. A list would need a line per crate and would
+# Our own crates carry `MIT`, which is on the `allow` list above. They are still
+# skipped here by being UNPUBLISHED, derived from `publish = false` in each
+# manifest — not by an exception list. A list would need a line per crate and would
 # be wrong the day one is added, with nothing able to notice.
 [licenses.private]
 ignore = true
