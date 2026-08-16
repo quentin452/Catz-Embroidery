@@ -1,15 +1,17 @@
 //! The editor app: a canvas with the shared viewport, the tool rail (the
-//! Java editor's 7 tools), the layer panel, and the undo/redo keys. Slice 1
-//! edits the document; the stitch preview and save arrive in slice 2
-//! (docs/ROADMAP.md).
+//! Java editor's 7 tools), the layer panel, and the undo/redo keys. The
+//! canvas shows the stitched preview (what the save path will write) in the
+//! drawing tools, and the raw elements + point handles in the edit tool
+//! (docs/ROADMAP.md, M4).
 
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke};
 
-use emb_draw::Viewport;
+use emb_draw::{Command, DrawList, Viewport};
 use emb_model::geom::Point;
 
 use crate::doc::{
-    Command, Document, Element, ElementKind, HatchMode, History, Layer, POINT_MIN_DIST_MM,
+    Command as DocCommand, Document, Element, ElementKind, HatchMode, History, Layer,
+    POINT_MIN_DIST_MM,
 };
 
 /// The Java editor's `TOOL_*` constants, as a closed set.
@@ -94,6 +96,11 @@ pub struct EditorApp {
     edit_sel: Option<(usize, usize)>,
     /// The text tool's draft dialog, opened by a canvas click.
     text_draft: Option<TextDraft>,
+    /// The stitched preview: the document as the save path will write it,
+    /// rendered through the shared draw list. Recomputed only when the
+    /// document changes (the Java's `needsUpdate`).
+    stitched: Option<DrawList>,
+    needs_update: bool,
     needs_fit: bool,
     status: Option<String>,
 }
@@ -116,8 +123,21 @@ impl EditorApp {
             poly_buff: Vec::new(),
             edit_sel: None,
             text_draft: None,
+            stitched: None,
+            needs_update: true,
             needs_fit: true,
             status: None,
+        }
+    }
+
+    /// Re-stitch the preview when the document changed (the Java's
+    /// `needsUpdate` gate in `draw()`). The preview is exactly what the save
+    /// path produces — one stitch path, one visual.
+    fn refresh_stitched(&mut self) {
+        if self.needs_update {
+            let model = crate::stitch::stitch_document(&self.doc);
+            self.stitched = Some(emb_draw::DrawList::from_model(&model));
+            self.needs_update = false;
         }
     }
 
@@ -167,7 +187,8 @@ impl EditorApp {
             Element::polygon(std::mem::take(&mut self.poly_buff))
         };
         self.history
-            .execute(&mut self.doc, Command::AddElement { layer, element });
+            .execute(&mut self.doc, DocCommand::AddElement { layer, element });
+        self.needs_update = true;
     }
 
     /// The vertex tool: single click adds a point, double-click commits.
@@ -228,6 +249,7 @@ impl EditorApp {
                 && let Some(q) = elt.data.get_mut(pi)
             {
                 *q = p;
+                self.needs_update = true;
             }
         }
 
@@ -240,13 +262,14 @@ impl EditorApp {
                 let point = elt.data[pi];
                 self.history.execute(
                     &mut self.doc,
-                    Command::RemovePoint {
+                    DocCommand::RemovePoint {
                         layer,
                         element: ei,
                         index: pi,
                         point,
                     },
                 );
+                self.needs_update = true;
             }
             self.edit_sel = None;
         }
@@ -264,6 +287,7 @@ impl EditorApp {
         layer.hatch_color = NEW_LAYER_COLORS[n % NEW_LAYER_COLORS.len()];
         self.doc.layers.push(layer);
         self.doc.current_layer = self.doc.layers.len() - 1;
+        self.needs_update = true;
     }
 
     fn remove_layer(&mut self, i: usize) {
@@ -279,6 +303,7 @@ impl EditorApp {
             self.doc.current_layer = self.doc.layers.len() - 1;
         }
         self.edit_sel = None;
+        self.needs_update = true;
     }
 
     fn draw_canvas(&mut self, ui: &mut egui::Ui) {
@@ -352,20 +377,36 @@ impl EditorApp {
             self.viewport
                 .visible_mm((panel.min.x, panel.min.y, panel.max.x, panel.max.y));
 
-        // Elements of every visible layer, drawn as polylines in the layer's
-        // hatch colour. The stitched preview is slice 3 (docs/ROADMAP.md);
-        // until then the raw elements are what the canvas shows.
-        for layer in &self.doc.layers {
-            if !layer.visible {
-                continue;
+        if self.tool == Tool::Edit {
+            // Edit mode shows the raw elements + point handles (the Java's
+            // drawEditMode), so points are directly draggable.
+            for layer in &self.doc.layers {
+                if !layer.visible {
+                    continue;
+                }
+                for elt in &layer.elements {
+                    self.paint_element(painter, elt, Color32::BLACK, &visible);
+                }
             }
-            let color = Color32::from_rgb(
-                ((layer.hatch_color >> 16) & 0xFF) as u8,
-                ((layer.hatch_color >> 8) & 0xFF) as u8,
-                (layer.hatch_color & 0xFF) as u8,
-            );
-            for elt in &layer.elements {
-                self.paint_element(painter, elt, color, &visible);
+        } else if let Some(draw_list) = &self.stitched {
+            // The stitched preview: exactly what the save path will write,
+            // rendered through the shared draw list with viewport culling
+            // (D001). Elements of hidden layers and deferred LIN/TXT kinds
+            // are absent by construction — stitch_document skips them.
+            let width_px = (draw_list.identity.stitch_width_mm * self.viewport.scale).max(1.0);
+            for item in &draw_list.items {
+                if !item.bounds.intersects(visible) {
+                    continue;
+                }
+                if let Command::Polyline { points, color, .. } = &item.command {
+                    let stroke =
+                        Stroke::new(width_px, Color32::from_rgb(color.r, color.g, color.b));
+                    for w in points.windows(2) {
+                        let a = pos(self.viewport.mm_to_screen(w[0].x, w[0].y));
+                        let b = pos(self.viewport.mm_to_screen(w[1].x, w[1].y));
+                        painter.line_segment([a, b], stroke);
+                    }
+                }
             }
         }
 
@@ -501,6 +542,7 @@ impl EditorApp {
 
     fn draw_layer_panel(&mut self, ui: &mut egui::Ui) {
         let mut remove: Option<usize> = None;
+        let mut changed = false;
         for (i, layer) in self.doc.layers.iter_mut().enumerate() {
             let selected = i == self.doc.current_layer;
             ui.horizontal(|ui| {
@@ -510,7 +552,7 @@ impl EditorApp {
                 {
                     self.doc.current_layer = i;
                 }
-                ui.checkbox(&mut layer.visible, "show");
+                changed |= ui.checkbox(&mut layer.visible, "show").changed();
                 let mut c = [
                     ((layer.hatch_color >> 16) & 0xFF) as u8,
                     ((layer.hatch_color >> 8) & 0xFF) as u8,
@@ -519,13 +561,16 @@ impl EditorApp {
                 if ui.color_edit_button_srgb(&mut c).changed() {
                     layer.hatch_color =
                         u32::from(c[0]) << 16 | u32::from(c[1]) << 8 | u32::from(c[2]);
+                    changed = true;
                 }
-                ui.add(
-                    egui::DragValue::new(&mut layer.hatch_spacing)
-                        .range(0.1..=100.0)
-                        .speed(0.1)
-                        .prefix("spacing "),
-                );
+                changed |= ui
+                    .add(
+                        egui::DragValue::new(&mut layer.hatch_spacing)
+                            .range(0.1..=100.0)
+                            .speed(0.1)
+                            .prefix("spacing "),
+                    )
+                    .changed();
                 if ui.button("X").clicked() {
                     remove = Some(i);
                 }
@@ -546,6 +591,9 @@ impl EditorApp {
         }
         if let Some(i) = remove {
             self.remove_layer(i);
+        }
+        if changed {
+            self.needs_update = true;
         }
     }
 
@@ -586,7 +634,8 @@ impl EditorApp {
             let element = Element::text(draft.text.clone(), size, at);
             let layer = self.doc.current_layer;
             self.history
-                .execute(&mut self.doc, Command::AddElement { layer, element });
+                .execute(&mut self.doc, DocCommand::AddElement { layer, element });
+            self.needs_update = true;
             open = false;
         }
         if !open {
@@ -612,11 +661,11 @@ impl eframe::App for EditorApp {
             let shift = i.modifiers.shift;
             (ctrl && z && !shift, ctrl && (y || (z && shift)))
         });
-        if undo {
-            self.history.undo(&mut self.doc);
+        if undo && self.history.undo(&mut self.doc) {
+            self.needs_update = true;
         }
-        if redo {
-            self.history.redo(&mut self.doc);
+        if redo && self.history.redo(&mut self.doc) {
+            self.needs_update = true;
         }
 
         // Escape removes the current layer's last element (the Java's
@@ -627,12 +676,13 @@ impl eframe::App for EditorApp {
                 let index = self.doc.layers[layer].elements.len() - 1;
                 self.history.execute(
                     &mut self.doc,
-                    Command::RemoveElement {
+                    DocCommand::RemoveElement {
                         layer,
                         index,
                         element,
                     },
                 );
+                self.needs_update = true;
             }
         }
 
@@ -665,6 +715,7 @@ impl eframe::App for EditorApp {
         });
 
         egui::CentralPanel::default_margins().show(ui, |ui| {
+            self.refresh_stitched();
             self.draw_canvas(ui);
         });
 
