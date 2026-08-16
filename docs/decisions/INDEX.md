@@ -9,6 +9,9 @@ re-edited except to add history. The table below is the index.
 | D002 | **Float comparison tolerance** — geometry algorithms compare with |diff| < 0.001 mm; byte-compare stays for the binary writers | 2026-08-16 |
 | D003 | **Stroke path deferred** — PERPENDICULAR/TANGENT depends on the Java2D rasterizer (measured); enters with the converter (M5) | 2026-08-16 |
 | D004 | **PERPENDICULAR stroke ported** — the Java2D raster oracle becomes an exact geometric distance oracle; output verified by invariants, not Java fixtures (D003's re-evaluation) | 2026-08-16 |
+| D005 | **Converter pipeline ported** — deterministic palette/colors/resample replace the Java's app.random; PERLIN refused; export centres, never scales (D003's re-evaluation for the converter's path) | 2026-08-16 |
+| D006 | **PES palette clamped** — unique colours, capped at the 256 the count byte can express; the reader wraps colour changes onto the palette (the Java corrupts the header past 463 runs) | 2026-08-16 |
+| D007 | **PES deltas measured from the offset origin** — the writer accumulates from `-bounds[0]`, not 0 (the Java disagrees with its own offset words; found by the infinite canvas's content-centred save) | 2026-08-16 |
 
 ## Writing a ruling
 

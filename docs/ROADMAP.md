@@ -54,34 +54,84 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, late — M3 + M4 accepted)
+### Next-session strategy (wrap 2026-08-16, late — converter slice 1 accepted)
 
-State: **M0, M1, M2, M3, M4 done** (deferrals named below). Branch
-`rs-greenfield`. Working tree clean, gates green.
+State: **M0-M4 done, M5 slice 1 (converter) ACCEPTED 2026-08-16** (cat.png,
+Java vs Rust PNG comparison — every measured difference maps to a ruled
+deviation, see below). Branch `rs-greenfield`. Working tree clean, gates
+green.
 
-M3 is **done, user acceptance approved 2026-08-16** (test.pes vs ThreadsES:
-characters + paws in the frame, orientation, zoom/LOD, fit-on-open — all
-match).
+**Done this session (M5 slice 1, converter):**
 
-M4 is **done, user acceptance approved 2026-08-16** (draw a polygon → save
-PES → viewer reads it back). The editor: layers/elements + undo/redo
-(AddElement/RemoveElement/RemovePoint, Ctrl+Z/Y), the 7 tools, edit-mode point
-handles, stitched canvas preview via the shared draw list, save to
-PES/DST/SVG centred on the hoop, title stem truncated to 8.
+- `emb_model::convert` (D005): the whole raster pipeline — binarize (the
+  THRESHOLD max(r,g,b) >= 127 gate) → findContours → drop <3 →
+  approxPolyDP(1) → fill (PARALLEL/CROSS/CONCENTRIC/SPIRAL) →
+  PERPENDICULAR outline (D004) → colors (B&W black / MultiColor
+  deterministic palette / Realistic histogram+resample) — 12 invariant +
+  determinism tests; PERLIN refuses (`Error::PerlinNotPorted`, disabled in
+  the UI, D005).
+- `emb_converter` app: load button / drag-drop / Ctrl+V (arboard), the
+  Java's control surface (hatch+color dropdowns, fill toggle, spacing,
+  stroke weight, max colors, export mm), source image + stitched preview
+  overlaid through the shared draw list, save → optimize() → centred
+  PES/DST/SVG (never scaled, D005). E2E test: PNG file → pipeline → PES →
+  read-back.
+- D006 (found by the first real multicolor fill): the PES palette is the
+  design's unique colours, clamped to the 256 the count byte can express;
+  the reader wraps colour changes onto the palette.
+- Shared save helpers extracted (derivation, not a copy): `emb_data::
+  write_design` + `file_title`, `Model::centered_design(title, w, h)` — the
+  editor now calls them too.
+- `tools/java-fixtures/GenConverterPng.java`: the headless Java acceptance
+  harness (also measured the Java's flat-stream multicolor artifact:
+  `pushPolyline` adds N-1 colour entries per polyline, the writer reads one
+  per polyline — `colors.size() == polylines.size()` despite 48.6 avg
+  points per polyline, colours cycle `gc[j % k]`).
 
-Next: **M5 — converter (UI) + infinite-draw + launcher + packaging**. First
-slice candidates, in the Java suite's own order:
+**Measured acceptance facts (cat.png):** outline polylines **197 = 197**
+(Java = Rust); cross fill 1745 vs 1746 (one bar at a contour seam — the
+D004 comparison level). The outline pixel diff = the two ruled deviations
+(D004 stroke: the Java's thin fringe offset from the contour vs the port's
+ribbon on the path — 2.08× painted pixels; D005 colours) + the D005-noted
+resize pre-step (fill lines differ ~10% on real-image edges; the M2 fixture
+fills are solid shapes, unaffected). Harness trap (in its header): a
+headless `PGraphicsJava2D` needs `colorMode()` — `PApplet.color()` delegates
+to `g.color()` when `g != null`, and uninitialized colorMode fields are 0.
 
-1. **The converter app** (the big one): image → PES/SVG/DST with the 5 hatch
-   modes, image drag-drop/clipboard, preview, mm export settings, multicolor.
-   Opens the D003 deferral question: PERLIN, the TANGENT stroke, spirals,
-   offset/inset, hatchInset, satin render through Java2D — a ruling must say
-   how they are compared (raster-level? re-evaluation?) before any is claimed
-   ported. (The PERPENDICULAR stroke is ported already — D004: geometric
-   oracle + invariants.)
-2. **emb-launcher** (thin egui menu, no model knowledge — matrix row
-   `allow = []`), then infinite-draw.
-3. **Packaging**: exe builds.
+**Next (the roadmap's M5 order):**
+
+1. ~~emb-launcher~~ — **built 2026-08-16** (thin egui menu, matrix
+   `allow = []`: version line, en/fr dropdown, editor/converter/viewer
+   buttons that spawn the sibling exes; the Java's viewer was a TODO, ours
+   exists). Not accepted yet — `cargo run -p emb-launcher`, click the
+   buttons. Not ported (nothing consumes them today): the GitHub update
+   check (no releases exist; lands with packaging) and Dropbox connect
+   (save paths are local-only).
+2. **Infinite canvas in emb-editor — built 2026-08-16** (the "éditeur sans
+   contraintes de canvas", greenfield: the Java has no model — its
+   infinite-draw is an empty skeleton). The `Infinite` toggle in the
+   toolbar: no hoop (the view fits the drawn content,
+   `Document::content_bounds`), the save centres on the content
+   (`write_out_content_centered`). The build exposed **D007**: the PES
+   writer measured deltas from 0 while its offset words declared the origin
+   `-bounds[0]` — a latent misalignment for any nonzero-origin design
+   (fixed: deltas from the origin; M1 fixtures unchanged). Not accepted
+   yet: draw away from the origin in infinite mode, save, reload in the
+   viewer.
+3. **infinite-draw, redefined 2026-08-16**: the Java's infinite-draw is an
+   empty skeleton — nothing to port. The user's split: the suite's
+   stitching stays on egui/emb-draw (works on many PCs), while a
+   **pure-drawing infinite canvas** ("dessin pur", no stitching) rides the
+   CatzEngine renderer (`catz-render` is already decoupled: GPU-only,
+   headless boot, offscreen capture; no shell coupling). Queued — it is a
+   CatzEngine workstream: a ruling naming Catz-Embroidery as consumer
+   (D110 portfolio amendment), the external consumption route (git path
+   dep; publish=false + proprietary licence), and the 2D draw line (D109
+   refused a 2D path until a consumer exists — this app would be it).
+4. **Packaging**: exe builds.
+5. Converter follow-ups (queued, not blocking): PES input (rasterize the
+   stitches of a .pes back through the pipeline — D005 refused it), the
+   progress bar / background thread, Dropbox save (not ported).
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 
@@ -121,9 +171,13 @@ tested (see below) — verify visually before claiming acceptance.
 
 PERLIN, strokePolyTangentRaster, hatchSpiral_v2-v4, offsetPolygon/inset,
 hatchInset, satin — each renders through `app.createGraphics` (Java2D) and/or
-`app.random`. Do NOT claim any of them ported until a ruling says how they are
-compared. (`strokePolyNormal` was ported 2026-08-16 — the ruling is D004: a
-geometric distance oracle + invariant tests, not Java fixtures.)
+`app.random`. D005 (2026-08-16) settled the converter's path: PERLIN refuses
+as a named exception (disabled in the UI); the rest are not reached by the
+converter's raster path (the converter's CONCENTRIC/SPIRAL dispatch to the
+same `isolines` as the port). Do NOT claim any of them ported until a ruling
+says how they are compared. (`strokePolyNormal` was ported 2026-08-16 — the
+ruling is D004: a geometric distance oracle + invariant tests, not Java
+fixtures.)
 
 ### Named exceptions (pin 3)
 
