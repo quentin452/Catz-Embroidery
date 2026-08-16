@@ -89,12 +89,18 @@ fn stitch_line(model: &mut Model, elt: &Element, layer: &Layer) {
         return;
     }
     let half = (elt.param_f0 / 2.0).max(0.5);
-    let mask = line_mask(&elt.data, half);
+    let (mask, ox, oy) = line_mask(&elt.data, half);
     let Ok(mut contours) = trace::find_contours(&mask) else {
         return;
     };
     contours.retain(|c| c.len() >= 3);
     for contour in contours {
+        // The contour is traced in the mask's LOCAL pixel space — translate
+        // it back to the design before stroking (the mask starts at (ox, oy)).
+        let contour: Vec<emb_model::geom::Point> = contour
+            .iter()
+            .map(|p| emb_model::geom::Point::new(p.x + ox, p.y + oy))
+            .collect();
         let contour = trace::approx_poly_dp(&contour, 1.0);
         // The Java's `_stroke(polys, true)`: half-weight = strokeWeight/2,
         // spacing = STROKE_SPACING (4), closed contours, connected.
@@ -113,8 +119,10 @@ fn stitch_line(model: &mut Model, elt: &Element, layer: &Layer) {
 /// The rasterised line as a mask: every pixel within `half` of the polyline
 /// is ON (the D004 distance oracle), element-local at 1 px per mm — the
 /// Java's layer render is the same resolution (W×H pixels over W×H mm).
-/// The two endpoints get a disc oracle (the Java2D round caps).
-fn line_mask(poly: &[emb_model::geom::Point], half: f32) -> Raster {
+/// The two endpoints get a disc oracle (the Java2D round caps). Returns the
+/// mask plus its design-space origin, so the traced contours can be
+/// translated back.
+fn line_mask(poly: &[emb_model::geom::Point], half: f32) -> (Raster, f32, f32) {
     let mut min_x = f32::INFINITY;
     let mut min_y = f32::INFINITY;
     let mut max_x = f32::NEG_INFINITY;
@@ -147,10 +155,11 @@ fn line_mask(poly: &[emb_model::geom::Point], half: f32) -> Raster {
     }
     // The pixel count matches w*h by construction — the size error is
     // unreachable.
-    match Raster::new(w as usize, h as usize, pixels) {
+    let raster = match Raster::new(w as usize, h as usize, pixels) {
         Ok(raster) => raster,
         Err(_) => unreachable!("line mask pixels match the declared size"),
-    }
+    };
+    (raster, x0 as f32, y0 as f32)
 }
 
 /// The stitched content's bounds: `(min_x, min_y, width, height)`. The
@@ -295,6 +304,38 @@ mod tests {
             d
         };
         assert!(stitch_document(&doc2).polylines.is_empty());
+    }
+
+    #[test]
+    fn line_stitch_keeps_the_design_projection() {
+        // The mask is element-local: the traced contours must be translated
+        // back to the design before stroking — a line far from the origin
+        // must stitch near ITS position, not collapse towards (0, 0).
+        let mut doc = Document::new();
+        doc.current_mut().elements.push(Element::line(
+            vec![Point::new(2000.0, 3000.0), Point::new(2200.0, 3000.0)],
+            20.0,
+        ));
+        let model = stitch_document(&doc);
+        assert!(!model.polylines.is_empty());
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+            f32::INFINITY,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            f32::NEG_INFINITY,
+        );
+        for poly in &model.polylines {
+            for p in poly {
+                min_x = min_x.min(p.x);
+                min_y = min_y.min(p.y);
+                max_x = max_x.max(p.x);
+                max_y = max_y.max(p.y);
+            }
+        }
+        // The stitched line sits at the line's position (x 2000..2200),
+        // with the stroke bars a few mm around it.
+        assert!(min_x > 1900.0 && max_x < 2300.0, "x span {min_x}..{max_x}");
+        assert!(min_y > 2900.0 && max_y < 3100.0, "y span {min_y}..{max_y}");
     }
 
     #[test]
