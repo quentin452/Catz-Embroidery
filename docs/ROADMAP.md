@@ -44,41 +44,42 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, late — M3 slice 3)
+### Next-session strategy (wrap 2026-08-16, late — M4 slice 2)
 
-State: **M0, M1, M2 done** (D003 deferrals named below). Branch `rs-greenfield`.
-All gates green, working tree clean. M3 slice 3 (this session, committed
-`a8d2c91`):
+State: **M0, M1, M2 done** (D003 deferrals named below); M3 code done, its
+visual acceptance pending (see below). Branch `rs-greenfield`.
 
-- **PES projection fixed** — the acceptance bugs on test.pes had one cause
-  each: (1) long-form records are not always 4 bytes (each axis word is
-  independently flagged; Ticetac emits 3-byte records — forcing 4 bytes
-  invented the characters' paws at x ≈ -2500), (2) the block offset words are
-  the design origin (`0x9000 | -left` → test.pes decodes to (1152, 164)). The
-  design now fills its declared bounds 0..1234 × 0..900 exactly, like
-  ThreadsES. Regression-tested on the committed `fixtures/test.pes`.
-- **pyembroidery installed as the PES reference reader** (`pip install
-  pyembroidery`) — Ink/Stitch's engine; its decode matched test.pes exactly.
-  libembroidery is NOT a reference (buggy PEC long-form parsing).
-- **StitchSettings** in emb-model (Java's STITCH_LENGTH = 10 /
-  MIN_STITCH_LENGTH = 4 defaults, consumed by resample) — the editor's
-  stitch-frequency knob, first brick of M4.
-- The user confirmed the render is now coherent; the visual comparison against
-  ThreadsES is the remaining acceptance step.
+M4 slice 2 (this session): **the stitch path + save via emb-data**, all gates
+green:
 
-Remaining M3 work (in priority order):
+- **`Model::to_design`** in emb-model — the flattening inverse of
+  `from_design`: one stitch per point, colour per stitch, a jump flag on each
+  polyline's first point (the Java writer's `jumps.add(j == 0)`). Round-trip
+  tested.
+- **`apps/emb-editor/src/stitch.rs`** — `stitch_document`: every visible
+  layer's PLY elements hatch with `emb_model::hatch::hatch_parallel`
+  (vector-pure, the M4 ruling) at the layer's spacing in the layer's colour,
+  then `Model::optimize()` (TSP per colour block — the Java's `writeOut`
+  order). `centered_design` applies the Java writer's canvas transform
+  (`translate(-w/2, -h/2)` + bounds `[-w/2, -h/2, w/2, h/2]`);
+  `file_title` = stem truncated to 8 (the Java's rule); `write_design`
+  dispatches PES/DST/SVG by extension.
+- **Save button** in the editor's tool rail → rfd dialog → stitch → save.
+  End-to-end test: document → PES file → `pes::read` parses it back.
 
-1. **Manual acceptance in the viewer (the resume point)** — open test.pes and
-   compare with ThreadsES: characters + paws inside the frame, pan/zoom,
-   texture↔vector LOD, fit-on-open; also open the committed simple.pes. Visual
-   identity tuning (`VisualIdentity::default()` is a first guess from the Java
-   editor's look).
-2. **Texture invalidation on edit** is a non-issue until M4 edits; keep the
-   rasteriser in `apps/emb-viewer/src/overview.rs` fed from `DrawList`, never
-   from the model.
+M4 remaining (slice 3): **the stitched preview in the canvas** — the editor
+shows the raw elements today; slice 3 renders `stitch_document`'s output
+through `emb_draw::DrawList` (the viewer's overview LOD pattern), so what the
+user draws is what will save. Then manual acceptance in the editor.
 
-Then M4 — emb-editor (layer/element model, undo/redo); `StitchSettings` (above)
-is the first brick.
+Named exceptions (pin 3, all deferred from the M4 ruling and D003):
+LIN elements (stroke path → M5), TXT elements (font rasteriser → M5),
+CONCENTRIC hatch (hatchInset → M5), layer cull + stroke settings (enter with
+their consumers).
+
+Still pending from M3: **manual acceptance in the viewer** — open test.pes and
+compare with ThreadsES (the remaining acceptance step before M3's row is
+`done`).
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 

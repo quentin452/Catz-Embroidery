@@ -6,7 +6,7 @@ use emb_draw::DrawList;
 use emb_model::model::Model;
 
 use crate::overview::OverviewTexture;
-use crate::view::{RenderView, Viewport};
+use crate::view::RenderView;
 
 pub struct ViewerApp {
     design: Option<LoadedDesign>,
@@ -130,9 +130,10 @@ impl eframe::App for ViewerApp {
                     // Fit on the stitched motif, not the declared canvas: a
                     // design whose stitches sit far from the canvas (offsets,
                     // odd hoops) must still be centred on what is drawn.
-                    self.render.viewport = Viewport::fit(
+                    let panel = ui.available_rect_before_wrap();
+                    self.render.viewport = emb_draw::Viewport::fit(
                         d.draw_list.content_bounds(),
-                        ui.available_rect_before_wrap(),
+                        (panel.min.x, panel.min.y, panel.max.x, panel.max.y),
                     );
                     self.needs_fit = false;
                 }

@@ -10,6 +10,8 @@
 
 pub mod identity;
 pub mod list;
+pub mod viewport;
 
 pub use identity::{Rgb, VisualIdentity};
 pub use list::{Bounds, Command, DrawItem, DrawList};
+pub use viewport::Viewport;

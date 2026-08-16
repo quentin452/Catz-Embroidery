@@ -9,3 +9,8 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+emb-data = { path = "../../crates/emb-data" }
+emb-draw = { path = "../../crates/emb-draw" }
+emb-model = { path = "../../crates/emb-model" }
+eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts"] }
+rfd = "0.17"

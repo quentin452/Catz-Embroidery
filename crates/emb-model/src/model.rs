@@ -97,6 +97,36 @@ impl Model {
         model
     }
 
+    /// Flatten the model back into a format-level `Design`: one stitch per
+    /// point, its colour repeated per stitch, and a jump flag on each
+    /// polyline's first point (the Java writer's `jumps.add(j == 0)` —
+    /// the flag that makes [`Self::from_design`] split where the polylines
+    /// were joined).
+    ///
+    /// The canvas is `width x height` mm with the polylines at their absolute
+    /// coordinates — the exact inverse of [`Self::from_design`]. The apps
+    /// that save apply their own canvas transform on top (the Java editor
+    /// centres the design on the hoop via `PEmbroiderWriter.write`).
+    pub fn to_design(&self, title: String) -> Design {
+        let mut stitches = Vec::new();
+        let mut colors = Vec::new();
+        let mut jumps = Vec::new();
+        for (poly, color) in self.polylines.iter().zip(&self.colors) {
+            for (i, p) in poly.iter().enumerate() {
+                stitches.push(emb_data::Point { x: p.x, y: p.y });
+                colors.push(*color);
+                jumps.push(i == 0);
+            }
+        }
+        Design {
+            bounds: [0.0, 0.0, self.width, self.height],
+            stitches,
+            colors,
+            jumps,
+            title,
+        }
+    }
+
     /// Load a PES file from bytes: `emb_data::pes::read` + [`Self::from_design`].
     /// The single entry point every app uses to open a design.
     pub fn from_pes(bytes: &[u8]) -> Result<Self, emb_data::Error> {
@@ -156,5 +186,53 @@ mod tests {
         let m = Model::from_design(&d);
         assert!(m.polylines.is_empty());
         assert_eq!((m.width, m.height), (100.0, 100.0));
+    }
+
+    #[test]
+    fn to_design_flattens_polylines_with_jumps_at_starts() {
+        let mut m = Model::new(100.0, 80.0);
+        m.push_polyline(vec![Point::new(1.0, 2.0), Point::new(3.0, 4.0)], 0x112233);
+        m.push_polyline(
+            vec![
+                Point::new(5.0, 6.0),
+                Point::new(7.0, 8.0),
+                Point::new(9.0, 10.0),
+            ],
+            0xFF0000,
+        );
+        let d = m.to_design("t".into());
+        assert_eq!(d.bounds, [0.0, 0.0, 100.0, 80.0]);
+        assert_eq!(d.stitches.len(), 5);
+        assert_eq!(
+            d.colors,
+            vec![0x112233, 0x112233, 0xFF0000, 0xFF0000, 0xFF0000]
+        );
+        assert_eq!(d.jumps, vec![true, false, true, false, false]);
+    }
+
+    #[test]
+    fn to_design_round_trips_through_from_design() {
+        let mut m = Model::new(100.0, 80.0);
+        m.push_polyline(vec![Point::new(1.0, 2.0), Point::new(3.0, 4.0)], 0x112233);
+        m.push_polyline(
+            vec![
+                Point::new(5.0, 6.0),
+                Point::new(7.0, 8.0),
+                Point::new(9.0, 10.0),
+            ],
+            0xFF0000,
+        );
+        let back = Model::from_design(&m.to_design("t".into()));
+        assert_eq!(back.polylines, m.polylines);
+        assert_eq!(back.colors, m.colors);
+    }
+
+    #[test]
+    fn to_design_of_empty_model_has_no_stitches() {
+        let m = Model::new(50.0, 40.0);
+        let d = m.to_design("t".into());
+        assert!(d.stitches.is_empty());
+        assert!(d.jumps.is_empty());
+        assert_eq!(d.bounds, [0.0, 0.0, 50.0, 40.0]);
     }
 }

@@ -528,6 +528,13 @@ dependencies = [
 [[package]]
 name = "emb-editor"
 version = "0.1.0"
+dependencies = [
+ "eframe",
+ "emb-data",
+ "emb-draw",
+ "emb-model",
+ "rfd",
+]
 
 [[package]]
 name = "emb-infinitedraw"
