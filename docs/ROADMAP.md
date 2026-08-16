@@ -14,7 +14,7 @@ and a row is `done` only when its exit criteria run green.**
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
 | M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (see D003 deferrals below) |
-| M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **in progress** (emb-draw done + viewer first slice, see wrap) |
+| M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **done** (user acceptance 2026-08-16: test.pes vs ThreadsES) |
 | M4 | editor | stitch editing on real files; save via emb-data | **done** (user acceptance 2026-08-16; named exceptions below) |
 | M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
 
@@ -52,11 +52,14 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, late — M4 accepted)
+### Next-session strategy (wrap 2026-08-16, late — M3 + M4 accepted)
 
-State: **M0, M1, M2, M4 done** (deferrals named below); M3 code done, its
-visual acceptance pending (see below). Branch `rs-greenfield`. Working tree
-clean, gates green.
+State: **M0, M1, M2, M3, M4 done** (deferrals named below). Branch
+`rs-greenfield`. Working tree clean, gates green.
+
+M3 is **done, user acceptance approved 2026-08-16** (test.pes vs ThreadsES:
+characters + paws in the frame, orientation, zoom/LOD, fit-on-open — all
+match).
 
 M4 is **done, user acceptance approved 2026-08-16** (draw a polygon → save
 PES → viewer reads it back). The editor: layers/elements + undo/redo
@@ -75,10 +78,6 @@ slice candidates, in the Java suite's own order:
 2. **emb-launcher** (thin egui menu, no model knowledge — matrix row
    `allow = []`), then infinite-draw.
 3. **Packaging**: exe builds.
-
-Still pending from M3: **manual acceptance in the viewer** — open test.pes and
-compare with ThreadsES (the remaining acceptance step before M3's row is
-`done`).
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 
