@@ -16,6 +16,14 @@ use crate::{Design, Error, Point, java_round, rint};
 const PEC_ICON_WIDTH: usize = 48;
 const PEC_ICON_HEIGHT: usize = 38;
 
+/// The PEC header's palette slots: 512 header bytes minus the fixed fields
+/// (the Java's `463 - palette.size()` padding target).
+const PEC_PALETTE_SLOTS: usize = 463;
+
+/// The representable palette size: the palette-count byte is a single u8
+/// (count + 1 entries), so a conformant PES can carry at most 256 colours.
+const PEC_PALETTE_MAX: usize = 256;
+
 const STITCH: i32 = 0;
 const END: i32 = 4;
 const COLOR_CHANGE: i32 = 5;
@@ -116,6 +124,13 @@ fn flag_trim(long_form: i32) -> i32 {
 
 /// The Java `_BinWriter.write_pec_header`: the 512-byte PEC header.
 /// Returns the deduplicated palette (RGBs in encounter order).
+///
+/// The palette is the design's UNIQUE colours in encounter order — the Java's
+/// intended dedup, left commented out at PEmbroiderWriter.java:788 (its
+/// consecutive-run dedup overflows the header on designs whose colours cycle,
+/// e.g. the converter's multicolor fills). It is clamped to the 256 entries
+/// the count byte can express (D006); the Java writes every entry and no
+/// padding past the header, corrupting the file.
 fn write_pec_header(w: &mut BinWriter, design: &Design) -> Vec<u32> {
     w.bytes(format!("LA:{:<16}\r", design.title).as_bytes());
     for _ in 0..12 {
@@ -127,11 +142,12 @@ fn write_pec_header(w: &mut BinWriter, design: &Design) -> Vec<u32> {
     w.u8(PEC_ICON_HEIGHT as i32);
 
     let mut palette = Vec::new();
-    for (i, c) in design.colors.iter().enumerate() {
-        if i == 0 || design.colors[i] != design.colors[i - 1] {
+    for c in &design.colors {
+        if !palette.contains(c) {
             palette.push(*c);
         }
     }
+    palette.truncate(PEC_PALETTE_MAX);
     for _ in 0..12 {
         w.u8(0x20);
     }
@@ -139,7 +155,7 @@ fn write_pec_header(w: &mut BinWriter, design: &Design) -> Vec<u32> {
     for c in &palette {
         w.u8(i32::from(find_color(*c)));
     }
-    for _ in 0..(463 - palette.len()) {
+    for _ in 0..PEC_PALETTE_SLOTS.saturating_sub(palette.len()) {
         w.u8(0x20);
     }
     palette
@@ -188,9 +204,19 @@ fn write_pec_graphics(w: &mut BinWriter) {
 /// The Java `_BinWriter.pec_encode`: the stitch records. Short form for deltas in
 /// (-64, 63), long form (12-bit + flags) otherwise; first stitch is always long
 /// form followed by a redundant short (0,0) record (measured quirk, kept).
+///
+/// The deltas are measured from the OFFSET ORIGIN (`-bounds[0]`, the value the
+/// header's offset words declare) — D007. The Java measures from 0, which
+/// disagrees with its own offset words whenever `bounds[0] != 0`; the reader
+/// (validated against test.pes) accumulates from the offset origin, so the
+/// writer must too. The M1 fixtures all have `bounds[0] = 0`, where both
+/// agree — the byte-compares are unchanged.
 fn pec_encode(w: &mut BinWriter, design: &Design) -> Result<(), Error> {
     let mut color_two = true;
-    let (mut xx, mut yy) = (0f64, 0f64);
+    let (mut xx, mut yy) = (
+        f64::from(-java_round(design.bounds[0])),
+        f64::from(-java_round(design.bounds[1])),
+    );
     for i in 0..design.stitches.len() {
         if i > 0 && design.colors[i] != design.colors[i - 1] {
             w.u8(0xFE);
@@ -547,13 +573,13 @@ pub fn read(bytes: &[u8]) -> Result<Design, Error> {
                 });
             }
             color_changes += 1;
-            current_color = *palette.get(color_changes).ok_or_else(|| Error::Malformed {
-                format: "PES",
-                detail: format!(
-                    "colour change {color_changes} beyond the {}-entry palette",
-                    palette.len()
-                ),
-            })?;
+            // The Java writer's colour records only alternate threads 1/2
+            // (its `color_two` toggle), regardless of the design's colours —
+            // the change counter is the only position signal. A design with
+            // more changes than palette entries (the converter's multicolor
+            // fills cycle a small palette over thousands of runs) wraps
+            // around the palette (D006).
+            current_color = palette[color_changes % palette.len()];
             pos += 3;
             continue;
         }

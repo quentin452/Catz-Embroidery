@@ -126,6 +126,82 @@ fn pes_roundtrips_its_writer() {
     assert_read_back_colors(&read);
 }
 
+/// D007: a design whose bounds do not start at 0 (the editor's centred
+/// canvas, the converter's export mm, the infinite canvas's content) must
+/// read back at its EXACT coordinates. The writer's offset words declare the
+/// origin `-bounds[0]`; the deltas are measured from it — the Java measures
+/// from 0, disagreeing with its own offset words (the M1 fixtures all start
+/// at 0, where both agree).
+#[test]
+fn pes_roundtrips_designs_with_a_nonzero_origin() {
+    let red = 0xFF0000u32;
+    let mut stitches = Vec::new();
+    let mut colors = Vec::new();
+    let mut jumps = Vec::new();
+    for i in 0..=10 {
+        stitches.push(Point {
+            x: -512.0 + i as f32 * 10.0,
+            y: -360.0 + i as f32 * 5.0,
+        });
+        colors.push(red);
+        jumps.push(i == 0);
+    }
+    let design = Design {
+        bounds: [-512.0, -360.0, 512.0, 360.0],
+        stitches,
+        colors,
+        jumps,
+        title: "origin".into(),
+    };
+    let written = pes::write(&design).unwrap();
+    let read = pes::read(&written).unwrap();
+    let positions: Vec<(f32, f32)> = read.stitches.iter().map(|p| (p.x, p.y)).collect();
+    // The first-stitch quirk triples the first point; the rest are exact.
+    let mut expected = vec![(-512.0, -360.0), (-512.0, -360.0), (-512.0, -360.0)];
+    for i in 1..=10 {
+        expected.push((-512.0 + i as f32 * 10.0, -360.0 + i as f32 * 5.0));
+    }
+    assert_eq!(positions, expected);
+}
+
+/// D006: a design with more colour runs than the PEC palette can express
+/// must still write — the palette is the design's unique colours, clamped to
+/// the 256 entries the count byte allows (the Java overflows the fixed
+/// header layout and corrupts the file here), and the clamped file reads
+/// back with all its stitches.
+#[test]
+fn pes_clamps_a_palette_larger_than_the_header() {
+    let runs = 500usize;
+    let mut colors = Vec::with_capacity(runs);
+    let mut stitches = Vec::with_capacity(runs * 2);
+    let mut jumps = Vec::with_capacity(runs * 2);
+    for i in 0..runs {
+        // Each run a distinct colour: the unique-colour palette counts every
+        // one, then clamps to 256. The colours only need to be distinct, not
+        // real threads.
+        let color = 0x010101 * (i as u32 + 1);
+        let x = (i % 20) as f32 * 5.0;
+        stitches.push(Point { x, y: 0.0 });
+        stitches.push(Point { x: x + 4.0, y: 5.0 });
+        colors.push(color);
+        colors.push(color);
+        jumps.push(true);
+        jumps.push(false);
+    }
+    let design = Design {
+        bounds: [0.0, 0.0, 100.0, 100.0],
+        stitches,
+        colors,
+        jumps,
+        title: "clamp".into(),
+    };
+    let bytes = pes::write(&design).expect("write must not panic on a long palette");
+    let read = pes::read(&bytes).expect("the clamped file must parse");
+    // The first-stitch quirk triples the first point, so expect 2*runs + 2.
+    assert_eq!(read.stitches.len(), runs * 2 + 2);
+    assert_eq!(read.colors.len(), read.stitches.len());
+}
+
 /// Measured deviation (docs/LESSONS.md): some third-party PES writers (test.pes,
 /// unknown provenance) emit a final short delta whose second byte is 0xFF
 /// (dy = -1) and omit the separate 0xFF end marker — the marker is eaten as the
