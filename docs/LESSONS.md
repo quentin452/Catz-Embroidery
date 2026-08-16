@@ -91,7 +91,31 @@ THREE identical points. The round-trip test pins the read-back exactly.
 branch; later long forms are `0x80xx`, not `0xA0xx` (byte 728 of `simple.pes`).
 **Ruling:** replicated exactly — this is what the fixture says.
 
-### TSP trials >= 3 are non-deterministic in the Java (Math.random)
+### PES reader accepts a missing end marker when the declared length is respected
+**Measurement:** a third-party PES (`test.pes`, unknown provenance, title
+"Ticetac") ends its stitch block with a short delta whose second byte is 0xFF
+(dy = -1) and no separate 0xFF end marker — the marker byte is eaten as the
+delta's dy. A conformant writer would emit `... 7e ff ff` (delta, then marker).
+The declared u24 block length is still respected: the records end exactly at
+`block_end`.
+**Ruling:** the Rust reader accepts the design when `pos == block_end` after the
+records (length bounds the stream); it still rejects a block that runs past its
+declared length without a marker. Same family as the DST END record ruling.
+Regression-tested by `pes_accepts_a_missing_end_marker_when_length_is_respected`.
+
+### The PES block unit is not established
+**Measurement:** the Java writer's `write_pec_block` writes the PEC width/height
+and the stitch deltas in millimetres (`Math.rint(bounds[2]-bounds[0])`), and the
+round-trip reader/writer is consistent in mm. `test.pes` (unknown provenance)
+declares 1234×900 units and its deltas are mostly 1-9 units per stitch — only
+plausible at 0.1 mm/unit (a 123.4×90 mm hoop, 0.1-0.9 mm stitches); at mm it
+would be a 1.2 m canvas with 1-9 mm stitches. If the real PES unit is 0.1 mm,
+files written by this suite read ten times too large in other software — but a
+file of unknown provenance cannot settle it.
+**Ruling:** left open. Needs a PES produced by known machine software
+(Brother/Wilcom/Embird) with a measured stitch spacing to compare.
+
+
 **Measurement:** `PEmbroiderTSP.solve` starts trials 0, 1, 2 at fixed points
 (0, y-min, x-min) and trials >= 3 at `Math.random()` — a design's stitch order
 changes from run to run, and `optimize()` (5 trials) is never reproducible.

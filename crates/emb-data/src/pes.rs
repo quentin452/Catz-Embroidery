@@ -571,10 +571,23 @@ pub fn read(bytes: &[u8]) -> Result<Design, Error> {
         pos += advance;
     }
     if !found_end {
-        return Err(Error::Malformed {
-            format: "PES",
-            detail: "stitch block has no 0xFF end marker".into(),
-        });
+        // Measured deviation (docs/LESSONS.md): some third-party writers (e.g.
+        // Ticetac, test.pes) emit a final short delta whose second byte is
+        // 0xFF (dy = -1) and omit the separate 0xFF end marker. The declared
+        // block length is still respected — the records end exactly at
+        // `block_end`. Accept the design when the length bounds the stream
+        // (the same ruling as the DST writer's missing END record).
+        if pos == block_end {
+            log::warn!(
+                "PES: stitch block at offset {block} has no 0xFF end marker but \
+                 the declared length is respected — accepting (missing-marker file)"
+            );
+        } else {
+            return Err(Error::Malformed {
+                format: "PES",
+                detail: "stitch block has no 0xFF end marker".into(),
+            });
+        }
     }
 
     Ok(Design {

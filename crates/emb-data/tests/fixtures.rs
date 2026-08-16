@@ -125,3 +125,57 @@ fn pes_roundtrips_its_writer() {
     assert_eq!(positions, read_back_positions());
     assert_read_back_colors(&read);
 }
+
+/// Measured deviation (docs/LESSONS.md): some third-party PES writers (test.pes,
+/// unknown provenance) emit a final short delta whose second byte is 0xFF
+/// (dy = -1) and omit the separate 0xFF end marker — the marker is eaten as the
+/// delta's dy. The declared block length is still respected, so the reader
+/// accepts the design when the records end exactly at `block_end`.
+#[test]
+fn pes_accepts_a_missing_end_marker_when_length_is_respected() {
+    // A design whose final delta is a short form with dy = -1 (writes `xx ff`)
+    // produces `... xx ff ff` in a conformant file (delta, then the marker).
+    let mut d = test_design();
+    let last = d.stitches.last().copied().unwrap();
+    let prev = d.stitches[d.stitches.len() - 2];
+    // Make the last segment a single down-step of -1 mm.
+    d.stitches.pop();
+    d.stitches.push(Point {
+        x: prev.x,
+        y: prev.y - 1.0,
+    });
+    let _ = last;
+
+    let mut bytes = pes::write(&d).unwrap();
+
+    // Locate the PEC stitch block and the trailing 0xFF marker.
+    let pec_offset = u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize;
+    let block = pec_offset + 512;
+    let declared = usize::from(bytes[block + 2])
+        | (usize::from(bytes[block + 3]) << 8)
+        | (usize::from(bytes[block + 4]) << 16);
+    let block_end = block + declared;
+    assert_eq!(
+        bytes[block_end - 1],
+        0xFF,
+        "writer must emit the end marker"
+    );
+
+    // Remove the marker and shrink the declared length by one — exactly what
+    // the malformed third-party file does.
+    let new_len = declared - 1;
+    bytes[block + 2] = (new_len & 0xFF) as u8;
+    bytes[block + 3] = ((new_len >> 8) & 0xFF) as u8;
+    bytes[block + 4] = ((new_len >> 16) & 0xFF) as u8;
+    bytes.truncate(block_end - 1);
+
+    let read = pes::read(&bytes).unwrap();
+    let positions: Vec<(f32, f32)> = read.stitches.iter().map(|p| (p.x, p.y)).collect();
+    // The last point moved to (20, 49): the dy = -1 delta was consumed as part
+    // of the final record, not lost with the missing marker.
+    let mut expected = read_back_positions();
+    expected.pop();
+    expected.push((20.0, 49.0));
+    assert_eq!(positions, expected);
+    assert_read_back_colors(&read);
+}
