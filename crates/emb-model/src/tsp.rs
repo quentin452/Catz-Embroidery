@@ -77,8 +77,18 @@ fn nn(polylines: &[Vec<Point>], mut start: usize) -> Vec<Edge> {
 }
 
 /// `PEmbroiderTSP.opt2`: 2-opt crossing removal, at most `max_iter` passes.
+///
+/// The loop stops at the first pass that does not SHORTEN the tour (D008).
+/// The Java runs all `max_iter` passes even when the length is invariant —
+/// measured: hatch-parallel designs oscillate their crossings with a
+/// constant tour length, so every pass past the first is pure O(n²) waste
+/// (999 passes × 5 trials on a 1600-polyline design: ~265 s of no progress).
+/// Converging designs are unaffected — they stop at `change == false` or a
+/// flat pass exactly where the Java does; the fixture tests (small designs)
+/// stay green.
 fn opt2(edges: &mut [Edge], max_iter: usize) {
     let mut it = 0usize;
+    let mut prev_len = f32::INFINITY;
     while it < max_iter {
         it += 1;
         let mut change = false;
@@ -123,6 +133,11 @@ fn opt2(edges: &mut [Edge], max_iter: usize) {
         if !change {
             break;
         }
+        let l = sum_length(edges);
+        if l >= prev_len {
+            break;
+        }
+        prev_len = l;
     }
 }
 

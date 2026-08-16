@@ -118,6 +118,13 @@ to `g.color()` when `g != null`, and uninitialized colorMode fields are 0.
    (fixed: deltas from the origin; M1 fixtures unchanged). Not accepted
    yet: draw away from the origin in infinite mode, save, reload in the
    viewer.
+   **The freeze fixed the same session (measured, D008):** the preview ran
+   the TSP on every refresh (the Java optimises only at save) — O(999·n²),
+   73 ms of TSP for 9 ms of stitching on one circle, 4 circles = minutes.
+   Now: the preview stitches only (28 ms for 4 circles), the save runs the
+   TSP once, and `opt2` stops at the first non-improving pass (a 4-circle
+   save: 265 s → 0.34 s). Edit-drag no longer re-stitches per frame and
+   the edit handles are culled by the visible region.
 3. **infinite-draw, redefined 2026-08-16**: the Java's infinite-draw is an
    empty skeleton — nothing to port. The user's split: the suite's
    stitching stays on egui/emb-draw (works on many PCs), while a
