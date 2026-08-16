@@ -102,6 +102,10 @@ pub struct EditorApp {
     stitched: Option<DrawList>,
     needs_update: bool,
     needs_fit: bool,
+    /// The infinite canvas mode: no hoop — the view fits the content, the
+    /// save centres on the content (the Java has no equivalent; a greenfield
+    /// editor feature, docs/ROADMAP.md M5).
+    infinite: bool,
     status: Option<String>,
 }
 
@@ -126,6 +130,7 @@ impl EditorApp {
             stitched: None,
             needs_update: true,
             needs_fit: true,
+            infinite: false,
             status: None,
         }
     }
@@ -239,7 +244,10 @@ impl EditorApp {
         }
 
         // Dragging moves the selected point (not undoable — the Java moves it
-        // directly in `drawEditMode`, only Del is a command).
+        // directly in `drawEditMode`, only Del is a command). The stitched
+        // preview is NOT refreshed per drag frame — edit mode shows the raw
+        // elements live, and a per-frame re-stitch is the freeze on big
+        // documents; the preview catches up when the drag stops.
         if response.dragged_by(egui::PointerButton::Primary)
             && let Some((ei, pi)) = self.edit_sel
             && let Some(p) = self.pointer_mm(ui)
@@ -249,8 +257,10 @@ impl EditorApp {
                 && let Some(q) = elt.data.get_mut(pi)
             {
                 *q = p;
-                self.needs_update = true;
             }
+        }
+        if response.drag_stopped_by(egui::PointerButton::Primary) && self.edit_sel.is_some() {
+            self.needs_update = true;
         }
 
         if ui.input(|i| i.key_pressed(egui::Key::Delete))
@@ -332,15 +342,24 @@ impl EditorApp {
                 response.rect.max.x,
                 response.rect.max.y,
             );
-            self.viewport = Viewport::fit(
+            let bounds = if self.infinite {
+                // No hoop to fit: the drawn content (or a default area on an
+                // empty document).
+                self.doc.content_bounds().unwrap_or(emb_draw::Bounds {
+                    min_x: 0.0,
+                    min_y: 0.0,
+                    max_x: 1000.0,
+                    max_y: 1000.0,
+                })
+            } else {
                 emb_draw::Bounds {
                     min_x: 0.0,
                     min_y: 0.0,
                     max_x: self.doc.width,
                     max_y: self.doc.height,
-                },
-                panel,
-            );
+                }
+            };
+            self.viewport = Viewport::fit(bounds, panel);
             self.needs_fit = false;
         }
 
@@ -360,18 +379,21 @@ impl EditorApp {
         // Backdrop.
         painter.rect_filled(panel, 0.0, Color32::from_gray(60));
 
-        // The canvas (hoop): white like the Java editor's background.
-        let canvas = Rect::from_min_max(
-            pos(self.viewport.mm_to_screen(0.0, 0.0)),
-            pos(self.viewport.mm_to_screen(self.doc.width, self.doc.height)),
-        );
-        painter.rect_filled(canvas, 0.0, Color32::WHITE);
-        painter.rect_stroke(
-            canvas,
-            0.0,
-            Stroke::new(1.0, Color32::BLACK),
-            egui::StrokeKind::Inside,
-        );
+        // The canvas (hoop): white like the Java editor's background. The
+        // infinite mode has no hoop — the content floats on the backdrop.
+        if !self.infinite {
+            let canvas = Rect::from_min_max(
+                pos(self.viewport.mm_to_screen(0.0, 0.0)),
+                pos(self.viewport.mm_to_screen(self.doc.width, self.doc.height)),
+            );
+            painter.rect_filled(canvas, 0.0, Color32::WHITE);
+            painter.rect_stroke(
+                canvas,
+                0.0,
+                Stroke::new(1.0, Color32::BLACK),
+                egui::StrokeKind::Inside,
+            );
+        }
 
         let visible =
             self.viewport
@@ -429,10 +451,19 @@ impl EditorApp {
         }
 
         // Edit handles for the current layer (the Java's drawEditMode points).
+        // Culled by the visible region: a big motif must not rasterise a
+        // handle rect per point per frame when most points are off-view.
         if self.tool == Tool::Edit {
             let layer = self.doc.current();
             for (ei, elt) in layer.elements.iter().enumerate() {
                 for (pi, p) in elt.data.iter().enumerate() {
+                    if p.x < visible.min_x
+                        || p.x > visible.max_x
+                        || p.y < visible.min_y
+                        || p.y > visible.max_y
+                    {
+                        continue;
+                    }
                     let c = pos(self.viewport.mm_to_screen(p.x, p.y));
                     let selected = self.edit_sel == Some((ei, pi));
                     let size = if selected { 8.0 } else { 4.0 };
@@ -510,6 +541,15 @@ impl EditorApp {
             }
         }
         ui.separator();
+        if ui
+            .checkbox(&mut self.infinite, "Infinite")
+            .on_hover_text(
+                "Infinite canvas: no hoop — the view fits the content and the save centres on it",
+            )
+            .changed()
+        {
+            self.needs_fit = true;
+        }
         if ui.button("Save").clicked() {
             self.save_dialog();
         }
@@ -532,9 +572,16 @@ impl EditorApp {
             self.status = Some("Nothing to stitch yet — draw a polygon first".into());
             return;
         }
-        let title = crate::stitch::file_title(&path);
-        let design = crate::stitch::centered_design(&model, &title);
-        match crate::stitch::write_design(&path, &design) {
+        // The Java's writeOut: optimize() then write. The preview skips the
+        // TSP (stitch_document) — it runs here, once, at save.
+        let mut model = model;
+        model.optimize();
+        let result = if self.infinite {
+            crate::stitch::write_out_content_centered(&model, &path)
+        } else {
+            crate::stitch::write_out(&model, &path)
+        };
+        match result {
             Ok(()) => self.status = Some(format!("Saved {}", path.display())),
             Err(e) => self.status = Some(format!("Save failed: {e}")),
         }

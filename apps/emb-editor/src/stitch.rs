@@ -22,11 +22,13 @@ fn axis_angle(ang: f32) -> f32 {
 }
 
 /// Stitch every visible layer into one model: each PLY element hatches in
-/// its layer's colour, then the whole design is TSP-optimised per colour
-/// block (the Java's `E.optimize()` in `writeOut`).
+/// its layer's colour (the Java's `stitchLayer` — what `draw()` shows).
 ///
-/// Hidden layers are skipped — in the Java, `draw()` only stitches visible
-/// layers, so `writeOut` never sees hidden content.
+/// NO TSP here: the Java optimises only at save (`writeOut` → `optimize()`),
+/// and the preview refreshes on every document change — a full TSP pass per
+/// refresh is O(iterations · n²) (measured: a 1600 mm circle at 4 mm spacing
+/// costs ~70 ms of TSP for ~9 ms of stitching, and the cost grows n²). The
+/// save path calls `Model::optimize()` explicitly.
 pub fn stitch_document(doc: &Document) -> Model {
     let mut model = Model::new(doc.width, doc.height);
     for layer in &doc.layers {
@@ -34,7 +36,6 @@ pub fn stitch_document(doc: &Document) -> Model {
             stitch_layer(&mut model, layer);
         }
     }
-    model.optimize();
     model
 }
 
@@ -58,47 +59,79 @@ fn stitch_layer(model: &mut Model, layer: &Layer) {
     }
 }
 
-/// The save transform of the Java's `writeOut` → `PEmbroiderWriter.write`:
-/// the canvas is centred on the hoop origin (the writer's default
-/// `TRANSFORM = translate(-width/2, -height/2)`), and the title is the file
-/// stem truncated to the writer's 8 characters.
-pub fn centered_design(model: &Model, title: &str) -> emb_data::Design {
-    let dx = -model.width / 2.0;
-    let dy = -model.height / 2.0;
-    let mut design = model.to_design(title.into());
+/// The stitched content's bounds: `(min_x, min_y, width, height)`. The
+/// infinite canvas mode's centring target — with no hoop there is no canvas
+/// to centre on, the content is the canvas.
+fn content_bounds(model: &Model) -> Option<(f32, f32, f32, f32)> {
+    let mut min_x = f32::INFINITY;
+    let mut min_y = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut max_y = f32::NEG_INFINITY;
+    for poly in &model.polylines {
+        for p in poly {
+            min_x = min_x.min(p.x);
+            min_y = min_y.min(p.y);
+            max_x = max_x.max(p.x);
+            max_y = max_y.max(p.y);
+        }
+    }
+    if min_x.is_infinite() {
+        None
+    } else {
+        Some((min_x, min_y, max_x - min_x, max_y - min_y))
+    }
+}
+
+/// The stitched content's extent in mm (the test-facing view of
+/// `content_bounds`).
+#[cfg(test)]
+fn content_size(model: &Model) -> (f32, f32) {
+    match content_bounds(model) {
+        Some((_, _, w, h)) => (w, h),
+        None => (1.0, 1.0),
+    }
+}
+
+fn write_out_centered(
+    model: &Model,
+    path: &std::path::Path,
+    width: f32,
+    height: f32,
+) -> Result<(), String> {
+    if model.polylines.is_empty() {
+        return Err("nothing to stitch".into());
+    }
+    let title = emb_data::file_title(path);
+    let design = model.centered_design(&title, width, height);
+    emb_data::write_design(path, &design)
+}
+
+/// Save a stitched model to a file: the shared `emb_data::write_design` with
+/// the design centred on the editor's canvas (the Java's `writeOut` →
+/// `PEmbroiderWriter.write`, which centres on the canvas it was created
+/// with).
+pub fn write_out(model: &Model, path: &std::path::Path) -> Result<(), String> {
+    write_out_centered(model, path, model.width, model.height)
+}
+
+/// The infinite canvas mode's save: the CONTENT is moved to the origin (the
+/// hoop's centring shift), then centred on its own extent — the saved design
+/// is exactly the drawn content, wherever it was drawn.
+pub fn write_out_content_centered(model: &Model, path: &std::path::Path) -> Result<(), String> {
+    let Some((min_x, min_y, width, height)) = content_bounds(model) else {
+        return Err("nothing to stitch".into());
+    };
+    let (width, height) = (width.max(1.0), height.max(1.0));
+    let title = emb_data::file_title(path);
+    let mut design = model.to_design(title);
+    let dx = -min_x - width / 2.0;
+    let dy = -min_y - height / 2.0;
     for p in &mut design.stitches {
         p.x += dx;
         p.y += dy;
     }
-    design.bounds = [dx, dy, dx + model.width, dy + model.height];
-    design
-}
-
-/// The Java's title rule: the file stem, truncated to 8 characters
-/// (`PEmbroiderWriter.write`: `TITLE.substring(0, min(8, len))`).
-pub fn file_title(path: &std::path::Path) -> String {
-    let stem = path
-        .file_stem()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    stem.chars().take(8).collect()
-}
-
-/// Save a stitched model to a file, choosing the writer by extension.
-/// PES/DST/SVG are the M1 writers; anything else is refused (the Java's
-/// "Unsupported format" path — the Rust scope is D001's format list).
-pub fn write_design(path: &std::path::Path, design: &emb_data::Design) -> Result<(), String> {
-    let ext = path
-        .extension()
-        .map(|e| e.to_string_lossy().to_lowercase())
-        .unwrap_or_default();
-    let bytes: Vec<u8> = match ext.as_str() {
-        "pes" => emb_data::pes::write(design).map_err(|e| e.to_string())?,
-        "dst" => emb_data::dst::write(design).map_err(|e| e.to_string())?,
-        "svg" => emb_data::svg::write(design).into_bytes(),
-        _ => return Err(format!("unsupported extension .{ext}")),
-    };
-    std::fs::write(path, bytes).map_err(|e| e.to_string())
+    design.bounds = [-width / 2.0, -height / 2.0, width / 2.0, height / 2.0];
+    emb_data::write_design(path, &design)
 }
 
 /// Convenience for tests: a triangle polygon.
@@ -180,36 +213,56 @@ mod tests {
     }
 
     #[test]
-    fn centered_design_moves_the_canvas_to_the_origin() {
-        let mut model = Model::new(1024.0, 720.0);
+    fn write_out_refuses_an_empty_model() {
+        let model = Model::new(100.0, 100.0);
+        assert!(write_out(&model, std::path::Path::new("x.pes")).is_err());
+    }
+
+    #[test]
+    fn content_size_covers_the_stitched_polylines() {
+        let mut model = Model::new(100.0, 100.0);
         model.push_polyline(
-            vec![Point::new(512.0, 360.0), Point::new(600.0, 400.0)],
+            vec![Point::new(-500.0, 0.0), Point::new(500.0, 0.0)],
             0xFF0000,
         );
-        let d = centered_design(&model, "design");
-        assert_eq!(d.bounds, [-512.0, -360.0, 512.0, 360.0]);
-        assert_eq!(d.stitches[0], emb_data::Point { x: 0.0, y: 0.0 });
-        assert_eq!(d.jumps, vec![true, false]);
+        model.push_polyline(
+            vec![Point::new(0.0, -200.0), Point::new(0.0, 200.0)],
+            0xFF0000,
+        );
+        assert_eq!(content_size(&model), (1000.0, 400.0));
+        assert_eq!(content_size(&Model::new(1.0, 1.0)), (1.0, 1.0));
     }
 
     #[test]
-    fn file_title_truncates_to_eight() {
-        let p = std::path::Path::new("verylongname.pes");
-        assert_eq!(file_title(p), "verylong");
-        let p = std::path::Path::new("ab.pes");
-        assert_eq!(file_title(p), "ab");
-    }
-
-    #[test]
-    fn write_design_refuses_unknown_extensions() {
-        let d = emb_data::Design {
-            bounds: [0.0; 4],
-            stitches: vec![],
-            colors: vec![],
-            jumps: vec![],
-            title: "t".into(),
-        };
-        assert!(write_design(std::path::Path::new("x.gcode"), &d).is_err());
+    fn content_centered_save_centres_on_the_content() {
+        // Content drawn far from the origin (the infinite canvas has no
+        // hoop): the save must centre the content extent, not a canvas.
+        let mut model = Model::new(100.0, 100.0);
+        model.push_polyline(
+            vec![Point::new(5000.0, 1000.0), Point::new(5200.0, 1400.0)],
+            0xFF0000,
+        );
+        let dir = std::env::temp_dir().join("emb-editor-test");
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("infinite.pes");
+        write_out_content_centered(&model, &path).expect("write pes");
+        let read =
+            emb_data::pes::read(&std::fs::read(&path).expect("read file")).expect("parse pes");
+        // The content extent is 200x400, centred: bounds are the extent at
+        // the origin, the points exactly at their centred positions (D007:
+        // the writer measures deltas from the offset origin, so a nonzero
+        // bounds origin round-trips exactly).
+        assert_eq!(read.bounds, [0.0, 0.0, 200.0, 400.0]);
+        let positions: Vec<(f32, f32)> = read.stitches.iter().map(|p| (p.x, p.y)).collect();
+        assert_eq!(
+            positions,
+            vec![
+                (-100.0, -200.0),
+                (-100.0, -200.0),
+                (-100.0, -200.0),
+                (100.0, 200.0)
+            ]
+        );
     }
 
     /// The M4 exit criterion "save via emb-data" end to end: a document with
@@ -219,11 +272,10 @@ mod tests {
     fn save_round_trips_through_the_pes_writer() {
         let (doc, _) = doc_with_polygon(0);
         let model = stitch_document(&doc);
-        let design = centered_design(&model, "roundtrip");
         let dir = std::env::temp_dir().join("emb-editor-test");
         std::fs::create_dir_all(&dir).expect("temp dir");
         let path = dir.join("roundtrip.pes");
-        write_design(&path, &design).expect("write pes");
+        write_out(&model, &path).expect("write pes");
         let read =
             emb_data::pes::read(&std::fs::read(&path).expect("read file")).expect("parse pes");
         assert!(!read.stitches.is_empty());

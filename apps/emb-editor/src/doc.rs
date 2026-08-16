@@ -138,6 +138,23 @@ impl Document {
     pub fn current_mut(&mut self) -> &mut Layer {
         &mut self.layers[self.current_layer]
     }
+
+    /// The bounds of every drawn element (all layers): the fit target of the
+    /// infinite canvas mode, which has no canvas rect to fit (the hoop is a
+    /// bounded-mode concept). `None` when the document has no points.
+    pub fn content_bounds(&self) -> Option<emb_draw::Bounds> {
+        let mut pts = Vec::new();
+        for layer in &self.layers {
+            for elt in &layer.elements {
+                pts.extend_from_slice(&elt.data);
+            }
+        }
+        if pts.is_empty() {
+            None
+        } else {
+            Some(emb_draw::Bounds::of_points(&pts))
+        }
+    }
 }
 
 impl Default for Document {
@@ -285,6 +302,26 @@ mod tests {
         assert_eq!(l.hatch_spacing, 4.0);
         assert!(l.visible);
         assert!(l.elements.is_empty());
+    }
+
+    #[test]
+    fn content_bounds_covers_every_element() {
+        let mut doc = Document::new();
+        assert_eq!(doc.content_bounds(), None);
+        doc.current_mut().elements.push(Element::polygon(vec![
+            Point::new(-300.0, -100.0),
+            Point::new(200.0, 400.0),
+        ]));
+        doc.layers.push(Layer::new());
+        doc.current_mut().elements.push(Element::line(
+            vec![Point::new(0.0, 0.0), Point::new(50.0, 60.0)],
+            5.0,
+        ));
+        let b = doc.content_bounds().expect("content bounds");
+        assert_eq!(
+            (b.min_x, b.min_y, b.max_x, b.max_y),
+            (-300.0, -100.0, 200.0, 400.0)
+        );
     }
 
     #[test]
