@@ -8,6 +8,7 @@ re-edited except to add history. The table below is the index.
 | D001 | **Architecture ruling** — workspace shape, crates, dependency directions, rendering choice, format scope | 2026-08-16 |
 | D002 | **Float comparison tolerance** — geometry algorithms compare with |diff| < 0.001 mm; byte-compare stays for the binary writers | 2026-08-16 |
 | D003 | **Stroke path deferred** — PERPENDICULAR/TANGENT depends on the Java2D rasterizer (measured); enters with the converter (M5) | 2026-08-16 |
+| D004 | **PERPENDICULAR stroke ported** — the Java2D raster oracle becomes an exact geometric distance oracle; output verified by invariants, not Java fixtures (D003's re-evaluation) | 2026-08-16 |
 
 ## Writing a ruling
 

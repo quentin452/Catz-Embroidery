@@ -13,7 +13,7 @@ and a row is `done` only when its exit criteria run green.**
 |---|---|---|---|
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
 | M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
-| M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (see D003 deferrals below) |
+| M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (D003 deferrals + D004 stroke below) |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **done** (user acceptance 2026-08-16: test.pes vs ThreadsES) |
 | M4 | editor | stitch editing on real files; save via emb-data | **done** (user acceptance 2026-08-16; named exceptions below) |
 | M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
@@ -25,10 +25,12 @@ and a row is `done` only when its exit criteria run green.**
 > ported and tolerance-compared against headless Java fixtures — model core,
 > geometry, resample, hatch_parallel, hatchParallelComplex, TSP, trace
 > (findContours + approxPolyDP), hatchParallelRaster + CROSS, isolines.
-> Deferred to the converter phase (M5): PERLIN, strokes, spirals v2-v4,
-> offset/inset, hatchInset, satin — each renders through `app.createGraphics`
-> (Java2D rasterization) and/or `app.random` (measured in docs/LESSONS.md and
-> ruled in docs/decisions/D003.md).
+> Deferred to the converter phase (M5): PERLIN, spirals v2-v4,
+> offset/inset, hatchInset, satin, the TANGENT stroke — each renders through
+> `app.createGraphics` (Java2D rasterization) and/or `app.random` (measured in
+> docs/LESSONS.md and ruled in docs/decisions/D003.md). The PERPENDICULAR
+> stroke (`strokePolyNormal`) is ported 2026-08-16 as D004 (geometric distance
+> oracle, invariant-tested — not compared against the Java, by that ruling).
 >
 > **Named exceptions (pin 3):** `resample(randomize != 0)` refuses with an error —
 > no consumer uses it (RESAMPLE_NOISE = 0 everywhere); queued until a consumer asks.
@@ -72,9 +74,11 @@ slice candidates, in the Java suite's own order:
 
 1. **The converter app** (the big one): image → PES/SVG/DST with the 5 hatch
    modes, image drag-drop/clipboard, preview, mm export settings, multicolor.
-   Opens the D003 deferral question: PERLIN, strokes, spirals, offset/inset,
-   hatchInset, satin render through Java2D — a ruling must say how they are
-   compared (raster-level? re-evaluation?) before any is claimed ported.
+   Opens the D003 deferral question: PERLIN, the TANGENT stroke, spirals,
+   offset/inset, hatchInset, satin render through Java2D — a ruling must say
+   how they are compared (raster-level? re-evaluation?) before any is claimed
+   ported. (The PERPENDICULAR stroke is ported already — D004: geometric
+   oracle + invariants.)
 2. **emb-launcher** (thin egui menu, no model knowledge — matrix row
    `allow = []`), then infinite-draw.
 3. **Packaging**: exe builds.
@@ -115,10 +119,11 @@ tested (see below) — verify visually before claiming acceptance.
 
 ### Deferred by D003 (reopened at M5, converter in front)
 
-PERLIN, strokePolyNormal/Tangent, hatchSpiral_v2-v4, offsetPolygon/inset,
+PERLIN, strokePolyTangentRaster, hatchSpiral_v2-v4, offsetPolygon/inset,
 hatchInset, satin — each renders through `app.createGraphics` (Java2D) and/or
 `app.random`. Do NOT claim any of them ported until a ruling says how they are
-compared.
+compared. (`strokePolyNormal` was ported 2026-08-16 — the ruling is D004: a
+geometric distance oracle + invariant tests, not Java fixtures.)
 
 ### Named exceptions (pin 3)
 

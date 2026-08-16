@@ -14,6 +14,7 @@ pub mod hatch_raster;
 pub mod model;
 pub mod raster;
 pub mod resample;
+pub mod stroke;
 pub mod trace;
 pub mod tsp;
 

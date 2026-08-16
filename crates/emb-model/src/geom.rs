@@ -54,6 +54,11 @@ pub fn sin(ang: f32) -> f32 {
     (ang as f64).sin() as f32
 }
 
+/// `PApplet.atan2(float, float)`: f64 math cast back to f32.
+pub fn atan2(y: f32, x: f32) -> f32 {
+    (y as f64).atan2(x as f64) as f32
+}
+
 /// `PEmbroiderGraphics.det` on two 2D points plus a 3D vector (the cross
 /// product carries the 2D area in its z). Computed with the Java's term order.
 fn det(a: [f32; 3], b: [f32; 3], c: [f32; 3]) -> f32 {
