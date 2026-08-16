@@ -9,7 +9,7 @@
 
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke};
 
-use emb_draw::{Command, DrawList, Viewport};
+use emb_draw::{DrawList, Viewport};
 use emb_model::convert::{ColorMode, ConvertParams, HatchMode};
 
 use crate::convert::WORK_SIZE;
@@ -402,26 +402,11 @@ impl ConverterApp {
         }
 
         // The stitched preview: exactly what the save path will write,
-        // through the shared draw list with viewport culling (D001).
-        let visible =
-            self.viewport
-                .visible_mm((panel.min.x, panel.min.y, panel.max.x, panel.max.y));
+        // through the shared batched renderer (emb_egui: every visible
+        // segment in ONE mesh per frame, viewport culling) — the per-segment
+        // painter calls froze in proportion to the stitches on screen.
         if let Some(draw_list) = &self.preview {
-            let width_px = (draw_list.identity.stitch_width_mm * self.viewport.scale).max(1.0);
-            for item in &draw_list.items {
-                if !item.bounds.intersects(visible) {
-                    continue;
-                }
-                if let Command::Polyline { points, color, .. } = &item.command {
-                    let stroke =
-                        Stroke::new(width_px, Color32::from_rgb(color.r, color.g, color.b));
-                    for w in points.windows(2) {
-                        let a = pos(self.viewport.mm_to_screen(w[0].x, w[0].y));
-                        let b = pos(self.viewport.mm_to_screen(w[1].x, w[1].y));
-                        painter.line_segment([a, b], stroke);
-                    }
-                }
-            }
+            emb_egui::paint_draw_list(painter, &self.viewport, draw_list, panel);
         }
     }
 }

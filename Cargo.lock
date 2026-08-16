@@ -653,6 +653,7 @@ dependencies = [
  "eframe",
  "emb-data",
  "emb-draw",
+ "emb-egui",
  "emb-model",
  "image",
  "rfd",
@@ -680,8 +681,18 @@ dependencies = [
  "eframe",
  "emb-data",
  "emb-draw",
+ "emb-egui",
  "emb-model",
  "rfd",
+]
+
+[[package]]
+name = "emb-egui"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "emb-draw",
+ "emb-model",
 ]
 
 [[package]]
@@ -709,6 +720,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "emb-draw",
+ "emb-egui",
  "emb-model",
  "rfd",
 ]

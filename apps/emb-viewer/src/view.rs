@@ -5,9 +5,9 @@
 //! The transform math lives in `emb_draw::Viewport` (shared with the editor);
 //! this file is the egui glue: input handling and the paint calls.
 
-use eframe::egui::{self, Color32, Painter, Rect, Sense, Stroke};
+use eframe::egui::{self, Color32, Painter, Rect, Sense};
 
-use emb_draw::{Command, DrawList, Viewport};
+use emb_draw::{DrawList, Viewport};
 
 /// Handle input and draw one frame's worth of the design.
 pub struct RenderView {
@@ -103,21 +103,12 @@ impl RenderView {
         let visible =
             self.viewport
                 .visible_mm((panel.min.x, panel.min.y, panel.max.x, panel.max.y));
-        let width_px = (identity.stitch_width_mm * self.viewport.scale).max(1.0);
+        let _ = visible;
 
-        for item in &draw_list.items {
-            if !item.bounds.intersects(visible) {
-                continue;
-            }
-            if let Command::Polyline { points, color, .. } = &item.command {
-                let stroke = Stroke::new(width_px, Color32::from_rgb(color.r, color.g, color.b));
-                for w in points.windows(2) {
-                    let a = pos2(self.viewport.mm_to_screen(w[0].x, w[0].y));
-                    let b = pos2(self.viewport.mm_to_screen(w[1].x, w[1].y));
-                    painter.line_segment([a, b], stroke);
-                }
-            }
-        }
+        // The zoomed-in path: every visible segment batched into ONE mesh
+        // (emb_egui) — the per-segment painter calls froze in proportion to
+        // the stitches on screen.
+        emb_egui::paint_draw_list(painter, &self.viewport, draw_list, panel);
     }
 }
 

@@ -4,6 +4,7 @@ members = [
     "crates/emb-data",
     "crates/emb-model",
     "crates/emb-draw",
+    "crates/emb-egui",
     "apps/emb-editor",
     "apps/emb-viewer",
     "apps/emb-converter",

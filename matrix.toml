@@ -27,17 +27,22 @@ allow = ["emb-data"]
 # between the apps and the renderer. A leaf — never pulls an app.
 allow = ["emb-model"]
 
+[emb-egui]
+# The shared egui renderer of the draw list (one batched mesh per frame): the apps'
+# ONE paint path for the stitched preview — renderers cannot drift (D001).
+allow = ["emb-draw", "emb-model"]
+
 [emb-editor]
 # The interactive editor (egui): consumes the model, emits the draw list.
-allow = ["emb-data", "emb-model", "emb-draw"]
+allow = ["emb-data", "emb-model", "emb-draw", "emb-egui"]
 
 [emb-viewer]
 # The design viewer: consumes the model, emits the draw list. No formats.
-allow = ["emb-model", "emb-draw"]
+allow = ["emb-model", "emb-draw", "emb-egui"]
 
 [emb-converter]
 # The image->embroidery app (UI like the Java original): formats + model + draw list.
-allow = ["emb-data", "emb-model", "emb-draw"]
+allow = ["emb-data", "emb-model", "emb-draw", "emb-egui"]
 
 [emb-launcher]
 # The hub (app choice, language, update check): a thin menu, no model knowledge.
