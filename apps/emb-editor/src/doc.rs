@@ -76,10 +76,10 @@ pub enum HatchMode {
     Parallel,
 }
 
-/// A layer: elements plus the hatch settings the stitch path consumes.
-/// The Java's `Layer` also carries stroke settings (`strokeColor`,
-/// `strokeWeight`, `strokeMode`) — those are deferred with the stroke path
-/// (docs/decisions/D003.md) and enter with their consumer.
+/// A layer: elements plus the hatch and stroke settings the stitch path
+/// consumes. The stroke settings entered with their consumer (M5, D003's
+/// ruling): the LIN elements stitch through the ported PERPENDICULAR stroke
+/// (D004); `strokeMode` is PERPENDICULAR only — TANGENT stays deferred.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer {
     pub hatch_mode: HatchMode,
@@ -87,6 +87,11 @@ pub struct Layer {
     pub hatch_color: u32,
     /// The Java default `hatchSpacing = 4` mm.
     pub hatch_spacing: f32,
+    /// The LIN elements' stitch colour. The Java default is red
+    /// `color(255, 0, 0)`.
+    pub stroke_color: u32,
+    /// The LIN contour stroke's weight, mm. The Java default is 10.
+    pub stroke_weight: f32,
     /// Preview-only in the Java: hidden layers are not stitched on save.
     pub visible: bool,
     pub elements: Vec<Element>,
@@ -98,6 +103,8 @@ impl Layer {
             hatch_mode: HatchMode::Parallel,
             hatch_color: 0x0000FF,
             hatch_spacing: 4.0,
+            stroke_color: 0xFF0000,
+            stroke_weight: 10.0,
             visible: true,
             elements: Vec::new(),
         }

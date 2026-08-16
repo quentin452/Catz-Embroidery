@@ -10,8 +10,11 @@
 
 use emb_model::hatch;
 use emb_model::model::Model;
+use emb_model::raster::Raster;
+use emb_model::stroke::stroke_poly_normal;
+use emb_model::trace;
 
-use crate::doc::{Document, ElementKind, HatchMode, Layer};
+use crate::doc::{Document, Element, ElementKind, HatchMode, Layer};
 
 /// The Java's `HATCH_ANGLE` default: QUARTER_PI.
 const HATCH_ANGLE: f32 = std::f32::consts::FRAC_PI_4;
@@ -20,6 +23,10 @@ const HATCH_ANGLE: f32 = std::f32::consts::FRAC_PI_4;
 fn axis_angle(ang: f32) -> f32 {
     std::f32::consts::FRAC_PI_2 - ang
 }
+
+/// The Java's `STROKE_SPACING` default: the editor never sets it, so the
+/// LIN contour stroke runs at the model's default spacing.
+const STROKE_SPACING: f32 = 4.0;
 
 /// Stitch every visible layer into one model: each PLY element hatches in
 /// its layer's colour (the Java's `stitchLayer` — what `draw()` shows).
@@ -39,23 +46,110 @@ pub fn stitch_document(doc: &Document) -> Model {
     model
 }
 
-/// One layer's elements → hatched polylines in the layer's hatch colour.
+/// One layer's elements → stitched polylines in the layer's colours.
 fn stitch_layer(model: &mut Model, layer: &Layer) {
     debug_assert_eq!(layer.hatch_mode, HatchMode::Parallel);
     let angle = axis_angle(HATCH_ANGLE);
     let spacing = layer.hatch_spacing.max(0.1);
     for elt in &layer.elements {
-        if elt.kind != ElementKind::Polygon {
-            // LIN: stroke path, deferred (D003 → M5). TXT: font rasteriser,
-            // deferred. Both named exceptions in docs/ROADMAP.md.
-            continue;
+        match elt.kind {
+            ElementKind::Polygon => {
+                if elt.data.len() < 3 {
+                    continue;
+                }
+                for poly in hatch::hatch_parallel(&elt.data, angle, spacing) {
+                    model.push_polyline(poly, layer.hatch_color);
+                }
+            }
+            ElementKind::Line => {
+                // The Java's editor rasterises the line at the element's
+                // thickness (paramF0) and strokes its CONTOUR through
+                // image() — PERPENDICULAR at the layer's stroke weight
+                // (Main.java: rasterizeLayer + stitchLayer). Ported with the
+                // D004 distance oracle (the rasterised line = every pixel
+                // within half the thickness), the CONCENTRIC fill of the
+                // line deferred with hatchInset (D003). TANGENT stroke
+                // deferred; the layer's stroke mode is PERPENDICULAR.
+                stitch_line(model, elt, layer);
+            }
+            ElementKind::Text => {
+                // TXT: font rasteriser, deferred (D003/D005 class). Named
+                // exception in docs/ROADMAP.md.
+            }
         }
-        if elt.data.len() < 3 {
-            continue;
+    }
+}
+
+/// The LIN stitch: rasterise the line (the D004 oracle: ON within half the
+/// element's thickness), trace its contour, stroke the contour with the
+/// layer's PERPENDICULAR settings — the Java's `image()` path, element-local
+/// so the infinite canvas stays scalable.
+fn stitch_line(model: &mut Model, elt: &Element, layer: &Layer) {
+    if elt.data.len() < 2 {
+        return;
+    }
+    let half = (elt.param_f0 / 2.0).max(0.5);
+    let mask = line_mask(&elt.data, half);
+    let Ok(mut contours) = trace::find_contours(&mask) else {
+        return;
+    };
+    contours.retain(|c| c.len() >= 3);
+    for contour in contours {
+        let contour = trace::approx_poly_dp(&contour, 1.0);
+        // The Java's `_stroke(polys, true)`: half-weight = strokeWeight/2,
+        // spacing = STROKE_SPACING (4), closed contours, connected.
+        for bar in stroke_poly_normal(
+            &contour,
+            (layer.stroke_weight / 2.0).max(0.5),
+            STROKE_SPACING,
+            true,
+            true,
+        ) {
+            model.push_polyline(bar, layer.stroke_color);
         }
-        for poly in hatch::hatch_parallel(&elt.data, angle, spacing) {
-            model.push_polyline(poly, layer.hatch_color);
+    }
+}
+
+/// The rasterised line as a mask: every pixel within `half` of the polyline
+/// is ON (the D004 distance oracle), element-local at 1 px per mm — the
+/// Java's layer render is the same resolution (W×H pixels over W×H mm).
+/// The two endpoints get a disc oracle (the Java2D round caps).
+fn line_mask(poly: &[emb_model::geom::Point], half: f32) -> Raster {
+    let mut min_x = f32::INFINITY;
+    let mut min_y = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut max_y = f32::NEG_INFINITY;
+    for p in poly {
+        min_x = min_x.min(p.x);
+        min_y = min_y.min(p.y);
+        max_x = max_x.max(p.x);
+        max_y = max_y.max(p.y);
+    }
+    let margin = half + 1.0;
+    let x0 = (min_x - margin).floor() as i32;
+    let y0 = (min_y - margin).floor() as i32;
+    let w = ((max_x - min_x + 2.0 * margin).ceil() as i32).max(1);
+    let h = ((max_y - min_y + 2.0 * margin).ceil() as i32).max(1);
+    let mut pixels = Vec::with_capacity((w * h) as usize);
+    let last = poly[poly.len() - 1]; // the caller guarantees >= 2 points
+    for py in 0..h {
+        for px in 0..w {
+            let p = emb_model::geom::Point::new((x0 + px) as f32, (y0 + py) as f32);
+            let d = poly
+                .windows(2)
+                .fold(f32::INFINITY, |best, seg| {
+                    best.min(trace::point_distance_to_segment(p, seg[0], seg[1]))
+                })
+                .min(p.dist(poly[0]))
+                .min(p.dist(last));
+            pixels.push(d <= half);
         }
+    }
+    // The pixel count matches w*h by construction — the size error is
+    // unreachable.
+    match Raster::new(w as usize, h as usize, pixels) {
+        Ok(raster) => raster,
+        Err(_) => unreachable!("line mask pixels match the declared size"),
     }
 }
 
@@ -175,17 +269,32 @@ mod tests {
     }
 
     #[test]
-    fn line_and_text_elements_are_not_stitched() {
+    fn line_elements_stitch_and_text_does_not() {
+        // LIN: the PERPENDICULAR stroke of the rasterised line's contour
+        // (the M5 consumer of the D004 stroke). TXT: font rasteriser,
+        // deferred (D003) — not stitched.
         let mut doc = Document::new();
         doc.current_mut().elements.push(Element::line(
             vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)],
-            5.0,
+            20.0,
         ));
         doc.current_mut()
             .elements
             .push(Element::text("hi".into(), 20.0, Point::new(50.0, 50.0)));
         let model = stitch_document(&doc);
-        assert!(model.polylines.is_empty());
+        assert!(!model.polylines.is_empty());
+        assert!(model.colors.iter().all(|&c| c == 0xFF0000));
+        for poly in &model.polylines {
+            assert!(poly.len() >= 2);
+        }
+        let doc2 = {
+            let mut d = Document::new();
+            d.current_mut()
+                .elements
+                .push(Element::text("hi".into(), 20.0, Point::new(50.0, 50.0)));
+            d
+        };
+        assert!(stitch_document(&doc2).polylines.is_empty());
     }
 
     #[test]

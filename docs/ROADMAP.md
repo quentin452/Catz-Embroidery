@@ -37,11 +37,16 @@ and a row is `done` only when its exit criteria run green.**
 >
 > **M4 is done with named exceptions (the M4 ruling + D003):** the editor
 > stitches only visible layers' PLY elements via the vector
-> `hatch_parallel` (PARALLEL mode only). LIN elements (stroke path),
-> TXT elements (font rasteriser), CONCENTRIC hatch (hatchInset) and the
-> layer stroke settings + cull toggle all enter with their consumers (M5,
-> ruled in D003). The canvas preview shows the stitched design through
-> `emb_draw::DrawList`, cached on a dirty flag (the Java's `needsUpdate`).
+> `hatch_parallel` (PARALLEL mode only). **2026-08-16: LIN elements entered
+> with their M5 consumer** — the rasterised line's contour (the D004 oracle
+> mask) strokes through the ported PERPENDICULAR stroke at the layer's
+> stroke settings (colour + weight, now in the layer row; TANGENT stays
+> deferred). TXT elements (font rasteriser) and the cull toggle (raster
+> compositing) remain named exceptions. CONCENTRIC hatch (hatchInset) and
+> the layer stroke mode toggle all enter with their consumers (M5, ruled in
+> D003). The canvas preview shows the stitched design through
+> `emb_draw::DrawList`, cached on a dirty flag (the Java's `needsUpdate`);
+> TXT elements are drawn as raw drafts (they are not stitched).
 
 ## How to resume
 

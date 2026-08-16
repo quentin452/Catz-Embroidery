@@ -417,6 +417,28 @@ impl EditorApp {
             // the per-segment painter calls froze in proportion to the
             // stitches on screen.
             emb_egui::paint_draw_list(painter, &self.viewport, draw_list, panel);
+            // TXT elements are not stitched (font rasteriser deferred, D003)
+            // — the raw draft is drawn so the text tool gives feedback; the
+            // save still skips them (named exception, docs/ROADMAP.md).
+            for layer in &self.doc.layers {
+                if !layer.visible {
+                    continue;
+                }
+                for elt in &layer.elements {
+                    if elt.kind == ElementKind::Text {
+                        self.paint_element(
+                            painter,
+                            elt,
+                            Color32::from_rgb(
+                                ((layer.hatch_color >> 16) & 0xFF) as u8,
+                                ((layer.hatch_color >> 8) & 0xFF) as u8,
+                                (layer.hatch_color & 0xFF) as u8,
+                            ),
+                            &visible,
+                        );
+                    }
+                }
+            }
         }
 
         // The in-progress polyline (Java: the polyBuff preview on top).
@@ -603,6 +625,28 @@ impl EditorApp {
                             .range(0.1..=100.0)
                             .speed(0.1)
                             .prefix("spacing "),
+                    )
+                    .changed();
+                // The stroke settings entered with the LIN consumer (M5, the
+                // M4 named exception): swatch + weight. The Java's stroke
+                // mode row is PERPENDICULAR only (TANGENT deferred, D003);
+                // the cull toggle stays deferred (raster compositing).
+                let mut sc = [
+                    ((layer.stroke_color >> 16) & 0xFF) as u8,
+                    ((layer.stroke_color >> 8) & 0xFF) as u8,
+                    (layer.stroke_color & 0xFF) as u8,
+                ];
+                if ui.color_edit_button_srgb(&mut sc).changed() {
+                    layer.stroke_color =
+                        u32::from(sc[0]) << 16 | u32::from(sc[1]) << 8 | u32::from(sc[2]);
+                    changed = true;
+                }
+                changed |= ui
+                    .add(
+                        egui::DragValue::new(&mut layer.stroke_weight)
+                            .range(1.0..=100.0)
+                            .speed(0.1)
+                            .prefix("stroke "),
                     )
                     .changed();
                 if ui.button("X").clicked() {
