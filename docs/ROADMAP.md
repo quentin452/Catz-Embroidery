@@ -44,7 +44,7 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, late — M3 slice 2)
+### Next-session strategy (wrap 2026-08-16, M3 slice 2)
 
 State: **M0, M1, M2 done** (D003 deferrals named below). Branch `rs-greenfield`.
 All gates green. M3 slice 1 landed earlier today: **emb-draw** (vocabulary,
@@ -55,11 +55,12 @@ culling, overview texture cache). Slice 2 this evening:
   (present before reveal — `tools/vendor/eframe/README.md`), because the first
   GL present on this hybrid-GPU laptop takes ~665 ms and upstream reveals the
   window before the swap. Measured with samply; committed `e5e53fb`.
-- **PES reader tolerates a missing 0xFF end marker** when the declared block
-  length is respected (`pes_accepts_a_missing_end_marker...` test) — the same
-  family as the DST END-record ruling. Committed `8e84837`.
-- **Viewer fits and textures the MOTIF, not the canvas** (uncommitted): the
-  canvas is now a backdrop rect; `DrawList::content_bounds()` drives fit-on-open
+- **PES reader: record grammar + origin fixed** — the projection bug on
+  test.pes (see the acceptance-bugs section below) turned out to be a 4-byte
+  long-form assumption and ignored offsets; both fixed and regression-tested
+  against pyembroidery (reference reader, `pip install pyembroidery`).
+- **Viewer fits and textures the MOTIF, not the canvas** (committed `1b332b3`):
+  the canvas is now a backdrop rect; `DrawList::content_bounds()` drives fit-on-open
   and the overview texture covers the motif (translated to its own origin), so
   a design sitting far from its declared hoop still renders centred and full.
 
@@ -71,58 +72,60 @@ Decisions taken (each documented where it lives):
   on colour change and jump — the Java SVG writer's rule); **`Model::from_pes`**
   is the one loader every app uses. The viewer's matrix row stays
   `["emb-model", "emb-draw"]`; emb-model gained a runtime emb-data dep.
+- **pyembroidery is the PES reference reader** (Ink/Stitch's engine): install
+  with `pip install pyembroidery`; diff its stitch list against ours when a
+  third-party PES misbehaves. libembroidery exists but its PEC long-form
+  parsing is buggy — not a reference.
 
 Remaining M3 work (in priority order):
 
-1. **PES projection bug on test.pes (the resume point)** — the reader produces
-   phantom points: our x span is 2628 vs ThreadsES's 1234 (y matches within
-   1 %), and we read 6 stitches fewer than the reference. Investigate record
-   by record where the read diverges; then settle unit (mm vs 0.1 mm), then
-   y-flip, then PEC offsets. All three bugs (projection, ears, derived) are
-   consigned in the section below with the measurements.
-2. **Manual acceptance** on the fixed test.pes + the committed fixture —
-   pan/zoom, texture↔vector LOD, fit-on-open; visual identity tuning
-   (`VisualIdentity::default()` is a first guess from the Java editor's look).
-3. **Texture invalidation on edit** is a non-issue until M4 edits; keep the
+1. **Manual acceptance on test.pes + simple.pes (the resume point)** — with the
+   reader fixed, test.pes renders centred in its frame (characters + paws,
+   like ThreadsES); check pan/zoom, texture↔vector LOD, fit-on-open, and the
+   visual identity (`VisualIdentity::default()` is a first guess from the Java
+   editor's look).
+2. **Texture invalidation on edit** is a non-issue until M4 edits; keep the
    rasteriser in `apps/emb-viewer/src/overview.rs` fed from `DrawList`, never
    from the model.
 
-Then M4 — emb-editor (layer/element model, undo/redo).
+Then M4 — emb-editor (layer/element model, undo/redo). First brick already in:
+`emb_model::resample::StitchSettings` (Java's STITCH_LENGTH=10 /
+MIN_STITCH_LENGTH=4 defaults, consumed by resample) — the editor's
+stitch-frequency knob.
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 
 Reported by the user after comparing against **ThreadsES** (Ink/Stitch could not
-be installed). Each needs investigation and a fix decision; none is claimed
-fixed until verified against the reference viewer on the same file.
+be installed). All three turned out to have ONE cause, fixed and regression-
+tested (see below) — verify visually before claiming acceptance.
 
-1. **XY projection is wrong: the PES renders in the wrong orientation, and the
-   motif is not inside the drawn hoop.** The reader ignores the PEC offsets
-   (x-offset/y-offset in the block header) and returns `bounds = [0, 0, w, h]`
-   while the stitches sit far outside that rect. Whether the y axis needs
-   flipping (machine coords vs screen coords) must be measured against the
-   reference viewer before fixing. The DST writer flips y — the PEC likely
-   does too.
-
-   **Measured on test.pes (ThreadsES vs ours):**
-   - ThreadsES: design size **1234×1378**, **31083** stitches.
-   - Ours: stitched size **2628×1396**, **31077** points (after from_design).
-   - The y span matches within ~1% (1396 vs 1378); the x span does NOT
-     (2628 vs 1234). Our reader produces points far left of the motif that
-     the reference viewer does not have — a record mis-read (phantom
-     coordinates), not just a unit or offset problem.
-   - 31083 − 31077 = 6 stitches: we read FEWER points than the reference.
-   - If ThreadsES sizes are in 0.1 mm, its motif is 123.4×137.8 mm; our raw
-     span is 2628×1396 units (262.8×139.6 mm at 0.1 mm) — width off by ~2.1×.
-
-   Next step before fixing: locate where our x span diverges (which records
-   read wrong → phantom points), then settle unit, then y-flip, then offsets.
+1. ~~XY projection is wrong: the PES renders in the wrong orientation, and the
+   motif is not inside the drawn hoop.~~ **FIXED 2026-08-16.** The reader had
+   two bugs, both in `emb-data/src/pes.rs` and both measured against
+   pyembroidery (the Ink/Stitch PES engine, installed as a reference):
+   - **Long-form records are not always 4 bytes.** The Brother grammar flags
+     each axis word independently: a byte with bit 7 opens a 12-bit value over
+     2 bytes, otherwise it is a 7-bit delta on its own. A record is 2, 3 or
+     4 bytes. test.pes's writer (Ticetac) emits 3-byte records (a dy word
+     without the 0x80 flag); a reader that forces 4 bytes shifts the stream
+     and invents phantom points — the characters' paws appeared at x ≈ -2500,
+     140 mm left of the motif, and the x span came out 2.1× too wide.
+   - **The offset words are the design origin.** `0x9000 | -left`: test.pes's
+     `0x9480 0x90A4` decode to origin (1152, 164) — with the deltas accumulated
+     from there, the design fills the declared bounds exactly (0..1234 ×
+     0..900), instead of sitting ~115 mm left of the canvas (the drawn hoop
+     floated to the right of the characters).
+   Both fixed + regression-tested: `pes_third_party_offsets_and_three_byte_
+   records` on the committed `fixtures/test.pes` (31077 points, bounds filled
+   exactly, no point outside the canvas). The old reading spanned x -2554..74.
+   ThreadsES's 31083 count = our 31077 + the 6 colour-change STOP stitches the
+   reference emits.
 2. ~~Bug 2~~ — user-reported as caused by 1 or 3; not an independent bug.
-3. **Two "ears" of the motif land in the wrong place** — likely a consequence
-   of the projection bug (wrong origin/y-flip shifting whole polylines), but
-   must be confirmed once 1 is fixed; could also be a jump/colour-run
-   mis-grouping in `Model::from_design`.
-
-Then M4 — emb-editor (layer/element model, undo/redo).
+3. ~~Two "ears" of the motif land in the wrong place~~ — **FIXED by 1**: the
+   "ears" were the phantom paws, an artifact of the 4-byte-long misparse. The
+   CSewSeg section of test.pes (the design as authored, centred on the hoop)
+   confirmed the paws belong with the characters, sticking slightly out of the
+   frame.
 
 ### Deferred by D003 (reopened at M5, converter in front)
 

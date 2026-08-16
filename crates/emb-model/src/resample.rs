@@ -11,6 +11,36 @@ use crate::geom::Point;
 
 const MAX_TURN: f32 = 0.2;
 
+/// How often stitches are created when resampling a polyline into a stitch
+/// path. Mirrors the Java apps' knobs (`PEmbroiderGraphics.STITCH_LENGTH` and
+/// `MIN_STITCH_LENGTH`; the Java clamps the setters to `>= 0.1` / `>= 0`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StitchSettings {
+    /// Target stitch length in mm: segments longer than this are split at this
+    /// interval (Java `STITCH_LENGTH`).
+    pub stitch_length: f32,
+    /// Minimum stitch length in mm: shorter segments are merged when the
+    /// corner turns less than MAX_TURN (Java `MIN_STITCH_LENGTH`).
+    pub min_stitch_length: f32,
+}
+
+impl Default for StitchSettings {
+    /// The Java apps' defaults (`PEmbroiderGraphics.java`).
+    fn default() -> Self {
+        Self {
+            stitch_length: 10.0,
+            min_stitch_length: 4.0,
+        }
+    }
+}
+
+impl StitchSettings {
+    /// Resample a polyline at this frequency: `resample(poly, min, max, 0, 0)`.
+    pub fn resample(&self, poly: &[Point]) -> Result<Vec<Point>, Error> {
+        resample(poly, self.min_stitch_length, self.stitch_length, 0.0, 0.0)
+    }
+}
+
 /// `PEmbroiderGraphics.resample`: merge short segments when the corner turns
 /// less than MAX_TURN, split long segments at max_len intervals.
 pub fn resample(
@@ -75,4 +105,30 @@ pub fn resample(
     }
 
     Ok(poly2)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_match_the_java_apps() {
+        let s = StitchSettings::default();
+        assert_eq!(s.stitch_length, 10.0);
+        assert_eq!(s.min_stitch_length, 4.0);
+    }
+
+    #[test]
+    fn resample_uses_the_settings_as_min_max() {
+        let s = StitchSettings::default();
+        let poly = vec![Point::new(0.0, 0.0), Point::new(0.0, 50.0)];
+        let got = s.resample(&poly).unwrap();
+        let raw = resample(&poly, s.min_stitch_length, s.stitch_length, 0.0, 0.0).unwrap();
+        assert_eq!(got, raw);
+        // The 50 mm segment splits at the 10 mm target: 6 points.
+        assert_eq!(got.len(), 6);
+        assert_eq!(got[0], Point::new(0.0, 0.0));
+        assert_eq!(got[1], Point::new(0.0, 10.0));
+        assert_eq!(got[5], Point::new(0.0, 50.0));
+    }
 }

@@ -179,3 +179,42 @@ fn pes_accepts_a_missing_end_marker_when_length_is_respected() {
     assert_eq!(positions, expected);
     assert_read_back_colors(&read);
 }
+
+/// Third-party acceptance file (Ticetac machine software, title "Ticetac" — the
+/// design is the two Ice Age characters). Two things its writer does that a
+/// naive reader trips on (measured against pyembroidery, docs/LESSONS.md):
+///
+/// - 12-bit dy words without the flag byte: `80 40 01 56` is a 3-byte record
+///   (dx = 64 long, dy = 1 short), not a 4-byte one (dx = 64, dy = 342). A
+///   reader that forces 4 bytes per long record shifts the stream and invents
+///   phantom points far left of the design (the "paws" of the characters, at
+///   x ≈ -2500, which neither pyembroidery nor ThreadsES shows).
+/// - Offset words that carry the design's origin (`0x9000 | -left`): read as a
+///   leading long-form record they place the design exactly inside the declared
+///   width/height, instead of at the raw stream extents.
+///
+/// With both handled, the stream decodes to exactly the declared bounds
+/// `[0, 0, 1234, 900]` — the same geometry pyembroidery produces.
+#[test]
+fn pes_third_party_offsets_and_three_byte_records() {
+    let read = pes::read(&fixture("test.pes")).unwrap();
+    assert_eq!(read.title, "Ticetac");
+    assert_eq!(read.bounds, [0.0, 0.0, 1234.0, 900.0]);
+    assert_eq!(read.stitches.len(), 31077);
+    assert_eq!(read.colors.len(), read.stitches.len());
+    let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+        f32::INFINITY,
+        f32::INFINITY,
+        f32::NEG_INFINITY,
+        f32::NEG_INFINITY,
+    );
+    for p in &read.stitches {
+        min_x = min_x.min(p.x);
+        min_y = min_y.min(p.y);
+        max_x = max_x.max(p.x);
+        max_y = max_y.max(p.y);
+    }
+    // The design fills the declared bounds exactly: no phantom points (the old
+    // reader spanned x -2554..74), nothing overflowing.
+    assert_eq!((min_x, min_y, max_x, max_y), (0.0, 0.0, 1234.0, 900.0));
+}

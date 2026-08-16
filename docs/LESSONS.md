@@ -91,17 +91,43 @@ THREE identical points. The round-trip test pins the read-back exactly.
 branch; later long forms are `0x80xx`, not `0xA0xx` (byte 728 of `simple.pes`).
 **Ruling:** replicated exactly — this is what the fixture says.
 
-### PES reader accepts a missing end marker when the declared length is respected
+### PES record grammar: each axis word is independently flagged
 **Measurement:** a third-party PES (`test.pes`, unknown provenance, title
-"Ticetac") ends its stitch block with a short delta whose second byte is 0xFF
-(dy = -1) and no separate 0xFF end marker — the marker byte is eaten as the
-delta's dy. A conformant writer would emit `... 7e ff ff` (delta, then marker).
-The declared u24 block length is still respected: the records end exactly at
-`block_end`.
-**Ruling:** the Rust reader accepts the design when `pos == block_end` after the
-records (length bounds the stream); it still rejects a block that runs past its
-declared length without a marker. Same family as the DST END record ruling.
-Regression-tested by `pes_accepts_a_missing_end_marker_when_length_is_respected`.
+"Ticetac") contains records like `80 40 01 56` — a 12-bit dx word followed by a
+dy word WITHOUT the 0x80 flag. The Brother grammar flags each axis
+independently: a byte with bit 7 opens a 12-bit signed value (2 bytes),
+otherwise the byte is a 7-bit signed delta on its own — a record is 2, 3 or
+4 bytes. Reading with the Java-derived "long form is always 4 bytes" rule
+shifts the stream at the first unflagged dy word and invents phantom points:
+the design's paws appeared at x ≈ -2500, far left of the motif, and the x span
+came out 2.1× too wide (neither pyembroidery nor ThreadsES shows them).
+pyembroidery (Ink/Stitch's PES engine) decodes the same stream to exactly the
+declared bounds.
+**Ruling:** the Rust reader parses each axis word independently. Regression-
+tested by `pes_third_party_offsets_and_three_byte_records` against the
+committed `test.pes` fixture (31077 points filling 0..1234 × 0..900 exactly).
+
+### PES block offsets are the design origin
+**Measurement:** the stitch block's two u16BE offset words encode the design's
+top-left corner: `0x9000 | -left`. `test.pes` has `0x9480 0x90A4` → origin
+(1152, 164) in 0.1 mm units. pyembroidery reads them as a leading long-form
+record (its first stitch is exactly (1152, 164)); added to the deltas, the
+design lands inside the declared width/height, while raw deltas alone put the
+motif ~115 mm left of the canvas. Our own writer emits `0x9000` (origin
+(0, 0)), so the round-trip is unchanged.
+**Ruling:** the Rust reader accumulates from the decoded origin; the bounds
+stay `[0, 0, w, h]` from the block header.
+
+### PES reader accepts a missing end marker when the declared length is respected
+**Measurement:** under the correct record grammar the 0xFF marker IS found at
+the end of `test.pes`'s stitch block — the earlier "missing marker" reading was
+itself a misparse caused by the 4-byte-long assumption. A file that genuinely
+omits the marker is still handled: the declared u24 block length bounds the
+stream, and a block whose records end exactly at (or are cut by) `block_end`
+is accepted.
+**Ruling:** the Rust reader accepts when the declared length bounds the stream.
+Same family as the DST END record ruling. Regression-tested by
+`pes_accepts_a_missing_end_marker_when_length_is_respected`.
 
 ### The PES block unit is not established
 **Measurement:** the Java writer's `write_pec_block` writes the PEC width/height

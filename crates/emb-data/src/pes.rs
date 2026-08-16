@@ -428,13 +428,22 @@ fn sign_extend_12(v: i32) -> i32 {
 }
 
 /// Reads a PES v1/v6 file: the magic, the PEC offset, the 512-byte PEC header
-/// (title, palette), and the PEC stitch block (short/long delta records, colour
-/// changes via the palette, 0xFF end).
+/// (title, palette), and the PEC stitch block (delta records, colour changes
+/// via the palette, 0xFF end).
 ///
-/// The stitch block's width/height become the design bounds `[0, 0, w, h]`: the
-/// format carries rounded extents and no origin, so a left/top of 0 is the only
-/// honest reading. The design's `jumps` are left empty — the PEC stream has no
-/// per-stitch jump flags.
+/// Record grammar (measured against pyembroidery on test.pes, docs/LESSONS.md):
+/// each axis word is independently flagged — a byte with bit 7 set opens a
+/// 12-bit signed value spanning 2 bytes, otherwise the byte is a 7-bit signed
+/// delta on its own. A record is therefore 2, 3 or 4 bytes. A reader that
+/// forces 4 bytes on every long-form record misparses files whose writer omits
+/// the flag byte on the dy word (e.g. Ticetac's), inventing phantom points.
+///
+/// The x/y-offset words in the block header are the design's origin: they read
+/// as a leading long-form record (`0x9000 | -left`, so `left = 0` decodes to
+/// `(0, 0)` and `0x9480` to `+1152`). The stream accumulates from that origin,
+/// which lands the design inside the declared width/height — those become the
+/// design bounds `[0, 0, w, h]`. The design's `jumps` are left empty — the PEC
+/// stream has no per-stitch jump flags.
 pub fn read(bytes: &[u8]) -> Result<Design, Error> {
     if bytes.len() < 12 {
         return Err(Error::Truncated {
@@ -505,11 +514,17 @@ pub fn read(bytes: &[u8]) -> Result<Design, Error> {
     let width = i32::from(u16le(&bytes[block + 8..block + 10]));
     let height = i32::from(u16le(&bytes[block + 10..block + 12]));
 
+    // The offset words are the design's origin: `0x9000 | -left`, read as a
+    // long-form record. The deltas accumulate from there, so the design lands
+    // inside the declared width/height instead of at the raw stream extents.
+    let origin_x = sign_extend_12(i32::from(u16be(&bytes[block + 16..block + 18])) & 0x0FFF);
+    let origin_y = sign_extend_12(i32::from(u16be(&bytes[block + 18..block + 20])) & 0x0FFF);
+
     let mut stitches = Vec::new();
     let mut colors = Vec::new();
     let mut color_changes = 0usize;
     let mut current_color = palette[0];
-    let (mut xx, mut yy) = (0i32, 0i32);
+    let (mut xx, mut yy) = (origin_x, origin_y);
     let mut pos = block + 20;
     let mut found_end = false;
     while pos < block_end {
@@ -542,24 +557,34 @@ pub fn read(bytes: &[u8]) -> Result<Design, Error> {
             pos += 3;
             continue;
         }
+        // dx axis: bit 7 opens a 12-bit long form (2 bytes), else a 7-bit
+        // short (1 byte).
         let (dx, dy, advance) = if b & 0x80 != 0 {
-            if pos + 4 > block_end {
-                return Err(Error::Truncated {
-                    wanted: pos + 4,
-                    found: block_end,
-                });
+            if pos + 2 > block_end {
+                // The declared length cuts the record short with no end marker:
+                // the missing-marker ruling (the length bounds the stream).
+                break;
             }
             let v1 = i32::from(u16be(&bytes[pos..pos + 2]));
-            let v2 = i32::from(u16be(&bytes[pos + 2..pos + 4]));
-            (sign_extend_12(v1 & 0x0FFF), sign_extend_12(v2 & 0x0FFF), 4)
+            // dy axis: independently flagged, so the record is 3 or 4 bytes.
+            let b2 = bytes[pos + 2];
+            if b2 & 0x80 != 0 {
+                if pos + 4 > block_end {
+                    break;
+                }
+                let v2 = i32::from(u16be(&bytes[pos + 2..pos + 4]));
+                (sign_extend_12(v1 & 0x0FFF), sign_extend_12(v2 & 0x0FFF), 4)
+            } else {
+                if pos + 3 > block_end {
+                    break;
+                }
+                (sign_extend_12(v1 & 0x0FFF), sign_extend_7(b2), 3)
+            }
         } else {
             if pos + 2 > block_end {
-                return Err(Error::Truncated {
-                    wanted: pos + 2,
-                    found: block_end,
-                });
+                break;
             }
-            (sign_extend_7(bytes[pos]), sign_extend_7(bytes[pos + 1]), 2)
+            (sign_extend_7(b), sign_extend_7(bytes[pos + 1]), 2)
         };
         xx += dx;
         yy += dy;
@@ -571,23 +596,14 @@ pub fn read(bytes: &[u8]) -> Result<Design, Error> {
         pos += advance;
     }
     if !found_end {
-        // Measured deviation (docs/LESSONS.md): some third-party writers (e.g.
-        // Ticetac, test.pes) emit a final short delta whose second byte is
-        // 0xFF (dy = -1) and omit the separate 0xFF end marker. The declared
-        // block length is still respected — the records end exactly at
-        // `block_end`. Accept the design when the length bounds the stream
-        // (the same ruling as the DST writer's missing END record).
-        if pos == block_end {
-            log::warn!(
-                "PES: stitch block at offset {block} has no 0xFF end marker but \
-                 the declared length is respected — accepting (missing-marker file)"
-            );
-        } else {
-            return Err(Error::Malformed {
-                format: "PES",
-                detail: "stitch block has no 0xFF end marker".into(),
-            });
-        }
+        // The declared block length bounds the stream: a block whose records
+        // end exactly at `block_end` (or are cut by it) without a 0xFF end
+        // marker is accepted — the same ruling as the DST writer's missing
+        // END record (docs/LESSONS.md).
+        log::warn!(
+            "PES: stitch block at offset {block} has no 0xFF end marker but \
+             the declared length is respected — accepting (missing-marker file)"
+        );
     }
 
     Ok(Design {

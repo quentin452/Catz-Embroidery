@@ -22,12 +22,17 @@ Brother format. The only format with a (broken) reader in the Java suite — see
 - PEC stitch block: `00 00`, u24 LE block length, `31 FF F0`, width u16 LE,
   height u16 LE, `1E0`, `1B0`, two u16 BE offsets, then records:
   - short: 2 bytes, each a 7-bit signed delta (bit 6 = sign);
-  - long: 2× u16 BE with bit 15 set, 12-bit signed delta (bit 13 = trim flag);
+  - long: each axis word independently flagged — a byte with bit 7 opens a
+    12-bit signed delta over 2 bytes (`0x80` base, `0x20` trim, `0x10` jump),
+    otherwise the byte is a 7-bit delta on its own; a record is therefore 2, 3
+    or 4 bytes (measured against pyembroidery, `docs/LESSONS.md` — a dy word
+    without the flag byte is 3 bytes, and forcing 4 invents phantom points);
   - colour change: `FE B0` + a flag byte, mapped through the palette in order;
   - end: `FF`.
-- The reader reconstructs absolute positions by accumulating deltas. The design's
-  bounds come back as `[0, 0, w, h]` (the format carries rounded extents, no
-  origin); `jumps` are not representable in the PEC stream.
+- The offsets are the design's origin: `0x9000 | -left` (0x9000 = origin 0). The
+  reader accumulates deltas from that origin, so the design lands inside the
+  declared width/height; the bounds come back as `[0, 0, w, h]`. `jumps` are not
+  representable in the PEC stream.
 - The writer emits only v1; the reader accepts v1 and v6 magics (the PEC section
   parses identically).
 - **Writer quirks kept for byte-fidelity** (measured, `docs/LESSONS.md`): the
