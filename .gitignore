@@ -47,6 +47,9 @@ bin/
 # Cargo.lock is COMMITTED (reproducible builds across machines, same pin as
 # rust-toolchain.toml) — listed here only to say so.
 
+### Packaging output (tools/package-release.ps1) ###
+/dist/
+
 ### Local environment (per-machine, never committed) ###
 .env.local
 

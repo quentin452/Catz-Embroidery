@@ -16,7 +16,7 @@ and a row is `done` only when its exit criteria run green.**
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (D003 deferrals + D004 stroke below) |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **done** (user acceptance 2026-08-16: test.pes vs ThreadsES) |
 | M4 | editor | stitch editing on real files; save via emb-data | **done** (user acceptance 2026-08-16; named exceptions below) |
-| M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | planned |
+| M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | **done** (converter/infinite-canvas/launcher accepted 2026-08-16; packaging built + verified — user acceptance of `dist/` pending) |
 
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
@@ -59,63 +59,65 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, night — M5 nearly done)
+### Next-session strategy (wrap 2026-08-16, night — M5 done)
 
-State: **M0-M4 done; M5: converter ACCEPTED, launcher built, infinite
-canvas + LIN tools + performance done; packaging is the last M5 piece.**
-Branch `rs-greenfield`. Working tree clean, gates green
-(`cargo test --workspace` incl. the gate tests, `cargo clippy
---workspace --all-targets`, `cargo fmt --check`).
+State: **M0-M5 done.** M5: converter ACCEPTED, infinite canvas ACCEPTED
+(user verdict 2026-08-16), launcher accepted (buttons work), packaging
+done — `tools/package-release.ps1` builds the release exes into `dist/`
+(git-ignored), the launcher's GitHub update check is live (see below).
+Branch `rs-greenfield`.
 
-**Done this session (11 commits, b174372..be8eb54):**
+**Done this session (M5 close-out, after the 11-commit b174372..be8eb54 run):**
 
-- **M5 slice 1 — converter** (D005): `emb_model::convert` (the whole raster
-  pipeline, 12 invariant tests; PERLIN refuses), the `emb_converter` app
-  (Java control surface, drag-drop/clipboard, stitched preview, PES/DST/SVG
-  save), shared save helpers (`emb_data::write_design`/`file_title`,
-  `Model::centered_design`). **ACCEPTED on cat.png** vs the Java harness
-  (`tools/java-fixtures/GenConverterPng.java`; measured: outline 197=197,
-  cross 1745 vs 1746; the pixel diff = the ruled D004/D005 deviations).
-- **D006 + D007** (found by real files): the PES palette clamps to the 256
-  the count byte can express; the writer measures deltas from the offset
-  origin (the Java disagrees with its own offset words).
-- **emb-launcher** (thin hub: version, en/fr, spawns the sibling exes).
-- **Infinite canvas in emb-editor** (greenfield — the Java's infinite-draw
-  is an empty skeleton): `Infinite` toggle (fit + save on the content).
-- **Performance, measured**: the preview ran the TSP per refresh (D008: the
-  TSP now stops at the first non-improving pass — a 4-circle save 265 s →
-  0.34 s); edit-drag re-stitches at drag-stop; edit handles culled;
-  **emb-egui** — the shared batched renderer (ONE mesh per frame, the three
-  apps' single paint path).
-- **Editor tools all coherent** (user verdict): LIN elements stitch via the
-  D004 stroke (their M5 consumer — rasterised line contour, layer stroke
-  settings in the layer row), raw TXT drafts drawn, and the element-local
-  mask projection fixed (contours must return to the design space).
-- **Save path audited end to end** (polygon + LIN, bounded + infinite,
-  PES/DST/SVG): formats handle centred/negative designs; E2E regression
-  test added.
+- **Stroke oracle perf fix** (the converter froze on a big stroke_weight):
+  exact `SegmentGrid` index in `emb-model`'s PERPENDICULAR stroke (D004
+  semantics bit-identical, pinned by `segment_grid_matches_the_brute_force_
+  oracle` + the untouched D004 invariants); 800-vertex contour at weight 200
+  stroked 760 ms vs ~20 s before. The remaining sample-count floor is
+  quadratic in the weight (the Java pays it too), so the converter UI caps
+  stroke_weight at 64 px with a tooltip.
+- **Packaging + update check** (the last M5 pieces): `tools/package-release.
+  ps1` → `dist/` with the 5 exes + README; the launcher checks the GitHub
+  latest-release endpoint once at startup on a background thread and pops a
+  modal when newer (`apps/emb-launcher/src/update.rs`; version compare
+  strips the leading `v` and walks numeric segments — the Java's string
+  inequality flagged `0.1.0` vs `v0.1.0`).
+  **Note:** GitHub already carries release `V0.2.0` (the Java's tag), so the
+  launcher WILL offer it as an update until the first Rust release is
+  published (a `v0.1.0` tag makes the check go quiet).
 
 **Next (prioritised, 1 = resume immediately):**
 
-1. **Accept the launcher + the infinite canvas** (they are built, not
-   accepted): `cargo run -p emb-launcher` and click the three buttons;
-   in the editor, tick `Infinite`, draw far from the origin, save, reload
-   the .pes in the viewer (it must be centred on the content).
-2. **Packaging — exe builds** (the last M5 piece; the GitHub update check
-   lands here). Then M5 is done.
-3. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
+1. **Accept the packaging** (built, not accepted): run
+   `tools/package-release.ps1`, then `dist\emb-launcher.exe` and click the
+   three buttons (they must launch the packaged siblings). Then M5's exit
+   criteria are all green and the phase table can claim done.
+2. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
    Java's infinite-draw is an empty skeleton, so the app is greenfield.
    `catz-render` is already decoupled (GPU-only, headless boot, offscreen
    capture). Needs: a ruling naming Catz-Embroidery as consumer (D110
    portfolio amendment), the external consumption route (git path dep;
    publish=false + proprietary licence), and the 2D draw line (D109
    refused a 2D path until a consumer exists — this app would be it).
-4. **Editor follow-ups** (named exceptions): TXT stitching (font
+3. **Editor follow-ups** (named exceptions): TXT stitching (font
    rasteriser), the cull toggle (raster compositing), CONCENTRIC
    (hatchInset), the stroke mode toggle (TANGENT).
-5. **Converter follow-ups** (queued): PES input (rasterize a .pes back
+4. **Converter follow-ups** (queued): PES input (rasterize a .pes back
    through the pipeline), the progress bar / background thread, Dropbox
    save (not ported).
+
+> **2026-08-16 perf, stroke bottleneck (fixed):** a big stroke_weight froze
+> the converter. Cause: `stroke_poly_normal`'s oracle scanned every segment
+> per sample (O(n²·stroke²) per contour) — the sample count is the Java's
+> own ray fans, but the scan was ours. Fixed: exact `SegmentGrid` index
+> (D004 semantics bit-identical — the property test
+> `segment_grid_matches_the_brute_force_oracle` pins it; D004 invariant
+> tests untouched and green). Measured (release): an 800-vertex contour at
+> weight 200 stroked in 760 ms vs ~20 s before. The remaining floor is the
+> sample count itself, quadratic in the weight — the Java pays it too, so
+> the converter UI caps stroke_weight at 64 px with a tooltip explaining
+> the cost (2026-08-16); the queued background-thread item (next-session
+> #5) will make even the cap-free case non-blocking.
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 

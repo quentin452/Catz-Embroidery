@@ -10,3 +10,6 @@ workspace = true
 
 [dependencies]
 eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts"] }
+# The update check's HTTPS GET (native-tls = schannel on Windows, no crypto
+# crate compile; the launcher is the only consumer).
+ureq = { version = "2", default-features = false, features = ["native-tls"] }

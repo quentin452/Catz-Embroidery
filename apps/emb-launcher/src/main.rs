@@ -3,14 +3,16 @@
 //! A thin menu, no model knowledge (matrix.toml: `allow = []`).
 //!
 //! Port of `PEmbroiderLauncher.java` minus the parts nothing consumes yet:
-//! the GitHub update check (no releases exist; queued with the packaging
-//! phase) and the Dropbox connect (the save paths are local-only — queued in
+//! the GitHub update check (this app's `update` module — the Java's
+//! `Updater`, now with a real releases page to check against) and the
+//! Dropbox connect (the save paths are local-only — queued in
 //! docs/ROADMAP.md). The apps are native exes: the launcher spawns its
 //! siblings (the Java launched them in-process via reflection).
 //!
 //! The infinite-draw app is a skeleton (M5); its button lands when it does.
 
 mod app;
+mod update;
 
 use eframe::egui;
 
