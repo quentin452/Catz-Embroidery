@@ -289,8 +289,11 @@ impl ConverterApp {
             if ui
                 .add(
                     egui::DragValue::new(&mut self.params.stroke_weight)
-                        .range(1.0..=1000.0)
+                        .range(1.0..=64.0)
                         .prefix("Stroke weight: "),
+                )
+                .on_hover_text(
+                    "The PERPENDICULAR stroke's sample count grows with the weight² (the Java's ray fans) — capped at 64 px so a drag cannot freeze the UI for seconds.",
                 )
                 .changed()
             {

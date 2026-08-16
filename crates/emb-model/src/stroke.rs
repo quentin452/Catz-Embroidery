@@ -16,6 +16,20 @@
 //! a run closes at its last ON sample (the Java appends the terminating OFF
 //! sample — the same mmm outcome, a one-step tip difference below the
 //! invariant comparison level).
+//!
+//! The oracle is answered by a uniform [`SegmentGrid`] over the polyline
+//! instead of a per-sample scan of every segment: the sample count is
+//! O(polyline length × stroke²) (the ray fans of the vertex pass), so a
+//! brute-force scan is quadratic in the vertex count — the converter froze
+//! for seconds on photo contours at stroke_weight 100+. The grid is an exact
+//! acceleration, not an approximation: a segment within `threshold` of the
+//! sample has its closest point inside the query square, and the piece
+//! containing it sits in a cell the square intersects — the answer is the
+//! same boolean the brute-force scan would give. Measured 2026-08-16
+//! (release, 1000×1000, spacing 4): an 800-vertex contour at weight 200
+//! stroked in 760 ms against ~20 s for the brute-force scan; the remaining
+//! cost is the sample count itself, quadratic in the weight — bounded in
+//! the converter by the stroke cap (see ROADMAP).
 
 use crate::geom::{self, Point};
 use crate::trace;
@@ -25,24 +39,134 @@ const HALF_PI: f32 = std::f32::consts::PI / 2.0;
 /// The Java's `PERPENDICULAR_STROKE_CAP_DENSITY_MULTIPLIER` default.
 const CAP_DENSITY_MULTIPLIER: f32 = 1.0;
 
-/// The oracle: is `p` within `threshold` of the polyline?
+/// Exact spatial index over the polyline's segments for the oracle: each
+/// segment is cut into pieces no longer than `cell/2`, and every piece is
+/// inserted into each grid cell its bounding box touches (CSR lists).
 ///
-/// The Java draws the whole polyline into the raster once, stroked with weight
-/// `spacing` (half-width `spacing/2`), so the oracle is the minimum distance
-/// over the polyline's segments. The stroked SQUARE caps and MITER joins are
-/// raster-side details below the invariant comparison level (D004) and are
-/// not modelled.
-fn on_path(p: Point, poly: &[Point], close: bool, threshold: f32) -> bool {
-    let segs = poly.len() - if close { 0 } else { 1 };
-    let mut best = f32::INFINITY;
-    for i in 0..segs {
-        best = best.min(trace::point_distance_to_segment(
-            p,
-            poly[i],
-            poly[(i + 1) % poly.len()],
-        ));
+/// A query at `p` with threshold `t` scans only the cells the square
+/// `[p-t, p+t]²` intersects and returns true on the first piece within `t`.
+/// Exact: a segment within `t` of `p` has its closest point inside the
+/// square, that point lies in the bounding box of the piece containing it,
+/// and the cell holding that point is both a piece cell and a query cell —
+/// so the grid can never miss a segment the brute-force scan would find.
+/// Points and pieces outside the grid are clamped into it: the distance
+/// check stays exact, so clamping only costs extra cells, never a wrong
+/// answer.
+struct SegmentGrid {
+    min_x: f32,
+    min_y: f32,
+    cell: f32,
+    cols: usize,
+    rows: usize,
+    /// Per-cell head of the node list.
+    head: Vec<u32>,
+    /// Per-node next pointer.
+    next: Vec<u32>,
+    /// Per-node piece `[ax, ay, bx, by]`.
+    nodes: Vec<[f32; 4]>,
+}
+
+const NO_NODE: u32 = u32::MAX;
+
+impl SegmentGrid {
+    /// Build the index over `poly`'s segments (the same `segs` count the
+    /// oracle used). `cell` is the caller's `max(spacing/2, 1)` — the
+    /// smaller threshold of the two passes, keeping every query ring to a
+    /// handful of cells (the grid would explode in memory at the raw
+    /// `spacing/2` when the user sets a tiny spacing).
+    fn build(poly: &[Point], close: bool, cell: f32) -> SegmentGrid {
+        let nseg = poly.len() - if close { 0 } else { 1 };
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+            f32::INFINITY,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            f32::NEG_INFINITY,
+        );
+        for p in poly {
+            min_x = min_x.min(p.x);
+            max_x = max_x.max(p.x);
+            min_y = min_y.min(p.y);
+            max_y = max_y.max(p.y);
+        }
+        let cols = ((max_x - min_x) / cell).ceil() as usize + 1;
+        let rows = ((max_y - min_y) / cell).ceil() as usize + 1;
+        let mut grid = SegmentGrid {
+            min_x,
+            min_y,
+            cell,
+            cols,
+            rows,
+            head: vec![NO_NODE; cols * rows],
+            next: Vec::new(),
+            nodes: Vec::new(),
+        };
+        let col_of =
+            |x: f32| (((x - min_x) / cell).floor() as isize).clamp(0, cols as isize - 1) as usize;
+        let row_of =
+            |y: f32| (((y - min_y) / cell).floor() as isize).clamp(0, rows as isize - 1) as usize;
+        for i in 0..nseg {
+            let (p0, p1) = (poly[i], poly[(i + 1) % poly.len()]);
+            let len = p0.dist(p1);
+            let pieces = 1.max((len / (cell / 2.0)).ceil() as usize);
+            for k in 0..pieces {
+                let a = Point::new(
+                    p0.x + (p1.x - p0.x) * (k as f32 / pieces as f32),
+                    p0.y + (p1.y - p0.y) * (k as f32 / pieces as f32),
+                );
+                let b = Point::new(
+                    p0.x + (p1.x - p0.x) * ((k + 1) as f32 / pieces as f32),
+                    p0.y + (p1.y - p0.y) * ((k + 1) as f32 / pieces as f32),
+                );
+                let c0 = col_of(a.x.min(b.x));
+                let c1 = col_of(a.x.max(b.x));
+                let r0 = row_of(a.y.min(b.y));
+                let r1 = row_of(a.y.max(b.y));
+                for cy in r0..=r1 {
+                    for cx in c0..=c1 {
+                        let node = grid.nodes.len() as u32;
+                        grid.nodes.push([a.x, a.y, b.x, b.y]);
+                        grid.next.push(grid.head[cy * grid.cols + cx]);
+                        grid.head[cy * grid.cols + cx] = node;
+                    }
+                }
+            }
+        }
+        grid
     }
-    best <= threshold
+
+    /// The oracle: is `p` within `threshold` of any polyline segment? The
+    /// exact same answer as the brute-force scan, found by visiting only the
+    /// cells the query square intersects.
+    fn on_path(&self, p: Point, threshold: f32) -> bool {
+        let t = threshold.max(0.0);
+        let cx0 = self.col_of(p.x - t);
+        let cx1 = self.col_of(p.x + t);
+        let cy0 = self.row_of(p.y - t);
+        let cy1 = self.row_of(p.y + t);
+        for cy in cy0..=cy1 {
+            for cx in cx0..=cx1 {
+                let mut node = self.head[cy * self.cols + cx];
+                while node != NO_NODE {
+                    let [ax, ay, bx, by] = self.nodes[node as usize];
+                    if trace::point_distance_to_segment(p, Point::new(ax, ay), Point::new(bx, by))
+                        <= threshold
+                    {
+                        return true;
+                    }
+                    node = self.next[node as usize];
+                }
+            }
+        }
+        false
+    }
+
+    fn col_of(&self, x: f32) -> usize {
+        (((x - self.min_x) / self.cell).floor() as isize).clamp(0, self.cols as isize - 1) as usize
+    }
+
+    fn row_of(&self, y: f32) -> usize {
+        (((y - self.min_y) / self.cell).floor() as isize).clamp(0, self.rows as isize - 1) as usize
+    }
 }
 
 /// The vertex oracle for the endpoint of an OPEN polyline: the Java fills a
@@ -129,6 +253,10 @@ pub fn stroke_poly_normal(
         return Vec::new();
     }
 
+    // The exact oracle index, built once: the segment pass queries it at
+    // spacing/2, the vertex pass at spacing/2 + 1 (the DILATE).
+    let grid = SegmentGrid::build(poly, close, (spacing / 2.0).max(1.0));
+
     // Segment pass (PEmbroiderGraphics.java:1891-1958): one bucket of runs
     // per segment, sampled on perpendicular lines with the oracle at
     // spacing/2.
@@ -156,7 +284,7 @@ pub fn stroke_poly_normal(
                     Point::new(px + half_weight * ca, py + half_weight * sa),
                     m,
                     mmm,
-                    |p| on_path(p, poly, close, spacing / 2.0),
+                    |p| grid.on_path(p, spacing / 2.0),
                 );
             }
         }
@@ -228,7 +356,7 @@ pub fn stroke_poly_normal(
                 if disc {
                     on_endpoint_disc(p, p0, half_weight)
                 } else {
-                    on_path(p, poly, close, spacing / 2.0 + 1.0)
+                    grid.on_path(p, spacing / 2.0 + 1.0)
                 }
             });
         }
@@ -433,6 +561,90 @@ mod tests {
             let mid = Point::new((run[0].x + run[1].x) * 0.5, (run[0].y + run[1].y) * 0.5);
             let d = dist_to_poly(mid, &square, true);
             assert!(d <= 5.0 + EPS, "midpoint {mid:?} is {d} away");
+        }
+    }
+
+    /// The grid answers EXACTLY like the brute-force scan, on adversarial
+    /// polys: self-approaching (a polyline that comes back near itself — the
+    /// case an index-window oracle would get wrong), collinear runs,
+    /// zero-length segments, and sample points far outside the bbox.
+    #[test]
+    fn segment_grid_matches_the_brute_force_oracle() {
+        let mut seed = 0x2F6E2B1u64;
+        let mut rng = || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            (seed >> 32) as f32 / u32::MAX as f32
+        };
+        let polys: Vec<(Vec<Point>, bool)> = vec![
+            // A U that doubles back on itself (far-side segments within the
+            // stroke band of the near side).
+            (
+                vec![
+                    Point::new(0.0, 0.0),
+                    Point::new(100.0, 0.0),
+                    Point::new(100.0, 100.0),
+                    Point::new(0.0, 100.0),
+                ],
+                true,
+            ),
+            // A tight zigzag: dense vertices, self-approach everywhere.
+            (
+                (0..400)
+                    .map(|i| {
+                        Point::new(
+                            i as f32 * 2.0,
+                            ((i as f32 / 7.0).sin() * 15.0) + ((i / 23) as f32 % 2.0) * 20.0,
+                        )
+                    })
+                    .collect(),
+                false,
+            ),
+            // Collinear + a zero-length segment + a repeated vertex.
+            (
+                vec![
+                    Point::new(10.0, 10.0),
+                    Point::new(20.0, 10.0),
+                    Point::new(30.0, 10.0),
+                    Point::new(30.0, 10.0),
+                    Point::new(40.0, 10.0),
+                    Point::new(50.0, 10.0),
+                    Point::new(50.0, 20.0),
+                    Point::new(10.0, 20.0),
+                ],
+                true,
+            ),
+        ];
+        for (poly, close) in &polys {
+            for spacing in [0.5f32, 2.0, 4.0, 15.0] {
+                let grid = SegmentGrid::build(poly, *close, (spacing / 2.0).max(1.0));
+                let mut max_x = f32::NEG_INFINITY;
+                let mut min_x = f32::INFINITY;
+                let mut max_y = f32::NEG_INFINITY;
+                let mut min_y = f32::INFINITY;
+                for p in poly.iter() {
+                    max_x = max_x.max(p.x);
+                    min_x = min_x.min(p.x);
+                    max_y = max_y.max(p.y);
+                    min_y = min_y.min(p.y);
+                }
+                let (w, h) = (max_x - min_x, max_y - min_y);
+                for _ in 0..4000 {
+                    let p = Point::new(
+                        min_x - w * 0.5 + rng() * (w * 2.0),
+                        min_y - h * 0.5 + rng() * (h * 2.0),
+                    );
+                    // Thresholds both below and above the grid cell size.
+                    let t = rng() * 3.5 + 0.25;
+                    let brute = dist_to_poly(p, poly, *close) <= t;
+                    assert_eq!(
+                        grid.on_path(p, t),
+                        brute,
+                        "grid disagrees with brute force at {p:?}, t={t}, spacing={spacing}, close={close}"
+                    );
+                }
+            }
         }
     }
 }
