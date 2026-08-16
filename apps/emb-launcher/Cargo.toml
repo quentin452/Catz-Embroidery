@@ -9,3 +9,4 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts"] }
