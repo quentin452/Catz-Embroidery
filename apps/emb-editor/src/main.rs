@@ -6,6 +6,7 @@
 mod app;
 mod doc;
 mod stitch;
+mod thumb;
 
 use eframe::egui;
 

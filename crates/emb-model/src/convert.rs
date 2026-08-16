@@ -207,7 +207,7 @@ pub fn convert_image(
     }
     let mask = binarize(pixels, width, height)?;
     // The Java clamps the setters: STROKE_SPACING/HATCH_SPACING >= 0.1,
-    // STROKE_WEIGHT >= 1 (Main.java:305-307).
+    // STROKE_WEIGHT >= 1 (PEmbroiderGraphics.java:306, 489, 499).
     let spacing = params.spacing.max(0.1);
     let stroke_weight = params.stroke_weight.max(1.0);
 

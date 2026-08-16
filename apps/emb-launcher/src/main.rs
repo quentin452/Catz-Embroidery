@@ -2,11 +2,13 @@
 //! The hub: launches the suite's apps (egui/eframe, glow backend — docs/decisions/D001.md).
 //! A thin menu, no model knowledge (matrix.toml: `allow = []`).
 //!
-//! Port of `PEmbroiderLauncher.java` minus the parts nothing consumes yet:
-//! the GitHub update check (this app's `update` module — the Java's
-//! `Updater`, now with a real releases page to check against) and the
-//! Dropbox connect (the save paths are local-only — queued in
-//! docs/ROADMAP.md). The apps are native exes: the launcher spawns its
+//! Port of `PEmbroiderLauncher.java`: the three app buttons, the en/fr
+//! language dropdown, the version line, and the GitHub update check (this
+//! app's `update` module — the Java's `Updater`, checked on a background
+//! thread at startup). The Dropbox connect (the Java's button with its
+//! green/red status) is not ported — named exception, queued in
+//! docs/ROADMAP.md (the "Dropbox save" converter follow-up is the same
+//! feature family). The apps are native exes: the launcher spawns its
 //! siblings (the Java launched them in-process via reflection).
 //!
 //! The infinite-draw app is a skeleton (M5); its button lands when it does.

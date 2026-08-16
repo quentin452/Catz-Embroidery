@@ -168,3 +168,56 @@ fixtures.)
 ### Named exceptions (pin 3)
 
 - `resample(randomize != 0)` refuses with an error — no consumer uses it.
+
+### Parity audit 2026-08-16 (four parallel agents, Java suite vs Rust)
+
+Every deferral already named in this file and in D003/D004/D005 was verified
+against the code and holds (PERLIN refuses + UI-disabled; spirals v2-v4,
+offset/inset, hatchInset, satin, TANGENT, TXT stitching, cull, editor
+CONCENTRIC all genuinely absent; PERPENDICULAR = the D004 geometric oracle;
+isolines ported; CONCENTRIC/SPIRAL dispatch to isolines like the Java; the
+D006 palette clamp and the D007 offset-origin deltas confirmed). The audit
+also found these UNLISTED divergences — each is now either ported, a named
+exception, or a recorded deviation (pin 7):
+
+- **Exit confirmation**: PORTED 2026-08-16 (editor + converter) — the
+  shared `emb_egui::exit_dialog::ExitDialog` (the Java's
+  DialogUtil.showExitDialog minus the Dropbox option): save-and-quit /
+  exit-without-save / cancel on window close; "Save and quit" quits only
+  after a successful save (the Java's cancelled save stays in the app).
+- **Layer thumbnail**: PORTED 2026-08-16 (editor) — per-layer 42×42
+  white-on-black previews in the layer panel (`apps/emb-editor/src/
+  thumb.rs`, the Java's `rasterizeLayer` + `image(..., 42, 42)`), rebuilt
+  on the dirty flag; TXT is a box at its anchor (the font rasteriser
+  stays deferred).
+- **P-key preview toggle**: PORTED 2026-08-16 (converter) — the Java's
+  `showPreview` (Main.java:394-396).
+- **Escape key** (editor): the Java's ESC does nothing; the Rust editor
+  deletes the current layer's last element — the port INVENTED this
+  (crediting `removeElementFromPolyBuff`, which the Java never calls).
+  DECISION 2026-08-16: KEPT, as a recorded deviation (a convenience the
+  user relies on; deleting is recoverable via undo).
+- **FPS counter + V-sync toggles** (editor, F/V keys — FPSUtil.java:15-120):
+  Java debug tooling, not ported. Named exception.
+- **i18n**: the Java translates the whole suite (Translator + translations.
+  json); the Rust apps are English-only except the launcher (en/fr). Not
+  ported. Named exception.
+- **Converter UI caps**: spacing ≤ 1000, max_colors ≤ 256, export mm ≤ 500
+  are Rust-only guards (the Java text fields are uncapped); the stroke cap
+  64 was already named above.
+- **DRUNK hatch** (PEmbroiderGraphics.java:3090/3117): dead in Java (no app
+  selects it) and in NO doc — the only deferral absent from both ROADMAP's
+  list and D003's eleven. Same class as VECFIELD/ANGLED (those ARE in
+  D003's eleven); noted so a future consumer argues it fresh.
+- **Launcher Dropbox connect**: the Java launcher's red/green Dropbox button
+  (PEmbroiderLauncher.java:67, 84-88, 100-101) has no Rust counterpart; the
+  "Dropbox save" converter follow-up below covers the same feature family.
+
+Also fixed by this audit (stale docs): D001's viewer/infinite-draw line
+counts (79/15 → 90/18, measured); convert.rs's clamp citation
+(Main.java:305-307 → PEmbroiderGraphics.java:306/489/499); the launcher's
+Dropbox pointer now names the ROADMAP row.
+
+No Java feature CALLED BY AN APP is both unported and undocumented: the only
+unlisted absences are dead-in-Java APIs (DRUNK, ANGLED, VECFIELD, spine,
+boolean shapes) and the app UX gaps named above (FPS/V-sync and i18n).

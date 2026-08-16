@@ -58,6 +58,12 @@ pub struct ConverterApp {
     export_width: f32,
     export_height: f32,
     status: Option<String>,
+    /// The Java's `showPreview`: the P key toggles the stitched overlay
+    /// (Main.java:394-396).
+    show_preview: bool,
+    /// The Java's exit dialog (DialogUtil.showExitDialog): save-and-quit /
+    /// exit-without-save / cancel on window close.
+    exit_dialog: emb_egui::exit_dialog::ExitDialog,
 }
 
 struct Source {
@@ -81,6 +87,8 @@ impl ConverterApp {
             export_width: DEFAULT_EXPORT_MM,
             export_height: DEFAULT_EXPORT_MM,
             status: None,
+            show_preview: true,
+            exit_dialog: emb_egui::exit_dialog::ExitDialog::new(),
         }
     }
 
@@ -179,15 +187,16 @@ impl ConverterApp {
     }
 
     /// The Java's fileSaved: TSP-optimize, then the writer with the export mm
-    /// (centred, not scaled).
-    fn save_dialog(&mut self) {
+    /// (centred, not scaled). Returns whether the design was written (the
+    /// exit dialog's "Save and quit" quits only on a successful save).
+    fn save_dialog(&mut self) -> bool {
         let Some(model) = self.result.as_ref().and_then(|r| r.as_ref().ok()) else {
             self.status = Some("Nothing to save — load an image first".into());
-            return;
+            return false;
         };
         if model.polylines.is_empty() {
             self.status = Some("Nothing to stitch — the image converted to an empty design".into());
-            return;
+            return false;
         }
         let Some(path) = rfd::FileDialog::new()
             .add_filter("PES designs", &["pes"])
@@ -196,15 +205,21 @@ impl ConverterApp {
             .set_file_name("design.pes")
             .save_file()
         else {
-            return;
+            return false;
         };
         let mut model = model.clone();
         model.optimize();
         let title = emb_data::file_title(&path);
         let design = model.centered_design(&title, self.export_width, self.export_height);
         match emb_data::write_design(&path, &design) {
-            Ok(()) => self.status = Some(format!("Saved {}", path.display())),
-            Err(e) => self.status = Some(format!("Save failed: {e}")),
+            Ok(()) => {
+                self.status = Some(format!("Saved {}", path.display()));
+                true
+            }
+            Err(e) => {
+                self.status = Some(format!("Save failed: {e}"));
+                false
+            }
         }
     }
 
@@ -407,8 +422,11 @@ impl ConverterApp {
         // The stitched preview: exactly what the save path will write,
         // through the shared batched renderer (emb_egui: every visible
         // segment in ONE mesh per frame, viewport culling) — the per-segment
-        // painter calls froze in proportion to the stitches on screen.
-        if let Some(draw_list) = &self.preview {
+        // painter calls froze in proportion to the stitches on screen. The
+        // P key toggles it (the Java's `showPreview`).
+        if self.show_preview
+            && let Some(draw_list) = &self.preview
+        {
             emb_egui::paint_draw_list(painter, &self.viewport, draw_list, panel);
         }
     }
@@ -418,6 +436,31 @@ impl eframe::App for ConverterApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.handle_dropped_files(&ctx);
+
+        // The Java's P key (Main.java:394-396): toggle the stitched overlay.
+        if ctx.input(|i| i.key_pressed(egui::Key::P)) {
+            self.show_preview = !self.show_preview;
+        }
+
+        // The Java's exit dialog (Main.java:412-436): save-and-quit /
+        // exit-without-save / cancel on window close.
+        use emb_egui::exit_dialog::{ExitChoice, ExitDialog, ExitLabels};
+        let labels = ExitLabels {
+            question: "Save the design before quitting?",
+            save_and_quit: "Save and quit",
+            exit_without_save: "Exit without saving",
+            cancel: "Cancel",
+        };
+        match self.exit_dialog.frame(&ctx, &labels) {
+            Some(ExitChoice::SaveAndQuit) => {
+                if self.save_dialog() {
+                    ExitDialog::request_close(&ctx);
+                }
+            }
+            Some(ExitChoice::Quit) => ExitDialog::request_close(&ctx),
+            _ => {}
+        }
+
         self.refresh();
         egui::Panel::top(egui::Id::new("controls")).show(ui, |ui| self.draw_controls(ui));
         egui::Panel::bottom(egui::Id::new("status")).show(ui, |ui| {

@@ -107,6 +107,12 @@ pub struct EditorApp {
     /// editor feature, docs/ROADMAP.md M5).
     infinite: bool,
     status: Option<String>,
+    /// The Java's exit dialog (DialogUtil.showExitDialog): save-and-quit /
+    /// exit-without-save / cancel on window close.
+    exit_dialog: emb_egui::exit_dialog::ExitDialog,
+    /// Per-layer 42×42 thumbnails (the Java's `image(lay.render, 4, oy+4,
+    /// 42, 42)`), rebuilt when the document changes.
+    thumbnails: Vec<egui::TextureHandle>,
 }
 
 /// The text tool's modal: text + size, committed on OK.
@@ -132,6 +138,8 @@ impl EditorApp {
             needs_fit: true,
             infinite: false,
             status: None,
+            exit_dialog: emb_egui::exit_dialog::ExitDialog::new(),
+            thumbnails: Vec::new(),
         }
     }
 
@@ -565,8 +573,10 @@ impl EditorApp {
     }
 
     /// The Java's `saveFile`: a save dialog with PES/SVG/DST filters, then
-    /// `writeOut` (stitch → optimize → centre → write by extension).
-    fn save_dialog(&mut self) {
+    /// `writeOut` (stitch → optimize → centre → write by extension). Returns
+    /// whether a file was written (the exit dialog's "Save and quit" quits
+    /// only on a successful save).
+    fn save_dialog(&mut self) -> bool {
         let Some(path) = rfd::FileDialog::new()
             .add_filter("PES designs", &["pes"])
             .add_filter("SVG designs", &["svg"])
@@ -574,12 +584,12 @@ impl EditorApp {
             .set_file_name("design.pes")
             .save_file()
         else {
-            return;
+            return false;
         };
         let model = crate::stitch::stitch_document(&self.doc);
         if model.polylines.is_empty() {
             self.status = Some("Nothing to stitch yet — draw a polygon or a line first".into());
-            return;
+            return false;
         }
         // The Java's writeOut: optimize() then write. The preview skips the
         // TSP (stitch_document) — it runs here, once, at save.
@@ -591,17 +601,37 @@ impl EditorApp {
             crate::stitch::write_out(&model, &path)
         };
         match result {
-            Ok(()) => self.status = Some(format!("Saved {}", path.display())),
-            Err(e) => self.status = Some(format!("Save failed: {e}")),
+            Ok(()) => {
+                self.status = Some(format!("Saved {}", path.display()));
+                true
+            }
+            Err(e) => {
+                self.status = Some(format!("Save failed: {e}"));
+                false
+            }
         }
     }
 
     fn draw_layer_panel(&mut self, ui: &mut egui::Ui) {
+        // The thumbnails are cached: rebuilt only when the document changed
+        // (the dirty flag that also re-stitches the preview — the Java
+        // re-rasterizes them every frame in drawLayersGui).
+        if self.needs_update {
+            self.thumbnails.clear();
+            for layer in &self.doc.layers {
+                self.thumbnails
+                    .push(crate::thumb::layer_thumbnail_texture(ui.ctx(), layer));
+            }
+        }
+        let thumbs = &self.thumbnails;
         let mut remove: Option<usize> = None;
         let mut changed = false;
         for (i, layer) in self.doc.layers.iter_mut().enumerate() {
             let selected = i == self.doc.current_layer;
             ui.horizontal(|ui| {
+                if let Some(texture) = thumbs.get(i) {
+                    ui.image((texture.id(), egui::vec2(42.0, 42.0)));
+                }
                 if ui
                     .selectable_label(selected, format!("Layer {i}"))
                     .clicked()
@@ -730,6 +760,27 @@ fn pos(p: (f32, f32)) -> Pos2 {
 impl eframe::App for EditorApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
+
+        // The Java's exit dialog (Main.java:875-899): save-and-quit /
+        // exit-without-save / cancel on window close. "Save and quit" quits
+        // only when the save actually wrote a file (the Java's cancelled
+        // save stays in the app).
+        use emb_egui::exit_dialog::{ExitChoice, ExitDialog, ExitLabels};
+        let labels = ExitLabels {
+            question: "Save the design before quitting?",
+            save_and_quit: "Save and quit",
+            exit_without_save: "Exit without saving",
+            cancel: "Cancel",
+        };
+        match self.exit_dialog.frame(&ctx, &labels) {
+            Some(ExitChoice::SaveAndQuit) => {
+                if self.save_dialog() {
+                    ExitDialog::request_close(&ctx);
+                }
+            }
+            Some(ExitChoice::Quit) => ExitDialog::request_close(&ctx),
+            _ => {}
+        }
 
         // Undo/redo: Ctrl+Z / Ctrl+Y (the Java's keyPressed).
         let (undo, redo) = ctx.input(|i| {

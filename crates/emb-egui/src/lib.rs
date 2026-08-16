@@ -8,6 +8,8 @@
 //! screen (measured on a 1600-polyline design). Each segment becomes a
 //! quad with square caps (a stitch is square-ish), per-vertex coloured.
 
+pub mod exit_dialog;
+
 use egui::{Color32, Painter, Pos2, Rect, Shape, epaint};
 use emb_draw::{Command, DrawList, Viewport};
 use emb_model::geom::Point;
