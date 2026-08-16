@@ -44,54 +44,41 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, M3 slice 2)
+### Next-session strategy (wrap 2026-08-16, late — M3 slice 3)
 
 State: **M0, M1, M2 done** (D003 deferrals named below). Branch `rs-greenfield`.
-All gates green. M3 slice 1 landed earlier today: **emb-draw** (vocabulary,
-`DrawList::from_model`) and **emb-viewer** (eframe 0.35 glow, open PES, pan/zoom,
-culling, overview texture cache). Slice 2 this evening:
+All gates green, working tree clean. M3 slice 3 (this session, committed
+`a8d2c91`):
 
-- **White flash fixed** by vendoring eframe 0.35 with a one-hunk patch
-  (present before reveal — `tools/vendor/eframe/README.md`), because the first
-  GL present on this hybrid-GPU laptop takes ~665 ms and upstream reveals the
-  window before the swap. Measured with samply; committed `e5e53fb`.
-- **PES reader: record grammar + origin fixed** — the projection bug on
-  test.pes (see the acceptance-bugs section below) turned out to be a 4-byte
-  long-form assumption and ignored offsets; both fixed and regression-tested
-  against pyembroidery (reference reader, `pip install pyembroidery`).
-- **Viewer fits and textures the MOTIF, not the canvas** (committed `1b332b3`):
-  the canvas is now a backdrop rect; `DrawList::content_bounds()` drives fit-on-open
-  and the overview texture covers the motif (translated to its own origin), so
-  a design sitting far from its declared hoop still renders centred and full.
-
-Decisions taken (each documented where it lives):
-
-- **eframe 0.35, not 0.36.1**: 0.36.1 needs rust 1.95, the toolchain is pinned
-  at 1.92.0 (D001). Vendored with the reveal-order patch (above).
-- **Design → Model conversion lives in emb-model** (`Model::from_design`, split
-  on colour change and jump — the Java SVG writer's rule); **`Model::from_pes`**
-  is the one loader every app uses. The viewer's matrix row stays
-  `["emb-model", "emb-draw"]`; emb-model gained a runtime emb-data dep.
-- **pyembroidery is the PES reference reader** (Ink/Stitch's engine): install
-  with `pip install pyembroidery`; diff its stitch list against ours when a
-  third-party PES misbehaves. libembroidery exists but its PEC long-form
-  parsing is buggy — not a reference.
+- **PES projection fixed** — the acceptance bugs on test.pes had one cause
+  each: (1) long-form records are not always 4 bytes (each axis word is
+  independently flagged; Ticetac emits 3-byte records — forcing 4 bytes
+  invented the characters' paws at x ≈ -2500), (2) the block offset words are
+  the design origin (`0x9000 | -left` → test.pes decodes to (1152, 164)). The
+  design now fills its declared bounds 0..1234 × 0..900 exactly, like
+  ThreadsES. Regression-tested on the committed `fixtures/test.pes`.
+- **pyembroidery installed as the PES reference reader** (`pip install
+  pyembroidery`) — Ink/Stitch's engine; its decode matched test.pes exactly.
+  libembroidery is NOT a reference (buggy PEC long-form parsing).
+- **StitchSettings** in emb-model (Java's STITCH_LENGTH = 10 /
+  MIN_STITCH_LENGTH = 4 defaults, consumed by resample) — the editor's
+  stitch-frequency knob, first brick of M4.
+- The user confirmed the render is now coherent; the visual comparison against
+  ThreadsES is the remaining acceptance step.
 
 Remaining M3 work (in priority order):
 
-1. **Manual acceptance on test.pes + simple.pes (the resume point)** — with the
-   reader fixed, test.pes renders centred in its frame (characters + paws,
-   like ThreadsES); check pan/zoom, texture↔vector LOD, fit-on-open, and the
-   visual identity (`VisualIdentity::default()` is a first guess from the Java
+1. **Manual acceptance in the viewer (the resume point)** — open test.pes and
+   compare with ThreadsES: characters + paws inside the frame, pan/zoom,
+   texture↔vector LOD, fit-on-open; also open the committed simple.pes. Visual
+   identity tuning (`VisualIdentity::default()` is a first guess from the Java
    editor's look).
 2. **Texture invalidation on edit** is a non-issue until M4 edits; keep the
    rasteriser in `apps/emb-viewer/src/overview.rs` fed from `DrawList`, never
    from the model.
 
-Then M4 — emb-editor (layer/element model, undo/redo). First brick already in:
-`emb_model::resample::StitchSettings` (Java's STITCH_LENGTH=10 /
-MIN_STITCH_LENGTH=4 defaults, consumed by resample) — the editor's
-stitch-frequency knob.
+Then M4 — emb-editor (layer/element model, undo/redo); `StitchSettings` (above)
+is the first brick.
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 
