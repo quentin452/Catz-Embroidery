@@ -109,18 +109,24 @@ the standard path. The launcher's update check switched from `native-tls`
 
 **Next (prioritised, 1 = resume immediately):**
 
-1. **Converter bug A — converting on every param change spams the pipeline.**
-   Changing a parameter re-runs the conversion immediately; dragging a slider
-   fires the whole conversion per tick ("converting ..." spam, the UI's
-   status flapping). Decide: debounce (convert on release / idle) — the Java
-   converts on button press only; the Rust converted on change for live
-   preview. The user asked to convert on release.
-2. **Converter bug B — the saved design does not match the preview.** A
-   `design.pes` saved by the converter does not look like what the converter
-   previewed in RAM before saving. Investigate the divergence between the
-   in-memory preview and the saved file (both go through emb-data's PES
-   write; the suspicion is the save path re-converts or uses different
-   settings than the preview path).
+1. ~~**Converter bug A — converting on every param change spams the pipeline.**~~
+   **DONE 2026-08-17**: the converter now converts on release — a `last_change`
+   debounce (200 ms) between a knob change and the conversion, so a drag mutates
+   the params but the pipeline runs once when the user lets go (the Java
+   converts on button press). The source load converts immediately (no debounce).
+2. ~~**Converter bug B — the saved design does not match the preview.**~~
+   **DONE 2026-08-17, same root as editor bug C**: the save used
+   `centered_design`, which shifted the content into coordinates the PES
+   reader does not restore (it returns bounds `[0,0,w,h]` while the stitches
+   keep their absolute shifted positions). A converter design (1000 units) was
+   declared on a 95-unit hoop — 10× too big on reload; an editor design was
+   shifted negative, appearing off-centre in the viewer. Fix (D005 amended):
+   the save writes the design's NATIVE space (`Model::to_design`); the preview
+   and viewer both fit the motif, so save == preview == reload. The converter's
+   export width/height knobs were removed (dead controls — pin 3); the editor
+   and converter bounded saves no longer centre; `Model::centered_design` was
+   deleted (no caller, pin 3). The editor's infinite-canvas mode keeps its
+   content-centring (its own tested intent). Gates green.
 3. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.
@@ -318,9 +324,12 @@ exception, or a recorded deviation (pin 7):
 - **i18n**: the Java translates the whole suite (Translator + translations.
   json); the Rust apps are English-only except the launcher (en/fr). Not
   ported. Named exception.
-- **Converter UI caps**: spacing ≤ 1000, max_colors ≤ 256, export mm ≤ 500
-  are Rust-only guards (the Java text fields are uncapped); the stroke cap
-  64 was already named above.
+- **Converter UI caps**: spacing ≤ 1000, max_colors ≤ 256 are Rust-only
+  guards (the Java text fields are uncapped); the stroke cap 64 was already
+  named above. **The export width/height knobs were REMOVED 2026-08-17**: they
+  were a centring knob (D005), and the save is now native-space (the fix for
+  save ≠ preview) — a knob that stops at the UI with no effect is a dead
+  control (pin 3).
 - **Invert toggle** (2026-08-17): Rust-only knob on the converter (the Java
   has none), default OFF so parity holds: flips the pipeline's binarization
   to the dark pixels (`max(r,g,b) < 127`) for dark-subject-on-bright-

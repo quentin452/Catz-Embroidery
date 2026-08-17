@@ -31,6 +31,14 @@ here.
   (`x86_64-unknown-linux-gnu`) — the standard path, validated on Arch
   2026-08-17; the native `tools/package-release.sh` stays as an optional
   alternative.
+- The converter converts **on release**, not on every param tick: dragging a
+  slider mutates the params but the pipeline runs once when you let go (the
+  "Converting…" spam is gone).
+- **Saved designs now match the preview.** The save writes the design's native
+  space instead of centring it (`centered_design` shifted the content into
+  coordinates the PES reader does not restore, so a reloaded design appeared
+  off-centre in the editor / 10× oversized in the converter). The converter's
+  export width/height knobs were removed as a consequence.
 
 ## [0.1.0] - 2026-08-17
 

@@ -127,23 +127,6 @@ impl Model {
         }
     }
 
-    /// The save transform of the Java's `writeOut` → `PEmbroiderWriter.write`:
-    /// the design is centred on the hoop origin (the writer's default
-    /// `TRANSFORM = translate(-width/2, -height/2)`), and `width`/`height`
-    /// are the mm the caller centres on — the editor's canvas, the
-    /// converter's export size.
-    pub fn centered_design(&self, title: &str, width: f32, height: f32) -> emb_data::Design {
-        let dx = -width / 2.0;
-        let dy = -height / 2.0;
-        let mut design = self.to_design(title.into());
-        for p in &mut design.stitches {
-            p.x += dx;
-            p.y += dy;
-        }
-        design.bounds = [dx, dy, dx + width, dy + height];
-        design
-    }
-
     /// Load a PES file from bytes: `emb_data::pes::read` + [`Self::from_design`].
     /// The single entry point every app uses to open a design.
     pub fn from_pes(bytes: &[u8]) -> Result<Self, emb_data::Error> {
@@ -251,29 +234,5 @@ mod tests {
         assert!(d.stitches.is_empty());
         assert!(d.jumps.is_empty());
         assert_eq!(d.bounds, [0.0, 0.0, 50.0, 40.0]);
-    }
-
-    #[test]
-    fn centered_design_moves_the_canvas_to_the_origin() {
-        let mut m = Model::new(1024.0, 720.0);
-        m.push_polyline(
-            vec![Point::new(512.0, 360.0), Point::new(600.0, 400.0)],
-            0xFF0000,
-        );
-        let d = m.centered_design("design", m.width, m.height);
-        assert_eq!(d.bounds, [-512.0, -360.0, 512.0, 360.0]);
-        assert_eq!(d.stitches[0], emb_data::Point { x: 0.0, y: 0.0 });
-        assert_eq!(d.jumps, vec![true, false]);
-    }
-
-    #[test]
-    fn centered_design_can_use_other_mm_than_the_canvas() {
-        // The converter centres on the export size, not the model canvas
-        // (the Java's PEmbroiderWriter.write width/height args).
-        let mut m = Model::new(1000.0, 1000.0);
-        m.push_polyline(vec![Point::new(500.0, 500.0)], 0xFF0000);
-        let d = m.centered_design("t", 95.0, 95.0);
-        assert_eq!(d.bounds, [-47.5, -47.5, 47.5, 47.5]);
-        assert_eq!(d.stitches[0], emb_data::Point { x: 452.5, y: 452.5 });
     }
 }

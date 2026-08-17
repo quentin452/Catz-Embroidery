@@ -3,9 +3,11 @@
 //! the source image with the stitched preview overlaid through the shared
 //! draw list (D001: every frontend renders the same list).
 //!
-//! Every knob change re-converts (the Java's refreshPreview). The export
-//! mirrors fileSaved: optimize() → PEmbroiderWriter.write with the export mm
-//! — the design is centred on the hoop, never scaled (D005 notes this).
+//! Every knob change re-converts on release (the Java's refreshPreview, but
+//! debounced so a drag does not restart the pipeline per tick). The export
+//! mirrors fileSaved: optimize() → PEmbroiderWriter.write in the design's
+//! native space — not centred (D005: the old centred save did not round-trip;
+//! the preview and the viewer both fit the motif).
 
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke};
 
@@ -14,8 +16,11 @@ use emb_model::convert::{ColorMode, ConvertParams, HatchMode};
 
 use crate::convert::WORK_SIZE;
 
-/// The Java's default export size (Main.java:41-42) and its title rule.
-const DEFAULT_EXPORT_MM: f32 = 95.0;
+/// The idle gap after a knob change before the conversion runs (convert on
+/// release): a drag fires `.changed()` every tick, and re-converting per tick
+/// would spam the pipeline. 200 ms after the last change is enough for a
+/// human release.
+const DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(200);
 
 const PERLIN_DEFERRED: &str = "PERLIN is deferred (D003/D005): the Java walks app.noise through a Java2D raster, \
      seeded per run — its output is unreproducible, and no consumer demands it yet.";
@@ -55,8 +60,6 @@ pub struct ConverterApp {
     needs_fit: bool,
     viewport: Viewport,
     params: ConvertParams,
-    export_width: f32,
-    export_height: f32,
     status: Option<String>,
     /// The Java's `showPreview`: the P key toggles the stitched overlay
     /// (Main.java:394-396).
@@ -70,6 +73,12 @@ pub struct ConverterApp {
     converting: bool,
     progress: f32,
     convert_rx: Option<std::sync::mpsc::Receiver<ConvertMsg>>,
+    /// The time of the last knob change. A drag fires `.changed()` every tick;
+    /// converting on each tick would re-run the whole pipeline per tick (a
+    /// "Converting…" spam). Instead the conversion waits for an idle gap after
+    /// the last change — i.e. it converts on release (the Java converts on
+    /// button press only; a live drag just mutates the params).
+    last_change: Option<std::time::Instant>,
 }
 
 /// The background conversion's messages to the UI thread (the Java's
@@ -99,14 +108,13 @@ impl ConverterApp {
             needs_fit: true,
             viewport: Viewport::new(1.0, 0.0, 0.0),
             params: ConvertParams::default(),
-            export_width: DEFAULT_EXPORT_MM,
-            export_height: DEFAULT_EXPORT_MM,
             status: None,
             show_preview: true,
             exit_dialog: emb_egui::exit_dialog::ExitDialog::new(),
             converting: false,
             progress: 0.0,
             convert_rx: None,
+            last_change: None,
         }
     }
 
@@ -121,6 +129,9 @@ impl ConverterApp {
         self.source = Some(Source { pixels });
         self.needs_update = true;
         self.needs_fit = true;
+        // A fresh source converts immediately — the debounce only applies to
+        // knob drags.
+        self.last_change = None;
         self.status = Some(format!("Loaded {name}"));
     }
 
@@ -199,11 +210,24 @@ impl ConverterApp {
     /// Java's `processImageWithProgress` (thread + `updateProgress`). If a
     /// conversion is already running, the dirty flag stays set and the next
     /// completion re-runs with the newest params.
+    ///
+    /// A knob drag fires `.changed()` every tick; the conversion waits for an
+    /// idle gap (the debounce) so it converts on release, not per tick.
     fn refresh(&mut self) {
         if self.converting || !self.needs_update {
             return;
         }
         let Some(src) = &self.source else { return };
+        // The source was just loaded: convert immediately. A knob change:
+        // wait for the debounce so a drag does not restart the pipeline per
+        // tick.
+        if let Some(t) = self.last_change {
+            if t.elapsed() < DEBOUNCE {
+                self.ctx.request_repaint();
+                return;
+            }
+            self.last_change = None;
+        }
         self.converting = true;
         self.progress = 0.0;
         self.needs_update = false;
@@ -249,9 +273,15 @@ impl ConverterApp {
         }
     }
 
-    /// The Java's fileSaved: TSP-optimize, then the writer with the export mm
-    /// (centred, not scaled). Returns whether the design was written (the
-    /// exit dialog's "Save and quit" quits only on a successful save).
+    /// The Java's fileSaved: TSP-optimize, then the writer. The design is
+    /// saved in its NATIVE space (0..WORK_SIZE), NOT centred: `centered_design`
+    /// shifted the content into negative coordinates the PES reader does not
+    /// restore (it returns bounds `[0,0,w,h]` while the stitches keep their
+    /// absolute positions), so a saved design appeared 10× too big for its
+    /// declared hoop when reloaded. The preview and the viewer both fit the
+    /// motif, so the native coordinates round-trip exactly — save == preview.
+    /// Returns whether the design was written (the exit dialog's "Save and
+    /// quit" quits only on a successful save).
     fn save_dialog(&mut self) -> bool {
         let Some(model) = self.result.as_ref().and_then(|r| r.as_ref().ok()) else {
             self.status = Some("Nothing to save — load an image first".into());
@@ -273,7 +303,7 @@ impl ConverterApp {
         let mut model = model.clone();
         model.optimize();
         let title = emb_data::file_title(&path);
-        let design = model.centered_design(&title, self.export_width, self.export_height);
+        let design = model.to_design(title);
         match emb_data::write_design(&path, &design) {
             Ok(()) => {
                 self.status = Some(format!("Saved {}", path.display()));
@@ -398,31 +428,11 @@ impl ConverterApp {
                 {
                     changed = true;
                 }
-                ui.separator();
-                if ui
-                    .add(
-                        egui::DragValue::new(&mut self.export_width)
-                            .range(1.0..=500.0)
-                            .prefix("Export width mm: "),
-                    )
-                    .changed()
-                {
-                    changed = true;
-                }
-                if ui
-                    .add(
-                        egui::DragValue::new(&mut self.export_height)
-                            .range(1.0..=500.0)
-                            .prefix("Export height mm: "),
-                    )
-                    .changed()
-                {
-                    changed = true;
-                }
             });
         });
         if changed {
             self.needs_update = true;
+            self.last_change = Some(std::time::Instant::now());
         }
     }
 

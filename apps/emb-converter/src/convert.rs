@@ -159,7 +159,7 @@ mod tests {
     }
 
     /// The converter's export path end to end: a PNG file → pipeline →
-    /// centred PES file → read back into a non-empty design. The image is a
+    /// PES file → read back into a non-empty design. The image is a
     /// white disk on black, so the outline stroke (the default FillB=false)
     /// has real content.
     #[test]
@@ -201,22 +201,22 @@ mod tests {
         let out = std::env::temp_dir()
             .join("emb-converter-test")
             .join("out.pes");
-        let design = model.centered_design("out", 95.0, 95.0);
+        let design = model.to_design("out".into());
         emb_data::write_design(&out, &design).expect("write pes");
         let read = emb_data::pes::read(&std::fs::read(&out).expect("read pes")).expect("parse pes");
         assert!(!read.stitches.is_empty());
         assert_eq!(read.colors.len(), read.stitches.len());
-        // The Java's write(): translate(-export/2, -export/2); the PES header
-        // stores only the rounded extents (pes.rs read returns [0, 0, w, h]),
-        // and the design is NOT scaled to the mm (D005 notes it) — the
-        // stitches sit in the translated image space.
-        assert_eq!(read.bounds, [0.0, 0.0, 95.0, 95.0]);
+        // The save is in the pipeline's NATIVE space (0..WORK_SIZE, NOT centred
+        // on the export mm — the fix for the save≠preview divergence): the PES
+        // header stores only the rounded extents, the reader returns
+        // [0, 0, w, h], and the stitches land back at their native positions.
+        assert_eq!(read.bounds, [0.0, 0.0, WORK_SIZE as f32, WORK_SIZE as f32]);
         for p in &read.stitches {
             assert!(
-                p.x > -48.0 && p.x < 952.5,
-                "centred on the export mm, not scaled"
+                p.x >= -0.5 && p.x <= WORK_SIZE as f32 + 0.5,
+                "native space, not centred on the export mm"
             );
-            assert!(p.y > -48.0 && p.y < 952.5);
+            assert!(p.y >= -0.5 && p.y <= WORK_SIZE as f32 + 0.5);
         }
     }
 
@@ -266,11 +266,11 @@ mod tests {
         let out = std::env::temp_dir()
             .join("emb-converter-test")
             .join("out.jpg.pes");
-        let design = model.centered_design("out", 95.0, 95.0);
+        let design = model.to_design("out".into());
         emb_data::write_design(&out, &design).expect("write pes");
         let read = emb_data::pes::read(&std::fs::read(&out).expect("read pes")).expect("parse pes");
         assert!(!read.stitches.is_empty());
-        assert_eq!(read.bounds, [0.0, 0.0, 95.0, 95.0]);
+        assert_eq!(read.bounds, [0.0, 0.0, WORK_SIZE as f32, WORK_SIZE as f32]);
     }
 
     /// The .pes input path: a written design rasterizes back into a black-

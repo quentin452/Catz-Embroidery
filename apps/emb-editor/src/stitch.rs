@@ -626,26 +626,21 @@ fn content_size(model: &Model) -> (f32, f32) {
     }
 }
 
-fn write_out_centered(
-    model: &Model,
-    path: &std::path::Path,
-    width: f32,
-    height: f32,
-) -> Result<(), String> {
+/// Save a stitched model to a file: the shared `emb_data::write_design` with
+/// the design in its NATIVE space (0..model.width × 0..model.height). The
+/// save does NOT centre: `centered_design` shifted the content into negative
+/// coordinates that the PES reader does not restore (it returns bounds
+/// `[0, 0, w, h]` while the stitches keep their absolute, shifted positions),
+/// so a saved-then-reloaded design appeared off-centre in the viewer. The
+/// viewer/editor already fit to `content_bounds` (the motif), so the native
+/// coordinates round-trip exactly — save == preview == reload.
+pub fn write_out(model: &Model, path: &std::path::Path) -> Result<(), String> {
     if model.polylines.is_empty() {
         return Err("nothing to stitch".into());
     }
     let title = emb_data::file_title(path);
-    let design = model.centered_design(&title, width, height);
+    let design = model.to_design(title);
     emb_data::write_design(path, &design)
-}
-
-/// Save a stitched model to a file: the shared `emb_data::write_design` with
-/// the design centred on the editor's canvas (the Java's `writeOut` →
-/// `PEmbroiderWriter.write`, which centres on the canvas it was created
-/// with).
-pub fn write_out(model: &Model, path: &std::path::Path) -> Result<(), String> {
-    write_out_centered(model, path, model.width, model.height)
 }
 
 /// The infinite canvas mode's save: the CONTENT is moved to the origin (the
@@ -1246,8 +1241,15 @@ mod tests {
                 max_y = max_y.max(p.y);
             }
             if label == "bounded" {
-                // Centred on the 1024x720 canvas.
+                // Saved in the NATIVE space (0..1024 × 0..720, not centred):
+                // the reader returns these bounds AND the motif must sit inside
+                // them — the save≠reload fix (the old centred save shifted the
+                // content negative, so a reloaded design appeared off-centre).
                 assert_eq!(read.bounds, [0.0, 0.0, 1024.0, 720.0]);
+                assert!(
+                    min_x >= -1.0 && min_y >= -1.0 && max_x <= 1025.0 && max_y <= 721.0,
+                    "the motif stays inside the declared canvas ({min_x}..{max_x} × {min_y}..{max_y})"
+                );
             }
             assert!(max_x - min_x > 100.0, "{label} spans real content");
         }
