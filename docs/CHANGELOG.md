@@ -12,6 +12,8 @@ here.
 
 ## [Unreleased]
 
+## [v0.2.0] - 2026-08-17
+
 ### Added
 
 - Linux/Arch native build: `tools/package-release.sh` (the counterpart of the
