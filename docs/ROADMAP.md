@@ -119,6 +119,12 @@ MapForGoblins; `opencode.json` points opencode at it), `docs/CHANGELOG.md`
    the draft is deleted and the cross-compile path replaces the native Arch-box build
    (`tools/package-release.sh` becomes optional); the ROADMAP's 2026-08-17 "run on the Arch box"
    item is superseded by this one.
+   **2026-08-17: the first test failed — "permission denied (os error 13)".** Windows
+   Compress-Archive dropped the Unix `+x` bit, so the extracted binaries were not executable.
+   Fixed in the packaging: `tools/zip-linux.py` zips the Linux dist flat with 0o755 on the
+   binaries (0o644 on README) and `--check` gates the exec bit before publish; the draft's asset
+   was re-uploaded. Re-test on the Arch box (the zip is the 19 MB one; a bare `chmod +x emb-*`
+   also unblocks a stale extract).
 2. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.

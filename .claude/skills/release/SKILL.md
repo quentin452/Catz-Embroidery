@@ -55,8 +55,13 @@ public once pushed). Prior releases: v0.1.0 (the first Rust release, 2026-08-17)
    --all-targets`, `cargo fmt --check`). Check the output binaries' mtime is from THIS build —
    attaching a stale binary is a silent error that is public the moment the release is created.
 
-4. **Zip each output dir** (`dist/` → `Catz-Embroidery-<v>-win64.zip`,
-   `dist-linux/` → `Catz-Embroidery-<v>-linux-x86_64.zip`).
+4. **Zip each output dir.** Windows (`dist/` → `Catz-Embroidery-<v>-win64.zip`) via
+   `Compress-Archive`. Linux (`dist-linux/` → `Catz-Embroidery-<v>-linux-x86_64.zip`) via
+   `python tools/zip-linux.py dist-linux <zip>` — NOT Compress-Archive, which drops the Unix
+   executable bit and makes every binary fail with "permission denied (os error 13)" when the
+   launcher spawns a sibling on Linux (hit 2026-08-17). The helper zips flat and sets 0o755 on
+   the binaries, 0o644 on README. Verify before publishing:
+   `python tools/zip-linux.py --check <zip>` (non-zero exit on a missing exec bit).
 
 5. **Push main:** `git fetch origin`; `git push origin main`. (The user normally pushes, but a
    release explicitly authorizes it.)
