@@ -85,6 +85,49 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
+### Next-session strategy (wrap 2026-08-17 — first Rust release out, editor follow-ups done, Linux tooling added)
+
+State: **M0-M5 done; all editor follow-ups DONE** (cull D009, CONCENTRIC
+D010, TXT D011, TANGENT D012); **first Rust GitHub release v0.1.0 published**
+(2026-08-17); **Linux/Arch native build + release skill added**. Commits
+2026-08-17 (main): f50f19a (TANGENT stroke, D012), 7c86a13 (Linux build +
+release skill + CHANGELOG + opencode.json). Working tree clean, gates green
+(`cargo test --workspace` incl. the gate tests, `cargo clippy --workspace
+--all-targets`, `cargo fmt --check`). Branch `main` (rs-greenfield merged in).
+
+**2026-08-17 session (this wrap's session):** the three editor follow-ups
+CONCENTRIC / TXT / TANGENT entered (D010/D011/D012, each a decision + tests);
+the v0.1.0 release was cut (merge rs-greenfield → main, tag v0.1.0, gh
+release with the win64 zip — the launcher's update check now sees v0.1.0, not
+the Java's V0.2.0); and the Linux/Arch tooling landed: `tools/package-release.
+sh` (native build on the Arch box — the workspace is Rust/egui, no cross
+toolchain), the eframe `wayland`+`x11` features enabled in all 4 apps (inert
+on Windows, gates green), the `.claude/skills/release/` skill (adapted from
+MapForGoblins; `opencode.json` points opencode at it), `docs/CHANGELOG.md`
+(new), and README/.gitignore updates.
+
+**Next (prioritised, 1 = resume immediately):**
+
+1. **Verify the Linux/Arch build on the Arch box.** The script and prereqs
+   are committed but NOT run (no Arch machine in this session). On the Arch
+   box: `rustup target add x86_64-unknown-linux-gnu`, install the system
+   libs `tools/package-release.sh` lists, run `bash tools/package-release.sh`,
+   launch `dist-linux/emb-launcher`. Any failure (missing feature, missing
+   dep, rfd/glutin) is the next real work — the eframe wayland/x11 enablement
+   is the most likely place a Linux-only compile issue surfaces.
+2. **Cut the next release** (when ready): use `.claude/skills/release/`
+   (works in opencode via `opencode.json` and in Claude Code). Confirm scope
+   in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.
+3. **Remaining named exceptions / dead-in-Java APIs** (not queued work, for
+   the record): FPS/V-sync, i18n, Dropbox (OUT OF SCOPE); PERLIN, spirals
+   v2-v4, offset/inset, hatchInset, satin (deferred by D003, no consumer);
+   `resample(randomize != 0)` refuses. No active queue items remain in this
+   repo — the editor follow-ups that were the last real work are done.
+
+> **2026-08-17 earlier wrap (kept as history):** the previous session's
+> strategy follows below — converter complete, packaging accepted, Dropbox
+> closed, branch rs-greenfield.
+
 ### Next-session strategy (wrap 2026-08-17 — converter complete, Dropbox closed)
 
 State: **M0-M5 done, all exit criteria green AND user-accepted** (packaging
@@ -164,9 +207,10 @@ the OAuth endpoint — the hardcoded key/secret in the Java are inert).
    PERPENDICULAR/TANGENT, TANGENT being the geometric offset oracle
    (`stroke_poly_tangent`). The editor's M4 named-exception list is now
    empty.
-5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
-   update check (it currently offers the Java's `V0.2.0`) and gives the
-   packaging a real distributable.
+5. ~~**The first Rust GitHub release**~~ — DONE 2026-08-17 (`v0.1.0` tag,
+   `gh release create` with the win64 zip; the launcher's update check now
+   sees v0.1.0, not the Java's V0.2.0; the release skill + Linux build landed
+   in the same session, 7c86a13).
 
 > **2026-08-16 perf, stroke bottleneck (fixed):** a big stroke_weight froze
 > the converter. Cause: `stroke_poly_normal`'s oracle scanned every segment
