@@ -22,10 +22,11 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             let mut app = app::ConverterApp::new(cc);
-            // An optional first CLI arg loads an image at startup (the Java
-            // converter has no equivalent; a convenience for testing).
+            // An optional first CLI arg loads a source at startup (an image
+            // or a .pes design; the Java converter has no equivalent — a
+            // convenience for testing).
             if let Some(path) = std::env::args().nth(1) {
-                app.load_image_file(std::path::Path::new(&path));
+                app.load_file(std::path::Path::new(&path));
             }
             Ok(Box::new(app))
         }),

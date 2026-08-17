@@ -16,7 +16,7 @@ and a row is `done` only when its exit criteria run green.**
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (D003 deferrals + D004 stroke below) |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **done** (user acceptance 2026-08-16: test.pes vs ThreadsES) |
 | M4 | editor | stitch editing on real files; save via emb-data | **done** (user acceptance 2026-08-16; named exceptions below) |
-| M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | **done** (converter/infinite-canvas/launcher accepted 2026-08-16; packaging built + verified — user acceptance of `dist/` pending) |
+| M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | **done** (converter/infinite-canvas/launcher accepted 2026-08-16; packaging accepted 2026-08-17 — `dist/` launched and tested) |
 
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
@@ -76,6 +76,10 @@ Working tree clean, gates green (`cargo test --workspace` incl. the gate
 tests, `cargo clippy --workspace --all-targets`, `cargo fmt --check`).
 Branch `rs-greenfield`.
 
+**2026-08-17 session** (e4c90a1): packaging ACCEPTED (M5 fully done);
+converter Invert toggle (Rust-only knob, default OFF — parity) + release
+profile (thin LTO + strip: the 5 exes ~30 MB total, from ~65 MB).
+
 **Done this session (after the 11-commit b174372..be8eb54 run):**
 
 - **Stroke oracle perf fix** (the converter froze on a big stroke_weight):
@@ -105,25 +109,23 @@ Branch `rs-greenfield`.
 
 **Next (prioritised, 1 = resume immediately):**
 
-1. **Accept the packaging** (built, not accepted): run
-   `tools/package-release.ps1`, then `dist\emb-launcher.exe` and click the
-   three buttons (they must launch the packaged siblings). With that, M5's
-   exit criteria are all green AND user-accepted.
-2. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
+1. ~~**Accept the packaging**~~ — DONE 2026-08-17 (`dist/` launched and tested).
+2. **Converter follow-ups** (queued — current focus): **PES input DONE
+   2026-08-17** (load dialog / drag-drop accept `.pes`, rasterized back into
+   the pipeline). Remaining: the progress bar / background thread (also
+   kills the frozen-UI aspect of the stroke sample-count floor), Dropbox
+   save (not ported).
+3. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
    Java's infinite-draw is an empty skeleton, so the app is greenfield.
    `catz-render` is already decoupled (GPU-only, headless boot, offscreen
    capture). Needs: a ruling naming Catz-Embroidery as consumer (D110
    portfolio amendment), the external consumption route (git path dep;
    publish=false + proprietary licence), and the 2D draw line (D109
    refused a 2D path until a consumer exists — this app would be it).
-3. **Editor follow-ups** (named exceptions): TXT stitching (font
+4. **Editor follow-ups** (named exceptions): TXT stitching (font
    rasteriser), CONCENTRIC (hatchInset), the stroke mode toggle (TANGENT).
    **2026-08-16: the cull toggle entered** (D009) — element-local mask
    subtraction, default ON, invisible later layers still cut.
-4. **Converter follow-ups** (queued): PES input (rasterize a .pes back
-   through the pipeline), the progress bar / background thread, Dropbox
-   save (not ported). The progress bar also kills the frozen-UI aspect of
-   the stroke sample-count floor (perf note below).
 5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
    update check (it currently offers the Java's `V0.2.0`) and gives the
    packaging a real distributable.
@@ -233,6 +235,17 @@ exception, or a recorded deviation (pin 7):
   to the dark pixels (`max(r,g,b) < 127`) for dark-subject-on-bright-
   background photos, whose parity mask converts the background blob instead
   of the subject.
+- **PES input** (2026-08-17): the converter's load dialog / drag-drop accept
+  a `.pes` design — read through `emb_data::pes::read` (M1,
+  pyembroidery-tested; the Java's own `PES.read` adds raw deltas WITHOUT
+  accumulation — a model bug, not ported), grouped per colour run,
+  `normalizePolylines` fit, rasterized with the Java's Bresenham onto a
+  canvas, then re-converted with the current knobs. Deviation: the raster's
+  background is BLACK, not the Java's `p.color(255)` — the pipeline's bright
+  threshold can never separate thread-colour pixels from a white canvas
+  (the whole mask turns on as one blob; the Java only "worked" because it
+  drew near-black thread-INDEX values, extracting the lines as negative
+  space). Dark-thread designs take the Invert toggle, like any dark image.
 - **DRUNK hatch** (PEmbroiderGraphics.java:3090/3117): dead in Java (no app
   selects it) and in NO doc — the only deferral absent from both ROADMAP's
   list and D003's eleven. Same class as VECFIELD/ANGLED (those ARE in

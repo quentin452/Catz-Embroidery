@@ -106,10 +106,21 @@ impl ConverterApp {
         self.status = Some(format!("Loaded {name}"));
     }
 
-    /// Load an image file (the load button, the drag-drop and the CLI arg
-    /// all land here).
-    pub fn load_image_file(&mut self, path: &std::path::Path) {
-        match crate::convert::load_image(path) {
+    /// Load a source file (the load button, the drag-drop and the CLI arg
+    /// all land here): an image (jpg/png/jpeg/bmp/gif) or a `.pes` design,
+    /// which is rasterized back into the pipeline's work image (the Java's
+    /// `imageSelected` PES branch).
+    pub fn load_file(&mut self, path: &std::path::Path) {
+        let is_pes = path
+            .extension()
+            .map(|e| e.to_string_lossy().eq_ignore_ascii_case("pes"))
+            .unwrap_or(false);
+        let result = if is_pes {
+            crate::convert::load_design_pixels(path)
+        } else {
+            crate::convert::load_image(path)
+        };
+        match result {
             Ok(pixels) => self.set_source(pixels, path.display().to_string()),
             Err(e) => self.status = Some(e),
         }
@@ -158,7 +169,7 @@ impl ConverterApp {
                 .collect()
         });
         if let Some(path) = dropped.into_iter().next() {
-            self.load_image_file(&path);
+            self.load_file(&path);
         }
         if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::V)) {
             self.load_clipboard();
@@ -226,14 +237,14 @@ impl ConverterApp {
     fn load_dialog(&mut self) {
         let Some(path) = rfd::FileDialog::new()
             .add_filter(
-                "Images (jpg/png/bmp/gif)",
-                &["jpg", "jpeg", "png", "bmp", "gif"],
+                "Images (jpg/png/bmp/gif) and PES designs",
+                &["jpg", "jpeg", "png", "bmp", "gif", "pes"],
             )
             .pick_file()
         else {
             return;
         };
-        self.load_image_file(&path);
+        self.load_file(&path);
     }
 
     fn draw_controls(&mut self, ui: &mut egui::Ui) {
