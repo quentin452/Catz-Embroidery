@@ -76,11 +76,14 @@ public once pushed). Prior releases: v0.1.0 (the first Rust release, 2026-08-17)
 
 ## Notes
 
-- **Linux/Arch is built natively on the Arch box, not cross-compiled.** The workspace is
-  Rust/egui (eframe + glow); the eframe `wayland` and `x11` features are enabled in all four apps
-  (`apps/*/Cargo.toml`). The Arch box needs the system libs `tools/package-release.sh` lists
-  (libxkbcommon, wayland-protocols, xcb utils, libglvnd, mesa). There is no Linux cross-toolchain;
-  do not attempt to cross-compile from Windows.
+- **Linux/Arch can be cross-compiled from Windows** (2026-08-17, verified: all 4 apps build with
+  `cargo zigbuild --release --target x86_64-unknown-linux-gnu`). The workspace is Rust/egui (eframe
+  + glow); the eframe `wayland` and `x11` features are enabled in all four apps (`apps/*/Cargo.toml`).
+  The one cross-compile blocker was the launcher's `native-tls` (openssl on Linux) — switched to
+  ureq's `tls` (rustls, pure-Rust) so it cross-compiles. The Arch box still needs the system libs
+  `tools/package-release.sh` lists at RUNTIME (libxkbcommon, wayland-protocols, xcb utils,
+  libglvnd, mesa); the binaries only link glibc ≤ 2.27. Cross-compile vs native build on the Arch
+  box are both viable; pick per-box.
 - Do NOT touch other remotes (there is no upstream; `origin` is the only one).
 - A release is public immediately (not a draft): if a regression is suspected in the built
   binaries, flag it to the user before publishing.

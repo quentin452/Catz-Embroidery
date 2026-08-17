@@ -10,6 +10,7 @@ workspace = true
 
 [dependencies]
 eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
-# The update check's HTTPS GET (native-tls = schannel on Windows, no crypto
-# crate compile; the launcher is the only consumer).
-ureq = { version = "2", default-features = false, features = ["native-tls"] }
+# The update check's HTTPS GET (rustls: pure-Rust TLS, no system openssl, so
+# the launcher cross-compiles to Linux/Arch from a Windows box; the launcher
+# is the only consumer).
+ureq = { version = "2", default-features = false, features = ["tls"] }

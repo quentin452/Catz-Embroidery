@@ -53,6 +53,7 @@ bin/
 ### Packaging output (tools/package-release.ps1 / .sh) ###
 /dist/
 /dist-linux/
+/*.zip
 
 ### Local environment (per-machine, never committed) ###
 .env.local

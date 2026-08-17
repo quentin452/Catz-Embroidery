@@ -18,6 +18,12 @@ here.
   Windows `tools/package-release.ps1`), with the eframe `wayland` and `x11`
   features enabled in all four apps so the egui/glow stack compiles on Linux.
 
+### Changed
+
+- The launcher's update check switched from `native-tls` (openssl on Linux)
+  to ureq's `tls` (rustls, pure-Rust) so the Linux build cross-compiles from
+  Windows with no system openssl — same behaviour, no system dependency.
+
 ## [0.1.0] - 2026-08-17
 
 The first Rust release — the native rewrite of the Java embroidery suite.

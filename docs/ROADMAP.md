@@ -108,13 +108,17 @@ MapForGoblins; `opencode.json` points opencode at it), `docs/CHANGELOG.md`
 
 **Next (prioritised, 1 = resume immediately):**
 
-1. **Verify the Linux/Arch build on the Arch box.** The script and prereqs
-   are committed but NOT run (no Arch machine in this session). On the Arch
-   box: `rustup target add x86_64-unknown-linux-gnu`, install the system
-   libs `tools/package-release.sh` lists, run `bash tools/package-release.sh`,
-   launch `dist-linux/emb-launcher`. Any failure (missing feature, missing
-   dep, rfd/glutin) is the next real work — the eframe wayland/x11 enablement
-   is the most likely place a Linux-only compile issue surfaces.
+1. **Test the cross-compiled Linux build on the Arch box.** 2026-08-17 the Linux build was
+   cross-compiled from Windows for the first time (`cargo zigbuild`, `x86_64-unknown-linux-gnu`,
+   all 4 apps ELF, glibc ≤ 2.27) — the launcher's `native-tls` → ureq `tls` (rustls) change made it
+   cross-compile cleanly. A **draft release** `v0.1.0-linux-test` carries the
+   `Catz-Embroidery-0.1.0-linux-x86_64.zip` asset. On the Arch box: fetch the draft's zip, extract,
+   install the runtime libs `tools/package-release.sh` lists, launch `./emb-launcher`. Any failure
+   (missing runtime lib, rfd/glutin, missing feature) is the next real work — the eframe
+   wayland/x11 enablement is the most likely place a Linux-only runtime issue surfaces. If it runs,
+   the draft is deleted and the cross-compile path replaces the native Arch-box build
+   (`tools/package-release.sh` becomes optional); the ROADMAP's 2026-08-17 "run on the Arch box"
+   item is superseded by this one.
 2. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.
