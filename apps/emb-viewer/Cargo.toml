@@ -12,5 +12,5 @@ workspace = true
 emb-draw = { path = "../../crates/emb-draw" }
 emb-egui = { path = "../../crates/emb-egui" }
 emb-model = { path = "../../crates/emb-model" }
-eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts"] }
+eframe = { version = "0.35", default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
 rfd = "0.17"

@@ -36,6 +36,16 @@ powershell -ExecutionPolicy Bypass -File tools/package-release.ps1
 # output: dist/  (git-ignored)
 ```
 
+**Linux/Arch** (built natively on the Arch box, not cross-compiled — the
+workspace is Rust/egui and needs the `wayland` + `x11` eframe features, which
+are enabled in `apps/*/Cargo.toml`):
+
+```bash
+bash tools/package-release.sh
+# output: dist-linux/  (git-ignored)
+# needs: rustup (1.92.0), libxkbcommon, wayland-protocols, xcb-util*, libglvnd, mesa
+```
+
 The launcher checks GitHub for a newer release once at startup and offers
 the releases page when one exists.
 
@@ -57,6 +67,8 @@ tests/              cross-crate gates (dependency matrix, memory index)
 |---|---|
 | The agent-facing entry point (pins, gates, conventions) | `AGENTS.md` |
 | What is done / what is next / named exceptions | `docs/ROADMAP.md` |
+| User-facing changes, newest first | `docs/CHANGELOG.md` |
+| How to cut a GitHub release | `.claude/skills/release/SKILL.md` |
 | Architecture + the dependency matrix ruling | `docs/ARCHITECTURE.md`, `docs/decisions/D001.md` |
 | Design rulings (deferrals, the stroke oracle, the converter path) | `docs/decisions/` |
 | Code conventions, testing culture, format details | `docs/CODE.md`, `docs/TESTING.md`, `docs/FORMAT.md` |

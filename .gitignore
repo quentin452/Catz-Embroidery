@@ -1,4 +1,4 @@
-.gradle
+﻿.gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -48,10 +48,11 @@ bin/
 /target
 **/*.rs.bk
 # Cargo.lock is COMMITTED (reproducible builds across machines, same pin as
-# rust-toolchain.toml) — listed here only to say so.
+# rust-toolchain.toml) â€” listed here only to say so.
 
-### Packaging output (tools/package-release.ps1) ###
+### Packaging output (tools/package-release.ps1 / .sh) ###
 /dist/
+/dist-linux/
 
 ### Local environment (per-machine, never committed) ###
 .env.local
