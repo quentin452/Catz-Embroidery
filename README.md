@@ -5,9 +5,10 @@ an **editor**, a **viewer**, a **converter** (image → embroidery) and a
 **launcher** hub — one stitch model, one shared
 renderer, every frontend a thin consumer.
 
-The suite reads and writes real machine formats (PES read+write, DST and SVG
-write), and its algorithms (hatch, trace, TSP, the PERPENDICULAR stroke) are
-tolerance-compared against the Java model on shared fixtures, with every
+The suite reads and writes real machine formats (PES read+write, SVG
+read+write, DST write), and its algorithms (hatch, trace, TSP, the
+PERPENDICULAR stroke) are tolerance-compared against the Java model on shared
+fixtures, with every
 deviation ruled and documented.
 
 ## Status

@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! Parsers/writers for machine formats (PES read+write, DST and SVG write) — typed,
+//! Parsers/writers for machine formats (PES read+write, DST write, SVG read+write) — typed,
 //! bounds-checked, structured errors. No model dependency (docs/decisions/D001.md).
 
 pub mod dst;

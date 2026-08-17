@@ -17,6 +17,10 @@ here.
 - Linux/Arch native build: `tools/package-release.sh` (the counterpart of the
   Windows `tools/package-release.ps1`), with the eframe `wayland` and `x11`
   features enabled in all four apps so the egui/glow stack compiles on Linux.
+- **The viewer now opens SVG designs** (gap #15): a new `emb_data::svg::read`
+  (the reader counterpart of the existing writer, round-trip-tested against
+  the committed `simple.svg`), exposed as `Model::from_svg`; the viewer's
+  Open/drag-drop accept `.pes` and `.svg`.
 
 ### Changed
 

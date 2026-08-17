@@ -12,7 +12,7 @@ and a row is `done` only when its exit criteria run green.**
 | Phase | Delivers | Exit criteria | Status |
 |---|---|---|---|
 | M0 | Scaffold: workspace, crates (emb-data/model/draw + 4 apps as empty skeletons), gates (arch.rs, memory.rs), docs | `cargo test --workspace` green incl. the gate tests; every crate carries `forbid(unsafe_code)`; matrix.toml rows match the manifests | **done** |
-| M1 | emb-data: PES read+write, DST write, SVG write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST) | **done** |
+| M1 | emb-data: PES read+write, DST write, SVG read+write | round-trip and byte-compare against Java-generated fixtures; structured errors; no model dependency; each format has a named consumer (converter: PES/SVG, editor: DST, **viewer: PES/SVG since 2026-08-17 — the SVG reader, gap #15**) | **done** |
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (D003 deferrals + D004 stroke below) |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **done** (user acceptance 2026-08-16: test.pes vs ThreadsES) |
 | M4 | editor | stitch editing on real files; save via emb-data | **done** (user acceptance 2026-08-16; named exceptions below) |
@@ -134,10 +134,19 @@ the standard path. The launcher's update check switched from `native-tls`
     Measured: ~9 ms on a 150-polyline hatch, ~40 ms on 300, on a document
     change not per frame. `optimize()` itself was measured worthwhile: it cuts
     ~50% of the thread travel at save (140857 → 71345 mm on a test hatch).
-3. **Cut the next release** (when ready): use `.claude/skills/release/`
+3. ~~**GitHub issue #15 — viewer entry point**~~ **DONE 2026-08-17**: a GitHub
+   audit (agents cross-checking the ~30 Java-era issues against the Rust code)
+   found the viewer opened PES only. Added `emb_data::svg::read` (the reader
+   counterpart of the SVG writer, round-trip-tested on `fixtures/simple.svg`),
+   exposed as `Model::from_svg`; the viewer's Open/drag-drop now accept `.pes`
+   and `.svg` (DST remains write-only, no consumer). GitHub issues/labels
+   tidied: 5 Java-era issues closed with state comments, the dead P2D label
+   removed, viewer/launcher/rust labels added, repo description + topics
+   cleaned for the Rust rewrite.
+4. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.
-4. **Remaining named exceptions / dead-in-Java APIs** (not queued work, for
+5. **Remaining named exceptions / dead-in-Java APIs** (not queued work, for
    the record): FPS/V-sync, i18n, Dropbox (OUT OF SCOPE); PERLIN, spirals
    v2-v4, offset/inset, hatchInset, satin (deferred by D003, no consumer);
    `resample(randomize != 0)` refuses.

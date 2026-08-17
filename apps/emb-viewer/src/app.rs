@@ -1,4 +1,4 @@
-//! The viewer app: opens a PES file, renders it via the shared draw list.
+//! The viewer app: opens a PES/SVG design, renders it via the shared draw list.
 
 use eframe::egui::{self, Align, Layout, RichText};
 
@@ -35,23 +35,31 @@ impl ViewerApp {
     }
 
     fn load_file(&mut self, ctx: &egui::Context, path: &std::path::Path) {
-        match std::fs::read(path) {
-            Ok(bytes) => match Model::from_pes(&bytes) {
-                Ok(model) => {
-                    let stitched_mm = design_size(&model);
-                    let draw_list = DrawList::from_model(&model);
-                    let overview = OverviewTexture::new(ctx, &draw_list);
-                    self.design = Some(LoadedDesign {
-                        draw_list,
-                        overview,
-                        source: path.display().to_string(),
-                        stitched_mm,
-                    });
-                    self.needs_fit = true;
-                    self.status = None;
-                }
-                Err(e) => self.status = Some(format!("{}: {e}", path.display())),
+        let result: Result<Model, String> = match std::fs::read(path) {
+            Ok(bytes) => match path.extension().map(|e| e.to_string_lossy().to_lowercase()) {
+                Some(ext) if ext == "pes" => Model::from_pes(&bytes).map_err(|e| e.to_string()),
+                Some(ext) if ext == "svg" => match String::from_utf8(bytes) {
+                    Ok(s) => Model::from_svg(&s).map_err(|e| e.to_string()),
+                    Err(_) => Err("not valid UTF-8".to_string()),
+                },
+                _ => Err("unsupported file type (open a .pes or .svg)".to_string()),
             },
+            Err(e) => return self.status = Some(format!("{}: {e}", path.display())),
+        };
+        match result {
+            Ok(model) => {
+                let stitched_mm = design_size(&model);
+                let draw_list = DrawList::from_model(&model);
+                let overview = OverviewTexture::new(ctx, &draw_list);
+                self.design = Some(LoadedDesign {
+                    draw_list,
+                    overview,
+                    source: path.display().to_string(),
+                    stitched_mm,
+                });
+                self.needs_fit = true;
+                self.status = None;
+            }
             Err(e) => self.status = Some(format!("{}: {e}", path.display())),
         }
     }
@@ -83,7 +91,7 @@ impl eframe::App for ViewerApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
 
-        // Drag-drop: a dropped .pes loads directly.
+        // Drag-drop: a dropped .pes/.svg loads directly.
         let dropped: Vec<std::path::PathBuf> = ctx.input(|i| {
             i.raw
                 .dropped_files
@@ -99,7 +107,7 @@ impl eframe::App for ViewerApp {
             ui.horizontal(|ui| {
                 if ui.button("Open…").clicked()
                     && let Some(path) = rfd::FileDialog::new()
-                        .add_filter("PES designs", &["pes"])
+                        .add_filter("Embroidery designs", &["pes", "svg"])
                         .pick_file()
                 {
                     self.load_file(&ctx, &path);
@@ -140,7 +148,9 @@ impl eframe::App for ViewerApp {
                 self.render.ui(ui, &d.draw_list, Some(&d.overview));
             } else {
                 ui.centered_and_justified(|ui| {
-                    ui.label(RichText::new("Open a .pes file (button or drag-drop)").weak());
+                    ui.label(
+                        RichText::new("Open a .pes or .svg file (button or drag-drop)").weak(),
+                    );
                 });
             }
         });

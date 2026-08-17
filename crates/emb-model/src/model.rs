@@ -133,6 +133,13 @@ impl Model {
         let design = emb_data::pes::read(bytes)?;
         Ok(Self::from_design(&design))
     }
+
+    /// Load an SVG string (the viewer's SVG entry point): `emb_data::svg::read`
+    /// + [`Self::from_design`].
+    pub fn from_svg(svg: &str) -> Result<Self, emb_data::Error> {
+        let design = emb_data::svg::read(svg)?;
+        Ok(Self::from_design(&design))
+    }
 }
 
 #[cfg(test)]
