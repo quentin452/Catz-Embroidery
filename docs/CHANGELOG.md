@@ -23,9 +23,10 @@ here.
 - The launcher's update check switched from `native-tls` (openssl on Linux)
   to ureq's `tls` (rustls, pure-Rust) so the Linux build cross-compiles from
   Windows with no system openssl — same behaviour, no system dependency.
-- The Linux release zip now carries the Unix executable bit:
-  `tools/zip-linux.py` (Windows Compress-Archive dropped `+x`, so every
-  binary failed with "permission denied" on Linux).
+- The Linux release zip now carries the Unix executable bit and a Unix
+  (host 3) marker: `tools/zip-linux.py` (Windows Compress-Archive dropped
+  `+x` AND a DOS-host entry makes unzip ignore the mode — both hit as
+  "permission denied" on Linux).
 
 ## [0.1.0] - 2026-08-17
 

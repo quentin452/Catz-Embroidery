@@ -123,8 +123,13 @@ MapForGoblins; `opencode.json` points opencode at it), `docs/CHANGELOG.md`
    Compress-Archive dropped the Unix `+x` bit, so the extracted binaries were not executable.
    Fixed in the packaging: `tools/zip-linux.py` zips the Linux dist flat with 0o755 on the
    binaries (0o644 on README) and `--check` gates the exec bit before publish; the draft's asset
-   was re-uploaded. Re-test on the Arch box (the zip is the 19 MB one; a bare `chmod +x emb-*`
-   also unblocks a stale extract).
+   was re-uploaded. **2026-08-17 (same day, second failure): still "permission denied" — the
+   exec bit alone was not enough.** The Python zipfile wrote `create_system = 0` (DOS), and
+   Info-ZIP `unzip` ignores the Unix mode of a DOS-host entry (everything extracts 0644). Fixed:
+   the helper now writes `create_system = 3` (Unix) alongside the mode, and `--check` fails on a
+   non-Unix host — the previous check passed wrongly because it only looked at the mode bit.
+   Re-test on the Arch box (the draft zip is the 19 MB one with `create_system = 3`; a bare
+   `chmod +x emb-*` also unblocks a stale extract).
 2. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.

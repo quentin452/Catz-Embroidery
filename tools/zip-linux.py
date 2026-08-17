@@ -30,7 +30,12 @@ def check(out: Path) -> int:
             if name == "README.txt":
                 continue
             mode = (info.external_attr >> 16) & 0xFFFF
-            if mode & 0o111 == 0:
+            if info.create_system != 3:
+                bad.append(
+                    f"{info.filename} host {info.create_system} (unzip would "
+                    f"ignore the Unix mode)"
+                )
+            elif mode & 0o111 == 0:
                 bad.append(f"{info.filename} mode {oct(mode)}")
     if bad:
         print("error: non-executable members:", ", ".join(bad), file=sys.stderr)
@@ -60,6 +65,10 @@ def main() -> None:
             info = zipfile.ZipInfo.from_file(path, path.name)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (mode & 0xFFFF) << 16
+            # Create_system = 3 (Unix). A DOS/0 host makes Info-ZIP unzip
+            # treat external_attr as DOS attributes and ignore the Unix mode
+            # (everything extracts as 0644) — the +x bits are then inert.
+            info.create_system = 3
             with path.open("rb") as fh:
                 zf.writestr(info, fh.read())
     print(f"wrote {out} ({out.stat().st_size} bytes)")
