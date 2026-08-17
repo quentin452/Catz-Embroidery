@@ -1,0 +1,83 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build: workspace",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--workspace"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "build: release workspace",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--workspace", "--release"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "build: editor",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "-p", "emb-editor"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "build: viewer",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "-p", "emb-viewer"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "build: converter",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "-p", "emb-converter"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "build: infinite-draw",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "-p", "emb-infinitedraw"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "build: launcher",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "-p", "emb-launcher"],
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "test: workspace",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["test", "--workspace"],
+      "group": "test",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "clippy: workspace",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["clippy", "--workspace", "--all-targets"],
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "fmt: check",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["fmt", "--check"],
+      "problemMatcher": []
+    }
+  ]
+}

@@ -36,7 +36,10 @@ bin/
 /.nb-gradle/
 
 ### VS Code ###
-.vscode/
+# Per-machine editor config stays ignored (like .idea); the shared build
+# tasks (tasks.json) are tracked.
+.vscode/*
+!.vscode/tasks.json
 
 ### Mac OS ###
 .DS_Store
