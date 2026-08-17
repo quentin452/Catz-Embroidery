@@ -64,6 +64,21 @@ pub struct ConverterApp {
     /// The Java's exit dialog (DialogUtil.showExitDialog): save-and-quit /
     /// exit-without-save / cancel on window close.
     exit_dialog: emb_egui::exit_dialog::ExitDialog,
+    /// A conversion is running on a background thread (the Java's
+    /// `processImageWithProgress`); the knobs are disabled while it does and
+    /// the status bar shows `progress`.
+    converting: bool,
+    progress: f32,
+    convert_rx: Option<std::sync::mpsc::Receiver<ConvertMsg>>,
+}
+
+/// The background conversion's messages to the UI thread (the Java's
+/// `updateProgress` + `SwingUtilities.invokeLater`).
+enum ConvertMsg {
+    /// 0..1 through the pipeline stages.
+    Progress(f32),
+    /// The finished model, or the error string.
+    Done(Result<emb_model::model::Model, String>),
 }
 
 struct Source {
@@ -89,6 +104,9 @@ impl ConverterApp {
             status: None,
             show_preview: true,
             exit_dialog: emb_egui::exit_dialog::ExitDialog::new(),
+            converting: false,
+            progress: 0.0,
+            convert_rx: None,
         }
     }
 
@@ -176,25 +194,59 @@ impl ConverterApp {
         }
     }
 
-    /// Re-convert when the knobs changed (the Java's refreshPreview).
+    /// Re-convert when the knobs changed (the Java's refreshPreview), on a
+    /// background thread so a heavy stroke never freezes the window — the
+    /// Java's `processImageWithProgress` (thread + `updateProgress`). If a
+    /// conversion is already running, the dirty flag stays set and the next
+    /// completion re-runs with the newest params.
     fn refresh(&mut self) {
-        if !self.needs_update {
+        if self.converting || !self.needs_update {
             return;
         }
         let Some(src) = &self.source else { return };
-        let model = emb_model::convert::convert_image(
-            &src.pixels,
-            WORK_SIZE as usize,
-            WORK_SIZE as usize,
-            &self.params,
-        );
-        self.result = Some(model.map_err(|e| e.to_string()));
-        self.preview = self
-            .result
-            .as_ref()
-            .and_then(|r| r.as_ref().ok())
-            .map(DrawList::from_model);
+        self.converting = true;
+        self.progress = 0.0;
         self.needs_update = false;
+        let pixels = src.pixels.clone();
+        let params = self.params;
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.convert_rx = Some(rx);
+        let ctx = self.ctx.clone();
+        std::thread::spawn(move || {
+            let result = emb_model::convert::convert_image_with_progress(
+                &pixels,
+                WORK_SIZE as usize,
+                WORK_SIZE as usize,
+                &params,
+                &mut |p| {
+                    if tx.send(ConvertMsg::Progress(p)).is_ok() {
+                        ctx.request_repaint();
+                    }
+                },
+            );
+            let _ = tx.send(ConvertMsg::Done(result.map_err(|e| e.to_string())));
+            ctx.request_repaint();
+        });
+    }
+
+    /// Drain the conversion channel: progress ticks move the bar; the done
+    /// message lands the model and its draw list.
+    fn poll_conversion(&mut self) {
+        let Some(rx) = &self.convert_rx else { return };
+        let mut done = None;
+        while let Ok(msg) = rx.try_recv() {
+            match msg {
+                ConvertMsg::Progress(p) => self.progress = p,
+                ConvertMsg::Done(res) => done = Some(res),
+            }
+        }
+        if let Some(res) = done {
+            self.converting = false;
+            self.convert_rx = None;
+            let preview = res.as_ref().ok().map(DrawList::from_model);
+            self.result = Some(res);
+            self.preview = preview;
+        }
     }
 
     /// The Java's fileSaved: TSP-optimize, then the writer with the export mm
@@ -249,120 +301,125 @@ impl ConverterApp {
 
     fn draw_controls(&mut self, ui: &mut egui::Ui) {
         let mut changed = false;
-        ui.horizontal(|ui| {
-            if ui.button("Load image").on_hover_text("Open a jpg/png/jpeg/bmp/gif").clicked() {
-                self.load_dialog();
-            }
-            if ui.button("Save").on_hover_text("Export the stitched design (PES/DST/SVG)").clicked() {
-                self.save_dialog();
-            }
-            ui.separator();
-            if ui
-                .checkbox(&mut self.params.fill, "Fill mode")
-                .on_hover_text("Off: outline only (the PERPENDICULAR stroke of the contours). On: outline + hatch fill.")
-                .changed()
-            {
-                changed = true;
-            }
-            if ui
-                .checkbox(&mut self.params.invert, "Invert")
-                .on_hover_text("Rust-only knob (the Java has none): stitch the dark pixels instead of the bright ones — for photos with a dark subject on a bright background, whose parity mask converts the background blob.")
-                .changed()
-            {
-                changed = true;
-            }
-            ui.separator();
-            ui.label("Hatch:");
-            egui::ComboBox::from_id_salt("hatch_mode")
-                .selected_text(hatch_label(self.params.hatch_mode))
-                .show_ui(ui, |ui| {
-                    for mode in [
-                        HatchMode::Cross,
-                        HatchMode::Parallel,
-                        HatchMode::Concentric,
-                        HatchMode::Spiral,
-                    ] {
-                        if ui.selectable_value(&mut self.params.hatch_mode, mode, hatch_label(mode)).changed()
-                        {
-                            changed = true;
+        // The Java's setComponentsEnabled(false) while converting: the knobs
+        // are locked so the running conversion's params cannot be torn out
+        // from under it.
+        ui.add_enabled_ui(!self.converting, |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("Load image").on_hover_text("Open a jpg/png/jpeg/bmp/gif or a .pes design").clicked() {
+                    self.load_dialog();
+                }
+                if ui.button("Save").on_hover_text("Export the stitched design (PES/DST/SVG)").clicked() {
+                    self.save_dialog();
+                }
+                ui.separator();
+                if ui
+                    .checkbox(&mut self.params.fill, "Fill mode")
+                    .on_hover_text("Off: outline only (the PERPENDICULAR stroke of the contours). On: outline + hatch fill.")
+                    .changed()
+                {
+                    changed = true;
+                }
+                if ui
+                    .checkbox(&mut self.params.invert, "Invert")
+                    .on_hover_text("Rust-only knob (the Java has none): stitch the dark pixels instead of the bright ones — for photos with a dark subject on a bright background, whose parity mask converts the background blob.")
+                    .changed()
+                {
+                    changed = true;
+                }
+                ui.separator();
+                ui.label("Hatch:");
+                egui::ComboBox::from_id_salt("hatch_mode")
+                    .selected_text(hatch_label(self.params.hatch_mode))
+                    .show_ui(ui, |ui| {
+                        for mode in [
+                            HatchMode::Cross,
+                            HatchMode::Parallel,
+                            HatchMode::Concentric,
+                            HatchMode::Spiral,
+                        ] {
+                            if ui.selectable_value(&mut self.params.hatch_mode, mode, hatch_label(mode)).changed()
+                            {
+                                changed = true;
+                            }
                         }
-                    }
-                    ui.add_enabled_ui(false, |ui| {
-                        ui.selectable_label(false, hatch_label(HatchMode::Perlin))
-                            .on_hover_text(PERLIN_DEFERRED);
+                        ui.add_enabled_ui(false, |ui| {
+                            ui.selectable_label(false, hatch_label(HatchMode::Perlin))
+                                .on_hover_text(PERLIN_DEFERRED);
+                        });
                     });
-                });
-            ui.label("Color:");
-            egui::ComboBox::from_id_salt("color_mode")
-                .selected_text(color_label(self.params.color_mode))
-                .show_ui(ui, |ui| {
-                    for mode in [
-                        ColorMode::MultiColor,
-                        ColorMode::BlackAndWhite,
-                        ColorMode::Realistic,
-                    ] {
-                        if ui.selectable_value(&mut self.params.color_mode, mode, color_label(mode)).changed()
-                        {
-                            changed = true;
+                ui.label("Color:");
+                egui::ComboBox::from_id_salt("color_mode")
+                    .selected_text(color_label(self.params.color_mode))
+                    .show_ui(ui, |ui| {
+                        for mode in [
+                            ColorMode::MultiColor,
+                            ColorMode::BlackAndWhite,
+                            ColorMode::Realistic,
+                        ] {
+                            if ui.selectable_value(&mut self.params.color_mode, mode, color_label(mode)).changed()
+                            {
+                                changed = true;
+                            }
                         }
-                    }
-                });
-        });
-        ui.horizontal(|ui| {
-            if ui
-                .add(
-                    egui::DragValue::new(&mut self.params.spacing)
-                        .range(0.1..=1000.0)
-                        .prefix("Spacing: "),
-                )
-                .changed()
-            {
-                changed = true;
-            }
-            if ui
-                .add(
-                    egui::DragValue::new(&mut self.params.stroke_weight)
-                        .range(1.0..=64.0)
-                        .prefix("Stroke weight: "),
-                )
-                .on_hover_text(
-                    "The PERPENDICULAR stroke's sample count grows with the weight² (the Java's ray fans) — capped at 64 px so a drag cannot freeze the UI for seconds.",
-                )
-                .changed()
-            {
-                changed = true;
-            }
-            if ui
-                .add(
-                    egui::DragValue::new(&mut self.params.max_colors)
-                        .range(1..=256)
-                        .prefix("Max colors: "),
-                )
-                .changed()
-            {
-                changed = true;
-            }
-            ui.separator();
-            if ui
-                .add(
-                    egui::DragValue::new(&mut self.export_width)
-                        .range(1.0..=500.0)
-                        .prefix("Export width mm: "),
-                )
-                .changed()
-            {
-                changed = true;
-            }
-            if ui
-                .add(
-                    egui::DragValue::new(&mut self.export_height)
-                        .range(1.0..=500.0)
-                        .prefix("Export height mm: "),
-                )
-                .changed()
-            {
-                changed = true;
-            }
+                    });
+            });
+            ui.horizontal(|ui| {
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut self.params.spacing)
+                            .range(0.1..=1000.0)
+                            .prefix("Spacing: "),
+                    )
+                    .changed()
+                {
+                    changed = true;
+                }
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut self.params.stroke_weight)
+                            .range(1.0..=64.0)
+                            .prefix("Stroke weight: "),
+                    )
+                    .on_hover_text(
+                        "The PERPENDICULAR stroke's sample count grows with the weight² (the Java's ray fans) — capped at 64 px so a drag cannot freeze the UI for seconds.",
+                    )
+                    .changed()
+                {
+                    changed = true;
+                }
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut self.params.max_colors)
+                            .range(1..=256)
+                            .prefix("Max colors: "),
+                    )
+                    .changed()
+                {
+                    changed = true;
+                }
+                ui.separator();
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut self.export_width)
+                            .range(1.0..=500.0)
+                            .prefix("Export width mm: "),
+                    )
+                    .changed()
+                {
+                    changed = true;
+                }
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut self.export_height)
+                            .range(1.0..=500.0)
+                            .prefix("Export height mm: "),
+                    )
+                    .changed()
+                {
+                    changed = true;
+                }
+            });
         });
         if changed {
             self.needs_update = true;
@@ -479,9 +536,16 @@ impl eframe::App for ConverterApp {
             _ => {}
         }
 
+        self.poll_conversion();
         self.refresh();
         egui::Panel::top(egui::Id::new("controls")).show(ui, |ui| self.draw_controls(ui));
         egui::Panel::bottom(egui::Id::new("status")).show(ui, |ui| {
+            if self.converting {
+                ui.horizontal(|ui| {
+                    ui.label("Converting…");
+                    ui.add(egui::ProgressBar::new(self.progress).desired_width(300.0));
+                });
+            }
             if let Some(s) = &self.status {
                 ui.colored_label(Color32::YELLOW, s);
             }

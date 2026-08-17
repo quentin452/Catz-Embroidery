@@ -112,8 +112,10 @@ profile (thin LTO + strip: the 5 exes ~30 MB total, from ~65 MB).
 1. ~~**Accept the packaging**~~ — DONE 2026-08-17 (`dist/` launched and tested).
 2. **Converter follow-ups** (queued — current focus): **PES input DONE
    2026-08-17** (load dialog / drag-drop accept `.pes`, rasterized back into
-   the pipeline). Remaining: the progress bar / background thread (also
-   kills the frozen-UI aspect of the stroke sample-count floor), Dropbox
+   the pipeline); **progress bar + background thread DONE 2026-08-17**
+   (`convert_image_with_progress` + a background conversion, the Java's
+   `processImageWithProgress` — the knobs lock and the status bar shows the
+   stage; the UI no longer freezes on a heavy stroke). Remaining: Dropbox
    save (not ported).
 3. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
    Java's infinite-draw is an empty skeleton, so the app is greenfield.
@@ -140,8 +142,8 @@ profile (thin LTO + strip: the 5 exes ~30 MB total, from ~65 MB).
 > weight 200 stroked in 760 ms vs ~20 s before. The remaining floor is the
 > sample count itself, quadratic in the weight — the Java pays it too, so
 > the converter UI caps stroke_weight at 64 px with a tooltip explaining
-> the cost (2026-08-16); the queued background-thread item (next-session
-> #4) will make even the cap-free case non-blocking.
+> the cost (2026-08-16); the background-thread conversion (2026-08-17)
+> makes even the cap-free case non-blocking.
 
 ### M3 acceptance bugs found on test.pes (2026-08-16, unknown-provenance file)
 

@@ -203,11 +203,18 @@ fn push_resampled(model: &mut Model, poly: Vec<Point>, color: u32, mode: ColorMo
 /// the PERPENDICULAR stroke of the contours on top. The `(860, 70)` canvas
 /// offset is not ported — the writer centres the bounds at export, and the
 /// offset cancels out (docs/decisions/D005.md).
-pub fn convert_image(
+///
+/// This variant reports a 0..1 fraction through `progress`: binarize,
+/// contours, fill, then per-contour through the stroke (the long pole at
+/// high stroke_weight). The converter app runs it on a background thread and
+/// feeds a progress bar (the Java's `processImageWithProgress`);
+/// [`convert_image`] is the no-op-progress form.
+pub fn convert_image_with_progress(
     pixels: &[u8],
     width: usize,
     height: usize,
     params: &ConvertParams,
+    progress: &mut dyn FnMut(f32),
 ) -> Result<Model, Error> {
     if pixels.len() != width * height * 4 {
         return Err(Error::RasterSizeMismatch {
@@ -217,6 +224,7 @@ pub fn convert_image(
         });
     }
     let mask = binarize(pixels, width, height, params.invert)?;
+    progress(0.15);
     // The Java clamps the setters: STROKE_SPACING/HATCH_SPACING >= 0.1,
     // STROKE_WEIGHT >= 1 (PEmbroiderGraphics.java:306, 489, 499).
     let spacing = params.spacing.max(0.1);
@@ -229,6 +237,7 @@ pub fn convert_image(
         .iter()
         .map(|c| trace::approx_poly_dp(c, 1.0))
         .collect();
+    progress(0.3);
 
     let extracted = if params.color_mode == ColorMode::Realistic {
         extract_colors(pixels, params.max_colors)
@@ -274,12 +283,15 @@ pub fn convert_image(
             j += 1;
         }
     }
+    progress(0.45);
 
     // `_stroke(polys, close=true)` (the converter strokes, so the fill-only
     // CONCENTRIC branch of `image()` never fires). Thin strokes (weight <= 1)
     // are pushed as the closed polyline; thicker ones become the
-    // PERPENDICULAR bars (D004).
-    for poly in &contours {
+    // PERPENDICULAR bars (D004). The stroke is the long pole — per-contour
+    // progress, so the bar moves even when the first contour is huge.
+    let total = contours.len().max(1);
+    for (i, poly) in contours.iter().enumerate() {
         if stroke_weight <= 1.0 {
             let mut thin = poly.clone();
             if let Some(&first) = thin.first() {
@@ -296,9 +308,22 @@ pub fn convert_image(
                 j += 1;
             }
         }
+        progress(0.45 + 0.55 * (i as f32 + 1.0) / total as f32);
     }
+    progress(1.0);
 
     Ok(model)
+}
+
+/// The whole converter pipeline with no progress reporting — the tests and
+/// any caller that doesn't need the bar.
+pub fn convert_image(
+    pixels: &[u8],
+    width: usize,
+    height: usize,
+    params: &ConvertParams,
+) -> Result<Model, Error> {
+    convert_image_with_progress(pixels, width, height, params, &mut |_| {})
 }
 
 #[cfg(test)]
