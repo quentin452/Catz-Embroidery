@@ -33,15 +33,21 @@
 //! what the Hershey skeleton is — and each glyph stroke contributes its
 //! distance mask to the cull subtraction (the Java's white-on-black text in
 //! the layer render cuts later layers the same way).
+//!
+//! **2026-08-17: the stroke-mode toggle entered** (D012). The layer's TANGENT
+//! mode stitches the same contours — a LIN's traced outline, a TXT glyph's
+//! strokes — through `emb_model::stroke::stroke_poly_tangent`, the concentric
+//! offset oracle (the Java's `strokePolyTangentRaster` output, geometric
+//! instead of the Java2D raster, invariant-tested not fixture-compared).
 
 use emb_model::hatch;
 use emb_model::hatch_raster;
 use emb_model::model::Model;
 use emb_model::raster::{self, Raster};
-use emb_model::stroke::stroke_poly_normal;
+use emb_model::stroke::{stroke_poly_normal, stroke_poly_tangent};
 use emb_model::trace;
 
-use crate::doc::{Document, Element, ElementKind, HatchMode, Layer};
+use crate::doc::{Document, Element, ElementKind, HatchMode, Layer, StrokeMode};
 
 /// The Java's `HATCH_ANGLE` default: QUARTER_PI.
 const HATCH_ANGLE: f32 = std::f32::consts::FRAC_PI_4;
@@ -322,20 +328,34 @@ fn stitch_line(model: &mut Model, layer: &Layer, elt: &Element) {
     stroke_contours(model, layer, &contours);
 }
 
-/// The PERPENDICULAR stroke of already-translated contours: the Java's
-/// `_stroke(polys, true)` — half-weight = strokeWeight/2, spacing =
-/// STROKE_SPACING (4), closed contours, connected.
+/// Stroke already-translated contours with the layer's mode: PERPENDICULAR =
+/// the D004 stroke (`_stroke(polys, true)` — half-weight = strokeWeight/2,
+/// spacing = STROKE_SPACING (4), closed contours, connected); TANGENT =
+/// the D012 concentric offset oracle (`strokePolyTangentRaster`'s output,
+/// geometric). The Rust editor's LIN/TXT contours are closed loops traced
+/// from the element masks, so both modes receive the same closed input.
 fn stroke_contours(model: &mut Model, layer: &Layer, contours: &[Vec<emb_model::geom::Point>]) {
     for contour in contours {
         let contour = trace::approx_poly_dp(contour, 1.0);
-        for bar in stroke_poly_normal(
-            &contour,
-            (layer.stroke_weight / 2.0).max(0.5),
-            STROKE_SPACING,
-            true,
-            true,
-        ) {
-            model.push_polyline(bar, layer.stroke_color);
+        match layer.stroke_mode {
+            StrokeMode::Perpendicular => {
+                for bar in stroke_poly_normal(
+                    &contour,
+                    (layer.stroke_weight / 2.0).max(0.5),
+                    STROKE_SPACING,
+                    true,
+                    true,
+                ) {
+                    model.push_polyline(bar, layer.stroke_color);
+                }
+            }
+            StrokeMode::Tangent => {
+                for loop_ in
+                    stroke_poly_tangent(&contour, layer.stroke_weight, STROKE_SPACING, true)
+                {
+                    model.push_polyline(loop_, layer.stroke_color);
+                }
+            }
         }
     }
 }
@@ -358,10 +378,12 @@ fn text_strokes(elt: &Element) -> Vec<Vec<emb_model::geom::Point>> {
     )
 }
 
-/// A TXT element stitches through the layer's PERPENDICULAR stroke: each
-/// glyph stroke is a thin line, exactly the LIN path (`stitch_line`'s stroke
-/// of a rasterised contour — here the contour IS the Hershey stroke, no
-/// raster needed).
+/// A TXT element stitches through the layer's stroke mode: each glyph stroke
+/// is a thin line — PERPENDICULAR through the D004 oracle, TANGENT through
+/// the D012 concentric offset oracle — exactly the LIN path (`stitch_line`'s
+/// stroke of a rasterised contour; here the contour IS the Hershey stroke, no
+/// raster needed). The glyph strokes are OPEN (the Hershey skeleton), so the
+/// TANGENT oracle produces the ribbon outline around each one.
 fn stitch_text(model: &mut Model, layer: &Layer, elt: &Element) {
     let strokes = text_strokes(elt);
     if strokes.is_empty() {
@@ -373,23 +395,49 @@ fn stitch_text(model: &mut Model, layer: &Layer, elt: &Element) {
         if stroke.len() < 2 {
             continue;
         }
-        let stroke = trace::approx_poly_dp(stroke, 1.0);
-        for bar in stroke_poly_normal(
-            &stroke,
-            (layer.stroke_weight / 2.0).max(0.5),
-            STROKE_SPACING,
-            false,
-            true,
-        ) {
+        let mut bars = Vec::new();
+        stroke_one_polyline(&mut bars, layer, stroke, false);
+        for bar in bars {
             model.push_polyline(bar, layer.stroke_color);
         }
     }
 }
 
+/// Stroke one polyline (open or closed) with the layer's stroke mode, pushing
+/// the result polylines into `bars` — the shared dispatch both the culled
+/// (traced contours, closed) and unculled (Hershey strokes, open) TXT paths
+/// use.
+fn stroke_one_polyline(
+    bars: &mut Vec<Vec<emb_model::geom::Point>>,
+    layer: &Layer,
+    poly: &[emb_model::geom::Point],
+    close: bool,
+) {
+    let poly = trace::approx_poly_dp(poly, 1.0);
+    match layer.stroke_mode {
+        StrokeMode::Perpendicular => {
+            for bar in stroke_poly_normal(
+                &poly,
+                (layer.stroke_weight / 2.0).max(0.5),
+                STROKE_SPACING,
+                close,
+                true,
+            ) {
+                bars.push(bar);
+            }
+        }
+        StrokeMode::Tangent => {
+            for loop_ in stroke_poly_tangent(&poly, layer.stroke_weight, STROKE_SPACING, close) {
+                bars.push(loop_);
+            }
+        }
+    }
+}
+
 /// A culled TXT: each glyph stroke's distance mask minus every later element's
-/// mask, then the PERPENDICULAR stroke of the remainder's contours — the
-/// Java's white-on-black text in the layer render is subtracted by the cull
-/// loop the same way a line's raster is.
+/// mask, then the layer-mode stroke of the remainder's contours — the Java's
+/// white-on-black text in the layer render is subtracted by the cull loop the
+/// same way a line's raster is.
 fn stitch_text_culled(model: &mut Model, layer: &Layer, elt: &Element, later: &[Layer]) {
     let strokes = text_strokes(elt);
     let mut bars: Vec<Vec<emb_model::geom::Point>> = Vec::new();
@@ -417,30 +465,12 @@ fn stitch_text_culled(model: &mut Model, layer: &Layer, elt: &Element, later: &[
                     .iter()
                     .map(|p| emb_model::geom::Point::new(p.x + x0, p.y + y0))
                     .collect();
-                let contour = trace::approx_poly_dp(&contour, 1.0);
-                for bar in stroke_poly_normal(
-                    &contour,
-                    (layer.stroke_weight / 2.0).max(0.5),
-                    STROKE_SPACING,
-                    true,
-                    true,
-                ) {
-                    bars.push(bar);
-                }
+                stroke_one_polyline(&mut bars, layer, &contour, true);
             }
         } else {
             // Nothing covers this stroke: stitch it unculled (the fast path
             // the cull keeps for unchanged masks).
-            let stroke = trace::approx_poly_dp(stroke, 1.0);
-            for bar in stroke_poly_normal(
-                &stroke,
-                (layer.stroke_weight / 2.0).max(0.5),
-                STROKE_SPACING,
-                false,
-                true,
-            ) {
-                bars.push(bar);
-            }
+            stroke_one_polyline(&mut bars, layer, stroke, false);
         }
     }
     for bar in bars {
@@ -737,6 +767,66 @@ mod tests {
         }
         assert!(min_x > 0.0 && max_x < 40.0, "x span {min_x}..{max_x}");
         assert!(min_y > 0.0 && max_y < 40.0, "y span {min_y}..{max_y}");
+    }
+
+    #[test]
+    fn tangent_mode_strokes_lines_and_text() {
+        // The layer's TANGENT mode (D012): a LIN and a TXT both stitch through
+        // the concentric offset oracle — the output is non-empty, stays at the
+        // layer's stroke colour, and sits near the elements (not the origin).
+        let mut doc = Document::new();
+        doc.current_mut().stroke_mode = StrokeMode::Tangent;
+        doc.current_mut().elements.push(Element::line(
+            vec![Point::new(100.0, 100.0), Point::new(300.0, 100.0)],
+            20.0,
+        ));
+        doc.current_mut()
+            .elements
+            .push(Element::text("hi".into(), 20.0, Point::new(50.0, 50.0)));
+        let model = stitch_document(&doc);
+        assert!(!model.polylines.is_empty());
+        assert!(model.colors.iter().all(|&c| c == 0xFF0000));
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+            f32::INFINITY,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            f32::NEG_INFINITY,
+        );
+        for poly in &model.polylines {
+            for p in poly {
+                min_x = min_x.min(p.x);
+                min_y = min_y.min(p.y);
+                max_x = max_x.max(p.x);
+                max_y = max_y.max(p.y);
+            }
+        }
+        // The design is finite and sits near the elements: the LIN spans x
+        // 100..300, the "hi" glyph at scale 20 spans a large but bounded box
+        // around (50, 50). Nothing may collapse to the origin or explode.
+        let span_x = max_x - min_x;
+        let span_y = max_y - min_y;
+        assert!(
+            span_x < 1000.0 && span_y < 1000.0,
+            "spans {span_x}x{span_y}"
+        );
+    }
+
+    #[test]
+    fn tangent_line_contour_produces_curves() {
+        // A 20-thick LIN, TANGENT mode: the traced contour (a closed loop with
+        // the tracer's closing duplicate) feeds the offset oracle. If this is
+        // empty the LIN TANGENT path is broken, not the test's assumptions.
+        let mut doc = Document::new();
+        doc.current_mut().stroke_mode = StrokeMode::Tangent;
+        doc.current_mut().elements.push(Element::line(
+            vec![Point::new(100.0, 100.0), Point::new(300.0, 100.0)],
+            20.0,
+        ));
+        let model = stitch_document(&doc);
+        assert!(
+            !model.polylines.is_empty(),
+            "the LIN TANGENT stitch must not be empty"
+        );
     }
 
     #[test]

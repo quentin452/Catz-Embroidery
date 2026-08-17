@@ -80,13 +80,30 @@ pub enum HatchMode {
     Concentric,
 }
 
+/// The layer's stroke mode (the Java's `Layer.strokeMode`), a closed set
+/// (pin 4). PERPENDICULAR is the D004 geometric-oracle stroke (M5); TANGENT
+/// entered 2026-08-17 (D012) as the concentric-offset oracle. The Java
+/// editor's default is TANGENT (Main.java:175); the Rust editor's default is
+/// PERPENDICULAR (the M4 ruling kept it; the toggle lets the user switch).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StrokeMode {
+    Perpendicular,
+    Tangent,
+}
+
 /// A layer: elements plus the hatch and stroke settings the stitch path
 /// consumes. The stroke settings entered with their consumer (M5, D003's
 /// ruling): the LIN elements stitch through the ported PERPENDICULAR stroke
-/// (D004); `strokeMode` is PERPENDICULAR only — TANGENT stays deferred.
+/// (D004). **2026-08-17: the stroke mode toggle entered (D012)** — the
+/// layer's TANGENT mode stitches the same contours through the concentric
+/// offset oracle.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer {
     pub hatch_mode: HatchMode,
+    /// The LIN/TXT stroke mode (the Java's `Layer.strokeMode`): which oracle
+    /// stitches a contour. Java editor default TANGENT; Rust default
+    /// PERPENDICULAR (the M4 ruling).
+    pub stroke_mode: StrokeMode,
     /// Packed `0x00RRGGBB`. The Java default is blue `color(0, 0, 255)`.
     pub hatch_color: u32,
     /// The Java default `hatchSpacing = 4` mm.
@@ -111,6 +128,7 @@ impl Layer {
     pub fn new() -> Self {
         Self {
             hatch_mode: HatchMode::Parallel,
+            stroke_mode: StrokeMode::Perpendicular,
             hatch_color: 0x0000FF,
             hatch_spacing: 4.0,
             stroke_color: 0xFF0000,

@@ -63,7 +63,12 @@ and a row is `done` only when its exit criteria run green.**
 > Java suite's OWN `PEmbroiderFont.putText`, fixture-compared within D002), a
 > documented deviation from the Java editor's Java2D text raster (D003-class);
 > TXT strokes through the layer's PERPENDICULAR stroke like a LIN and its
-> glyph strokes contribute cull masks. The canvas preview shows
+> glyph strokes contribute cull masks. **2026-08-17: the stroke-mode toggle
+> entered** (D012) — the layer's `strokeMode` (the Java dialog) selects
+> PERPENDICULAR (the D004 oracle) or TANGENT (`emb_model::stroke::
+> stroke_poly_tangent`, a D004-style geometric offset oracle: the path's
+> parallel curves at each band's distance, miter formula + winding-aware
+> side guard, invariant-tested not fixture-compared). The canvas preview shows
 > the stitched design through
 > `emb_draw::DrawList`, cached on a dirty flag (the Java's `needsUpdate`);
 > TXT elements are drawn as raw drafts (a visual placeholder, not the stitch;
@@ -147,18 +152,18 @@ the OAuth endpoint — the hardcoded key/secret in the Java are inert).
    (git path dep; publish=false + proprietary licence — moot while the app
    lives IN CatzEngine), and the 2D draw line (D109 refused a 2D path until a
    consumer exists — this app would be it).
-4. **Editor follow-ups** (named exceptions): TXT stitching (font
-   rasteriser), CONCENTRIC (hatchInset), the stroke mode toggle (TANGENT).
-   **2026-08-16: the cull toggle entered** (D009) — element-local mask
-   subtraction, default ON, invisible later layers still cut.
-   **2026-08-17: CONCENTRIC entered** (D010) — the isolines raster path
-   (the Java's `E.image()` CONCENTRIC, not hatchInset), element-local like
-   the cull, with the Parallel/Concentric toggle in the layer row.
-   **2026-08-17: TXT stitching entered** (D011) — the Hershey SIMPLEX
-   vector font (`emb_model::font`, fixture-compared), stroked like LIN at
-   the layer's stroke settings, contributing cull masks; the Java2D text
-   raster stays a documented deviation. Remaining: the stroke-mode toggle
-   (TANGENT, a D004-style geometric oracle, decided 2026-08-17).
+4. ~~**Editor follow-ups**~~ — all three DONE 2026-08-17:
+   **cull** (D009, 2026-08-16) — element-local mask subtraction, default ON,
+   invisible later layers still cut; **CONCENTRIC** (D010) — the isolines
+   raster path (the Java's `E.image()` CONCENTRIC, not hatchInset),
+   element-local like the cull, with the Parallel/Concentric toggle;
+   **TXT stitching** (D011) — the Hershey SIMPLEX vector font
+   (`emb_model::font`, fixture-compared), stroked at the layer's stroke
+   settings, contributing cull masks (the Java2D text raster stays a
+   documented deviation); **the stroke-mode toggle** (D012) —
+   PERPENDICULAR/TANGENT, TANGENT being the geometric offset oracle
+   (`stroke_poly_tangent`). The editor's M4 named-exception list is now
+   empty.
 5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
    update check (it currently offers the Java's `V0.2.0`) and gives the
    packaging a real distributable.
@@ -220,7 +225,10 @@ converter's raster path (the converter's CONCENTRIC/SPIRAL dispatch to the
 same `isolines` as the port). Do NOT claim any of them ported until a ruling
 says how they are compared. (`strokePolyNormal` was ported 2026-08-16 — the
 ruling is D004: a geometric distance oracle + invariant tests, not Java
-fixtures.)
+fixtures. `strokePolyTangentRaster`'s OUTPUT was ported 2026-08-17 as the
+editor's TANGENT mode — the ruling is D012: a geometric offset oracle +
+invariant tests, not Java fixtures; the Java2D raster itself is not
+reproduced.)
 
 ### Named exceptions (pin 3)
 

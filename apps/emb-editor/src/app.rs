@@ -11,7 +11,7 @@ use emb_model::geom::Point;
 
 use crate::doc::{
     Command as DocCommand, Document, Element, ElementKind, HatchMode, History, Layer,
-    POINT_MIN_DIST_MM,
+    POINT_MIN_DIST_MM, StrokeMode,
 };
 
 /// The Java editor's `TOOL_*` constants, as a closed set.
@@ -658,14 +658,15 @@ impl EditorApp {
                     )
                     .changed();
                 // The stroke settings entered with the LIN consumer (M5, the
-                // M4 named exception): swatch + weight. The Java's stroke
-                // mode row is PERPENDICULAR only (TANGENT deferred, D003).
-                // The cull toggle below (D009) follows it, like the Java's
-                // row order.
+                // M4 named exception): swatch + weight, plus the stroke-mode
+                // toggle (the Java's TANGENT/PERPENDICULAR dialog, Main.java:
+                // 531-539). TANGENT entered 2026-08-17 (D012) as the
+                // concentric offset oracle. The cull toggle below (D009)
+                // follows, like the Java's row order.
                 let mut sc = [
                     ((layer.stroke_color >> 16) & 0xFF) as u8,
                     ((layer.stroke_color >> 8) & 0xFF) as u8,
-                    (layer.stroke_color & 0xFF) as u8,
+                    ((layer.stroke_color & 0xFF) as u8),
                 ];
                 if ui.color_edit_button_srgb(&mut sc).changed() {
                     layer.stroke_color =
@@ -680,6 +681,23 @@ impl EditorApp {
                             .prefix("stroke "),
                     )
                     .changed();
+                let mode_label = match layer.stroke_mode {
+                    StrokeMode::Perpendicular => "perp",
+                    StrokeMode::Tangent => "tangent",
+                };
+                if ui
+                    .selectable_label(false, mode_label)
+                    .on_hover_text(
+                        "Stroke mode: perpendicular (satin columns) or tangent (concentric outlines) — the Java's stroke-mode dialog",
+                    )
+                    .clicked()
+                {
+                    layer.stroke_mode = match layer.stroke_mode {
+                        StrokeMode::Perpendicular => StrokeMode::Tangent,
+                        StrokeMode::Tangent => StrokeMode::Perpendicular,
+                    };
+                    changed = true;
+                }
                 // The Java's cull toggle (Main.java:551-559): two overlapping
                 // circles — the second hollow when cull is off. Cut this
                 // layer's stitches where later layers cover them.

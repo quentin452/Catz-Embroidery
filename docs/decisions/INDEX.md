@@ -16,6 +16,7 @@ re-edited except to add history. The table below is the index.
 | D009 | **Editor cull ported** — element-local mask subtraction on the D004-class oracles (polygon fill + line distance mask, 1 px/mm), invariant-tested not fixture-compared; default ON, invisible later layers still cut (Java parity) | 2026-08-16 |
 | D010 | **Editor CONCENTRIC ported** — the isolines raster path (NOT hatchInset, which the editor never calls: `stitchLayer` → `E.image()` → `hatchRaster` → `isolines`), element-local like the cull; the boundary contour stays out until the stroke-mode toggle | 2026-08-17 |
 | D011 | **Editor TXT stitched** — the Hershey SIMPLEX vector font (`emb_model::font`, fixture-compared against the Java's own `putText` within D002), NOT the Java2D text raster the editor actually uses (D003-class, documented deviation); TXT strokes like LIN and contributes cull masks | 2026-08-17 |
+| D012 | **Editor TANGENT stroke ported** — the layer's stroke-mode toggle (PERPENDICULAR/TANGENT, the Java dialog); TANGENT is a D004-style geometric offset oracle (`stroke_poly_tangent`: the path's parallel curves at each band's distance, miter formula + winding-aware side guard, CONCENTRIC_ANTIALIGN shared with isolines), invariant-tested not fixture-compared | 2026-08-17 |
 
 ## Writing a ruling
 

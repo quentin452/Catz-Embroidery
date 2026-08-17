@@ -174,6 +174,39 @@ pub struct BCircle {
     pub r: f32,
 }
 
+/// The Java's `CONCENTRIC_ANTIALIGN` default: corners sharper than 0.6 rad
+/// survive the even-level antialias pass.
+pub const CONCENTRIC_ANTIALIGN: f32 = 0.6;
+
+/// The Java's CONCENTRIC_ANTIALIGN pass: rebuild a contour keeping corners
+/// whose turn angle exceeds the threshold and inserting every edge's
+/// midpoint. One rule, two consumers — the isolines' even levels (hatch.rs)
+/// and the TANGENT stroke's even bands (stroke.rs) — so it lives here, not
+/// copied beside each (docs/CODE.md §10).
+pub fn concentric_antialign(poly: &[Point]) -> Vec<Point> {
+    let mut qq: Vec<Point> = Vec::new();
+    for k in 0..poly.len() + 1 {
+        if k != poly.len() {
+            let a = poly[(k + poly.len() - 1) % poly.len()];
+            let b = poly[k];
+            let c = poly[(k + 1) % poly.len()];
+            let u = Point::new(b.x - a.x, b.y - a.y);
+            let v = Point::new(c.x - b.x, c.y - b.y);
+            let mut ang = Point::angle_between(u, v).abs();
+            if ang > std::f32::consts::PI {
+                ang = std::f32::consts::TAU - ang;
+            }
+            if ang > CONCENTRIC_ANTIALIGN {
+                qq.push(b);
+            }
+        }
+        let pa = poly[k % poly.len()];
+        let pb = poly[(k + 1) % poly.len()];
+        qq.push(Point::new(pa.x * 0.5 + pb.x * 0.5, pa.y * 0.5 + pb.y * 0.5));
+    }
+    qq
+}
+
 impl BCircle {
     pub fn from_poly(poly: &[Point]) -> Self {
         let c = centerpoint(poly);

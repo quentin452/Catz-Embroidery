@@ -126,6 +126,14 @@ fn winding_number(poly: &[Point], p: Point) -> i32 {
     w
 }
 
+/// Is `p` inside `poly` by the NONZERO winding rule (the Java's
+/// `pointInPolygon`, the Java2D fill rule the offset oracle needs to tell an
+/// inset vertex's side). A point on the boundary's winding is ambiguous but
+/// the offsets test against strictly-inside/outside, never on the edge.
+pub fn point_in_polygon(poly: &[Point], p: Point) -> bool {
+    winding_number(poly, p) != 0
+}
+
 /// The signed cross product `(b - a) x (p - a)`: > 0 = `p` left of the ray
 /// from `a` to `b`.
 fn is_left(a: Point, b: Point, p: Point) -> f32 {
