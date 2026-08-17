@@ -28,7 +28,7 @@ public once pushed). Prior releases: v0.1.0 (the first Rust release, 2026-08-17)
   | platform | build script | output dir |
   |---|---|---|
   | Windows | `tools/package-release.ps1` | `dist/` (4 `.exe` + README.txt) |
-  | Linux/Arch | `tools/package-release.sh` | `dist-linux/` (4 binaries + README.txt) |
+  | Linux/Arch | **cross-compile from a Windows box** (the standard, validated 2026-08-17): `cargo zigbuild --release --target x86_64-unknown-linux-gnu -p emb-editor -p emb-converter -p emb-viewer -p emb-launcher`, then assemble `dist-linux/` + `python tools/zip-linux.py dist-linux <zip>`. The native `tools/package-release.sh` on the Arch box remains an optional alternative. |
   Zip the output dir and attach one zip per platform the release covers. The launcher's update
   check only opens the releases page — it does not download assets, so a zip (not the raw exes) is
   the right shape.
@@ -48,12 +48,12 @@ public once pushed). Prior releases: v0.1.0 (the first Rust release, 2026-08-17)
    the block: `## [Unreleased]` → leave empty, insert `## [vX.Y.Z] - YYYY-MM-DD` below it. Commit:
    `docs(changelog): cut vX.Y.Z — <theme>`.
 
-3. **Build the shipped binaries fresh from HEAD.** Run the packaging script for each platform the
-   release covers. Windows (from a Windows box): `powershell -ExecutionPolicy Bypass -File
-   tools/package-release.ps1`. Linux/Arch (from the Arch box): `bash tools/package-release.sh`.
-   The gates must be green first (`cargo test --workspace`, `cargo clippy --workspace
-   --all-targets`, `cargo fmt --check`). Check the output binaries' mtime is from THIS build —
-   attaching a stale binary is a silent error that is public the moment the release is created.
+3. **Build the shipped binaries fresh from HEAD.** Windows (from a Windows box): `powershell
+   -ExecutionPolicy Bypass -File tools/package-release.ps1`. Linux (also from the Windows box,
+   cross-compiled — the standard): see the table in the conventions above. The gates must be green
+   first (`cargo test --workspace`, `cargo clippy --workspace --all-targets`, `cargo fmt --check`).
+   Check the output binaries' mtime is from THIS build — attaching a stale binary is a silent
+   error that is public the moment the release is created.
 
 4. **Zip each output dir.** Windows (`dist/` → `Catz-Embroidery-<v>-win64.zip`) via
    `Compress-Archive`. Linux (`dist-linux/` → `Catz-Embroidery-<v>-linux-x86_64.zip`) via
@@ -83,14 +83,15 @@ public once pushed). Prior releases: v0.1.0 (the first Rust release, 2026-08-17)
 
 ## Notes
 
-- **Linux/Arch can be cross-compiled from Windows** (2026-08-17, verified: all 4 apps build with
-  `cargo zigbuild --release --target x86_64-unknown-linux-gnu`). The workspace is Rust/egui (eframe
-  + glow); the eframe `wayland` and `x11` features are enabled in all four apps (`apps/*/Cargo.toml`).
-  The one cross-compile blocker was the launcher's `native-tls` (openssl on Linux) — switched to
-  ureq's `tls` (rustls, pure-Rust) so it cross-compiles. The Arch box still needs the system libs
+- **Linux/Arch is cross-compiled from Windows** (2026-08-17, validated on the Arch box): all 4
+  apps build with `cargo zigbuild --release --target x86_64-unknown-linux-gnu`. The workspace is
+  Rust/egui (eframe + glow); the eframe `wayland` and `x11` features are enabled in all four apps
+  (`apps/*/Cargo.toml`). The launcher's update check uses ureq's `tls` (rustls, pure-Rust) so it
+  cross-compiles with no system openssl. The Arch box still needs the system libs
   `tools/package-release.sh` lists at RUNTIME (libxkbcommon, wayland-protocols, xcb utils,
-  libglvnd, mesa); the binaries only link glibc ≤ 2.27. Cross-compile vs native build on the Arch
-  box are both viable; pick per-box.
+  libglvnd, mesa); the binaries only link glibc ≤ 2.27. The native `tools/package-release.sh`
+  build on the Arch box stays as an optional alternative. The zip needs `tools/zip-linux.py`
+  (exec bit AND Unix host marker — see step 4).
 - Do NOT touch other remotes (there is no upstream; `origin` is the only one).
 - A release is public immediately (not a draft): if a regression is suspected in the built
   binaries, flag it to the user before publishing.

@@ -85,59 +85,49 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-17 — first Rust release out, editor follow-ups done, Linux tooling added)
+### Next-session strategy (wrap 2026-08-17 — cross-compile promoted, converter bugs found)
 
 State: **M0-M5 done; all editor follow-ups DONE** (cull D009, CONCENTRIC
 D010, TXT D011, TANGENT D012); **first Rust GitHub release v0.1.0 published**
-(2026-08-17); **Linux/Arch native build + release skill added**. Commits
-2026-08-17 (main): f50f19a (TANGENT stroke, D012), 7c86a13 (Linux build +
-release skill + CHANGELOG + opencode.json). Working tree clean, gates green
-(`cargo test --workspace` incl. the gate tests, `cargo clippy --workspace
---all-targets`, `cargo fmt --check`). Branch `main` (rs-greenfield merged in).
+(2026-08-17); **Linux cross-compile VALIDATED on the Arch box and promoted
+to the standard Linux build** (2026-08-17). Commits 2026-08-17 (main):
+f50f19a (TANGENT stroke, D012), 7c86a13 (Linux build + release skill +
+CHANGELOG + opencode.json), 21bd9bd (cross-compile via cargo-zigbuild +
+launcher rustls), 3e9de3e + 3cee9d3 (Linux zip exec bit + Unix host). Working
+tree clean, gates green (`cargo test --workspace` incl. the gate tests,
+`cargo clippy --workspace --all-targets`, `cargo fmt --check`). Branch `main`.
 
-**2026-08-17 session (this wrap's session):** the three editor follow-ups
-CONCENTRIC / TXT / TANGENT entered (D010/D011/D012, each a decision + tests);
-the v0.1.0 release was cut (merge rs-greenfield → main, tag v0.1.0, gh
-release with the win64 zip — the launcher's update check now sees v0.1.0, not
-the Java's V0.2.0); and the Linux/Arch tooling landed: `tools/package-release.
-sh` (native build on the Arch box — the workspace is Rust/egui, no cross
-toolchain), the eframe `wayland`+`x11` features enabled in all 4 apps (inert
-on Windows, gates green), the `.claude/skills/release/` skill (adapted from
-MapForGoblins; `opencode.json` points opencode at it), `docs/CHANGELOG.md`
-(new), and README/.gitignore updates.
+**2026-08-17 (the cross-compile session):** the Linux build is now
+cross-compiled from Windows with `cargo zigbuild` (`x86_64-unknown-linux-gnu`,
+all 4 apps ELF, glibc ≤ 2.27) — validated on the Arch box after two zip bugs
+were fixed (`tools/zip-linux.py`: the exec bit AND the Unix host marker, both
+required or `unzip` extracts 0644). The draft `v0.1.0-linux-test` was deleted
+after validation. The native `tools/package-release.sh` remains as an
+optional per-box alternative; the release skill documents cross-compile as
+the standard path. The launcher's update check switched from `native-tls`
+(openssl on Linux) to ureq `tls` (rustls) to cross-compile cleanly.
 
 **Next (prioritised, 1 = resume immediately):**
 
-1. **Test the cross-compiled Linux build on the Arch box.** 2026-08-17 the Linux build was
-   cross-compiled from Windows for the first time (`cargo zigbuild`, `x86_64-unknown-linux-gnu`,
-   all 4 apps ELF, glibc ≤ 2.27) — the launcher's `native-tls` → ureq `tls` (rustls) change made it
-   cross-compile cleanly. A **draft release** `v0.1.0-linux-test` carries the
-   `Catz-Embroidery-0.1.0-linux-x86_64.zip` asset. On the Arch box: fetch the draft's zip, extract,
-   install the runtime libs `tools/package-release.sh` lists, launch `./emb-launcher`. Any failure
-   (missing runtime lib, rfd/glutin, missing feature) is the next real work — the eframe
-   wayland/x11 enablement is the most likely place a Linux-only runtime issue surfaces. If it runs,
-   the draft is deleted and the cross-compile path replaces the native Arch-box build
-   (`tools/package-release.sh` becomes optional); the ROADMAP's 2026-08-17 "run on the Arch box"
-   item is superseded by this one.
-   **2026-08-17: the first test failed — "permission denied (os error 13)".** Windows
-   Compress-Archive dropped the Unix `+x` bit, so the extracted binaries were not executable.
-   Fixed in the packaging: `tools/zip-linux.py` zips the Linux dist flat with 0o755 on the
-   binaries (0o644 on README) and `--check` gates the exec bit before publish; the draft's asset
-   was re-uploaded. **2026-08-17 (same day, second failure): still "permission denied" — the
-   exec bit alone was not enough.** The Python zipfile wrote `create_system = 0` (DOS), and
-   Info-ZIP `unzip` ignores the Unix mode of a DOS-host entry (everything extracts 0644). Fixed:
-   the helper now writes `create_system = 3` (Unix) alongside the mode, and `--check` fails on a
-   non-Unix host — the previous check passed wrongly because it only looked at the mode bit.
-   Re-test on the Arch box (the draft zip is the 19 MB one with `create_system = 3`; a bare
-   `chmod +x emb-*` also unblocks a stale extract).
-2. **Cut the next release** (when ready): use `.claude/skills/release/`
+1. **Converter bug A — converting on every param change spams the pipeline.**
+   Changing a parameter re-runs the conversion immediately; dragging a slider
+   fires the whole conversion per tick ("converting ..." spam, the UI's
+   status flapping). Decide: debounce (convert on release / idle) — the Java
+   converts on button press only; the Rust converted on change for live
+   preview. The user asked to convert on release.
+2. **Converter bug B — the saved design does not match the preview.** A
+   `design.pes` saved by the converter does not look like what the converter
+   previewed in RAM before saving. Investigate the divergence between the
+   in-memory preview and the saved file (both go through emb-data's PES
+   write; the suspicion is the save path re-converts or uses different
+   settings than the preview path).
+3. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.
-3. **Remaining named exceptions / dead-in-Java APIs** (not queued work, for
+4. **Remaining named exceptions / dead-in-Java APIs** (not queued work, for
    the record): FPS/V-sync, i18n, Dropbox (OUT OF SCOPE); PERLIN, spirals
    v2-v4, offset/inset, hatchInset, satin (deferred by D003, no consumer);
-   `resample(randomize != 0)` refuses. No active queue items remain in this
-   repo — the editor follow-ups that were the last real work are done.
+   `resample(randomize != 0)` refuses.
 
 > **2026-08-17 earlier wrap (kept as history):** the previous session's
 > strategy follows below — converter complete, packaging accepted, Dropbox

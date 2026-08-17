@@ -27,6 +27,10 @@ here.
   (host 3) marker: `tools/zip-linux.py` (Windows Compress-Archive dropped
   `+x` AND a DOS-host entry makes unzip ignore the mode — both hit as
   "permission denied" on Linux).
+- Linux builds are cross-compiled from a Windows box via `cargo zigbuild`
+  (`x86_64-unknown-linux-gnu`) — the standard path, validated on Arch
+  2026-08-17; the native `tools/package-release.sh` stays as an optional
+  alternative.
 
 ## [0.1.0] - 2026-08-17
 

@@ -36,9 +36,18 @@ powershell -ExecutionPolicy Bypass -File tools/package-release.ps1
 # output: dist/  (git-ignored)
 ```
 
-**Linux/Arch** (built natively on the Arch box, not cross-compiled — the
-workspace is Rust/egui and needs the `wayland` + `x11` eframe features, which
-are enabled in `apps/*/Cargo.toml`):
+**Linux/Arch** (cross-compiled from a Windows box — the standard build since
+2026-08-17, validated on Arch; the workspace needs the `wayland` + `x11`
+eframe features, which are enabled in `apps/*/Cargo.toml`):
+
+```powershell
+cargo zigbuild --release --target x86_64-unknown-linux-gnu -p emb-editor -p emb-converter -p emb-viewer -p emb-launcher
+# needs: zig (cargo-zigbuild) on the build box
+# output binaries: target/x86_64-unknown-linux-gnu/release/  → assemble dist-linux/
+# release zip: python tools/zip-linux.py dist-linux <zip>  (sets the Unix exec bit + host)
+```
+
+Alternative, building natively on the Arch box:
 
 ```bash
 bash tools/package-release.sh
