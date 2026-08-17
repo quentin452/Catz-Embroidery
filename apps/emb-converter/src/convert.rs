@@ -70,6 +70,7 @@ mod tests {
             spacing: 10.0,
             stroke_weight: 25.0,
             max_colors: 10,
+            invert: false,
         };
         let mut model = emb_model::convert::convert_image(
             &pixels,

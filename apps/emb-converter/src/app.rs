@@ -253,6 +253,13 @@ impl ConverterApp {
             {
                 changed = true;
             }
+            if ui
+                .checkbox(&mut self.params.invert, "Invert")
+                .on_hover_text("Rust-only knob (the Java has none): stitch the dark pixels instead of the bright ones — for photos with a dark subject on a bright background, whose parity mask converts the background blob.")
+                .changed()
+            {
+                changed = true;
+            }
             ui.separator();
             ui.label("Hatch:");
             egui::ComboBox::from_id_salt("hatch_mode")

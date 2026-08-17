@@ -27,5 +27,15 @@ missing_debug_implementations = "warn"
 unwrap_used = "deny"
 expect_used = "deny"
 
+# Shrinks the release exes (~13 MB each → ~7 MB, measured 2026-08-17 with
+# thin LTO; strip = "symbols" removes debug symbols; panic = "abort" drops the
+# unwind tables). The apps are eframe statics — the size is the shared UI
+# stack, not app code.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+
 [patch.crates-io]
 eframe = { path = "tools/vendor/eframe" }

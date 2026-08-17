@@ -91,6 +91,11 @@ pub struct ConvertParams {
     pub stroke_weight: f32,
     /// Palette size: the Java's `maxColors` (clamped to >= 1).
     pub max_colors: usize,
+    /// Invert the binarization (Rust-only knob, 2026-08-17 — the Java has
+    /// none): ON means dark pixels (`max(r,g,b) < 127`) instead of bright.
+    /// For dark-subject-on-bright-background photos, where the parity mask
+    /// converts the background blob. Recorded in ROADMAP.
+    pub invert: bool,
 }
 
 impl Default for ConvertParams {
@@ -102,6 +107,7 @@ impl Default for ConvertParams {
             spacing: 10.0,
             stroke_weight: 25.0,
             max_colors: 10,
+            invert: false,
         }
     }
 }
@@ -113,10 +119,15 @@ fn calc_axis_angle(ang: f32) -> f32 {
 
 /// `PImage.filter(THRESHOLD)` + `findContours`' `red > 0x7F`, fused: a pixel
 /// is in the mask iff its brightest channel is at or above the threshold.
-fn binarize(pixels: &[u8], width: usize, height: usize) -> Result<Raster, Error> {
+/// `invert` (the Rust-only knob) flips the comparison to `<`, so the mask
+/// becomes the dark pixels.
+fn binarize(pixels: &[u8], width: usize, height: usize, invert: bool) -> Result<Raster, Error> {
     let on: Vec<bool> = pixels
         .chunks_exact(4)
-        .map(|px| px[0].max(px[1]).max(px[2]) >= THRESHOLD)
+        .map(|px| {
+            let bright = px[0].max(px[1]).max(px[2]) >= THRESHOLD;
+            if invert { !bright } else { bright }
+        })
         .collect();
     Raster::new(width, height, on)
 }
@@ -205,7 +216,7 @@ pub fn convert_image(
             found: pixels.len(),
         });
     }
-    let mask = binarize(pixels, width, height)?;
+    let mask = binarize(pixels, width, height, params.invert)?;
     // The Java clamps the setters: STROKE_SPACING/HATCH_SPACING >= 0.1,
     // STROKE_WEIGHT >= 1 (PEmbroiderGraphics.java:306, 489, 499).
     let spacing = params.spacing.max(0.1);
@@ -344,10 +355,82 @@ mod tests {
     #[test]
     fn binarizes_bright_regions() {
         let px = square_image(100, 40, 30, 70, 60);
-        let mask = binarize(&px, 100, 100).unwrap();
+        let mask = binarize(&px, 100, 100, false).unwrap();
         assert!(mask.get(50, 45));
         assert!(!mask.get(10, 10));
         assert!(!mask.get(-1, 0));
+    }
+
+    #[test]
+    fn invert_flips_the_mask() {
+        // White square on black: the parity mask is the square, the inverted
+        // mask its complement.
+        let px = square_image(200, 40, 40, 160, 160);
+        let normal = binarize(&px, 200, 200, false).unwrap();
+        let inverted = binarize(&px, 200, 200, true).unwrap();
+        assert!(
+            normal.get(50, 50) && !inverted.get(50, 50),
+            "inside the square: bright in parity, dark inverted"
+        );
+        assert!(
+            !normal.get(5, 5) && inverted.get(5, 5),
+            "background: dark in parity, bright inverted"
+        );
+        // Parity: the default stays the Java's bright-mask behavior.
+        assert!(!ConvertParams::default().invert);
+    }
+
+    #[test]
+    fn invert_changes_the_pipeline_output() {
+        // Bright background touching three borders, a dark column at the left
+        // edge and a dark interior disk: the parity mask traces the big
+        // background loop AND the disk; the inverted mask traces the dark
+        // column and the disk — the two models differ.
+        let mut px = solid(200, 200, (255, 255, 255));
+        for y in 0..200 {
+            for x in 0..20 {
+                let i = (y * 200 + x) * 4;
+                px[i] = 0;
+                px[i + 1] = 0;
+                px[i + 2] = 0;
+            }
+        }
+        for y in 0..200 {
+            for x in 0..200 {
+                let dx = x as f32 + 0.5 - 100.0;
+                let dy = y as f32 + 0.5 - 100.0;
+                if dx * dx + dy * dy <= 50.0 * 50.0 {
+                    let i = (y * 200 + x) * 4;
+                    px[i] = 0;
+                    px[i + 1] = 0;
+                    px[i + 2] = 0;
+                }
+            }
+        }
+        let normal = convert_image(
+            &px,
+            200,
+            200,
+            &ConvertParams {
+                color_mode: ColorMode::BlackAndWhite,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let inverted = convert_image(
+            &px,
+            200,
+            200,
+            &ConvertParams {
+                color_mode: ColorMode::BlackAndWhite,
+                invert: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(!normal.polylines.is_empty());
+        assert!(!inverted.polylines.is_empty());
+        assert_ne!(normal, inverted, "invert must change the traced geometry");
     }
 
     #[test]
@@ -387,7 +470,7 @@ mod tests {
         // Every bar point sits within half the stroke weight of a contour
         // SEGMENT (the D004 oracle is `spacing/2` wide: weight 25 ->
         // half 12.5).
-        let mask = binarize(&px, 200, 200).unwrap();
+        let mask = binarize(&px, 200, 200, false).unwrap();
         let mut contours = trace::find_contours(&mask).unwrap();
         contours.retain(|c| c.len() >= 3);
         let contours: Vec<Vec<Point>> = contours

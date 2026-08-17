@@ -228,6 +228,11 @@ exception, or a recorded deviation (pin 7):
 - **Converter UI caps**: spacing ≤ 1000, max_colors ≤ 256, export mm ≤ 500
   are Rust-only guards (the Java text fields are uncapped); the stroke cap
   64 was already named above.
+- **Invert toggle** (2026-08-17): Rust-only knob on the converter (the Java
+  has none), default OFF so parity holds: flips the pipeline's binarization
+  to the dark pixels (`max(r,g,b) < 127`) for dark-subject-on-bright-
+  background photos, whose parity mask converts the background blob instead
+  of the subject.
 - **DRUNK hatch** (PEmbroiderGraphics.java:3090/3117): dead in Java (no app
   selects it) and in NO doc — the only deferral absent from both ROADMAP's
   list and D003's eleven. Same class as VECFIELD/ANGLED (those ARE in
