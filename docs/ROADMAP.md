@@ -16,7 +16,7 @@ and a row is `done` only when its exit criteria run green.**
 | M2 | emb-model: stitch model + hatch/satin/trace/TSP | algorithms tolerance-compare (0.001 mm, D002) with Java model outputs on shared fixtures | **done** (D003 deferrals + D004 stroke below) |
 | M3 | emb-draw + viewer | viewer renders a real design from emb-model via the draw list | **done** (user acceptance 2026-08-16: test.pes vs ThreadsES) |
 | M4 | editor | stitch editing on real files; save via emb-data | **done** (user acceptance 2026-08-16; named exceptions below) |
-| M5 | converter (UI) + infinite-draw + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | **done** (converter/infinite-canvas/launcher accepted 2026-08-16; packaging accepted 2026-08-17 — `dist/` launched and tested) |
+| M5 | converter (UI) + launcher hub + packaging | both apps work on real files; hub launches apps; exe builds | **done** (converter/infinite-canvas/launcher accepted 2026-08-16; packaging accepted 2026-08-17 — `dist/` launched and tested; **the infinite-draw app was removed 2026-08-17** — the work moved to CatzEngine, D001 amendment) |
 
 > Rows are re-ordered and their exit criteria tightened by the architecture ruling
 > (D001) and by what the code finds. A row is `done` only when its exit criteria run green.
@@ -126,18 +126,20 @@ the OAuth endpoint — the hardcoded key/secret in the Java are inert).
    public repo, and the app has now been DELETED by the user
    (`disabled_app` verified on the OAuth endpoint 2026-08-17) — the leak
    is inert.
-3. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
-   Java's infinite-draw is an empty skeleton, so the app is greenfield.
-   `catz-render` is already decoupled (GPU-only, headless boot, offscreen
-   capture). Needs: a ruling naming Catz-Embroidery as consumer (D110
-   portfolio amendment), the external consumption route (git path dep;
-   publish=false + proprietary licence), and the 2D draw line (D109
-   refused a 2D path until a consumer exists — this app would be it).
-4. **Editor follow-ups** (named exceptions): TXT stitching (font
+3. ~~**infinite-draw "dessin pur"**~~ — **MOVED 2026-08-17 to the CatzEngine
+   repo**, where it is now a planned app in that portfolio (D110 amendment).
+   The app `emb-infinitedraw` was removed from this suite in the same move
+   (D001 amendment): the Java's infinite-draw is an 18-line skeleton, so the
+   CatzEngine app is greenfield. The CatzEngine needs named there: a ruling
+   naming it as a consumer (now done, D110), the external consumption route
+   (git path dep; publish=false + proprietary licence — moot while the app
+   lives IN CatzEngine), and the 2D draw line (D109 refused a 2D path until a
+   consumer exists — this app would be it).
+3. **Editor follow-ups** (named exceptions): TXT stitching (font
    rasteriser), CONCENTRIC (hatchInset), the stroke mode toggle (TANGENT).
    **2026-08-16: the cull toggle entered** (D009) — element-local mask
    subtraction, default ON, invisible later layers still cut.
-5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
+4. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
    update check (it currently offers the Java's `V0.2.0`) and gives the
    packaging a real distributable.
 

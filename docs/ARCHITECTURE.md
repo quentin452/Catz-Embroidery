@@ -18,7 +18,6 @@ vocabulary crate.
 | `emb-editor` (app) | interactive editor | emb-data, emb-model, emb-draw |
 | `emb-viewer` (app) | design viewer | emb-model, emb-draw |
 | `emb-converter` (app) | image → embroidery (UI, like the Java original) | emb-data, emb-model, emb-draw |
-| `emb-infinitedraw` (app) | infinite-canvas drawing | emb-model, emb-draw |
 | `emb-launcher` (app) | the hub: app choice, language, update check | — |
 
 ## 2. Rendering

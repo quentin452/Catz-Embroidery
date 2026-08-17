@@ -42,14 +42,6 @@
       "problemMatcher": ["$rustc"]
     },
     {
-      "label": "build: infinite-draw",
-      "type": "shell",
-      "command": "cargo",
-      "args": ["build", "-p", "emb-infinitedraw"],
-      "group": "build",
-      "problemMatcher": ["$rustc"]
-    },
-    {
       "label": "build: launcher",
       "type": "shell",
       "command": "cargo",

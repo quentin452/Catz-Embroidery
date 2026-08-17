@@ -48,10 +48,6 @@ allow = ["emb-data", "emb-model", "emb-draw", "emb-egui"]
 # The hub (app choice, language, update check): a thin menu, no model knowledge.
 allow = []
 
-[emb-infinitedraw]
-# The infinite-canvas drawing app: model + draw list.
-allow = ["emb-model", "emb-draw"]
-
 [gates]
 # The cross-crate gate tests: no workspace crate is on their path.
 allow = []

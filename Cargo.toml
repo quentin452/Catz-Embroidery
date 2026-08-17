@@ -8,7 +8,6 @@ members = [
     "apps/emb-editor",
     "apps/emb-viewer",
     "apps/emb-converter",
-    "apps/emb-infinitedraw",
     "apps/emb-launcher",
     "tests",
 ]

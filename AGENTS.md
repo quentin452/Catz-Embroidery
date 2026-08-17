@@ -14,14 +14,14 @@
 
 A greenfield Rust rewrite of the Java embroidery suite in this repo (Processing + PEmbroider + ControlP5 + JavaFX). The Java code — and the two Rust model repos `CatzEngine` and `er-cat-kit-rs` — are **models, never sources**: lessons cross, code does not. Every crossing lesson is written into `docs/LESSONS.md` with its source and the measurement behind it.
 
-**One sentence:** one stitch model owns every fact (paths, stitches, colours, transforms); every frontend — editor, viewer, converter, infinite-draw — consumes that single API; the preview draw-list is shared so renderers cannot drift.
+**One sentence:** one stitch model owns every fact (paths, stitches, colours, transforms); every frontend — editor, viewer, converter — consumes that single API; the preview draw-list is shared so renderers cannot drift.
 
 ## 2. The pins — non-negotiable, and each one is enforced by something
 
 Rules a change can violate silently, so each names what catches it.
 
 1. **One stitch model, one API — every frontend consumes it.**
-   Editor, viewer, converter and infinite-draw all derive from the same model crate. A second, parallel model is a divergence whose date is already set. The dependency matrix (`matrix.toml`) + `tests/arch.rs` refuse an edge no one declared.
+   Editor, viewer and converter all derive from the same model crate. A second, parallel model is a divergence whose date is already set. The dependency matrix (`matrix.toml`) + `tests/arch.rs` refuse an edge no one declared.
 
 2. **This is a REWRITE. The Java repo and the two Rust model repos are models, never sources.**
    No file, no function and no test is copied from `src/` (Java), `CatzEngine/` or `er-cat-kit-rs/`. Lessons cross; code does not. A crossing lesson is written into `docs/LESSONS.md` with its source, so the next reader can check whether it still holds.
@@ -55,7 +55,7 @@ crates/emb-model   the single stitch model + algorithms (hatch, satin, trace, TS
                    shapes). Consumes emb-data's types in tests.
 crates/emb-draw    the shared preview draw-list vocabulary (commands + visual identity):
                    the contract between the apps and the renderer.
-apps/              thin binaries (editor, viewer, converter, infinite-draw, launcher hub) —
+apps/              thin binaries (editor, viewer, converter, launcher hub) —
                    egui/eframe glow backend; each app is a native exe.
 tools/             CLI helpers (fixture conversion, benching).
 tests/             cross-crate gates (arch.rs holds matrix.toml to the manifests;

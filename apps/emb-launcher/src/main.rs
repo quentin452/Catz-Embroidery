@@ -10,8 +10,6 @@
 //! docs/ROADMAP.md (the "Dropbox save" converter follow-up is the same
 //! feature family). The apps are native exes: the launcher spawns its
 //! siblings (the Java launched them in-process via reflection).
-//!
-//! The infinite-draw app is a skeleton (M5); its button lands when it does.
 
 mod app;
 mod update;

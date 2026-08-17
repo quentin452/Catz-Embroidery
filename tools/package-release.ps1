@@ -3,18 +3,18 @@
 #
 # Usage: powershell -ExecutionPolicy Bypass -File tools/package-release.ps1
 #
-# Output: <repo>/dist/ — the five exes next to each other, which is exactly
+# Output: <repo>/dist/ — the four exes next to each other, which is exactly
 # the layout the launcher expects (it spawns its siblings beside itself),
 # plus a README.txt. The folder is git-ignored (build output, not source).
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 $dist = Join-Path $root "dist"
-$apps = @("emb-editor", "emb-converter", "emb-viewer", "emb-infinitedraw", "emb-launcher")
+$apps = @("emb-editor", "emb-converter", "emb-viewer", "emb-launcher")
 
 Push-Location $root
 try {
-    cargo build --release -p emb-editor -p emb-converter -p emb-viewer -p emb-infinitedraw -p emb-launcher
+    cargo build --release -p emb-editor -p emb-converter -p emb-viewer -p emb-launcher
     if ($LASTEXITCODE -ne 0) { throw "cargo build --release failed" }
 }
 finally {

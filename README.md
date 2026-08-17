@@ -1,8 +1,8 @@
 # Catz-Embroidery
 
 A native Rust rewrite of the Java embroidery suite (Processing + PEmbroider):
-an **editor**, a **viewer**, a **converter** (image → embroidery), a
-**launcher** hub, and an infinite-draw app — one stitch model, one shared
+an **editor**, a **viewer**, a **converter** (image → embroidery) and a
+**launcher** hub — one stitch model, one shared
 renderer, every frontend a thin consumer.
 
 The suite reads and writes real machine formats (PES read+write, DST and SVG
@@ -28,7 +28,7 @@ cargo run -p emb-converter
 cargo run -p emb-viewer
 ```
 
-Release builds and the distributable folder (all five exes + a README, the
+Release builds and the distributable folder (all four exes + a README, the
 layout the launcher expects):
 
 ```powershell
@@ -46,7 +46,7 @@ crates/emb-data     parsers/writers for machine formats (PES, DST, SVG)
 crates/emb-model    the single stitch model + algorithms (hatch, trace, TSP, stroke)
 crates/emb-draw     the shared preview draw-list vocabulary
 crates/emb-egui     the shared egui renderer + app UI helpers (exit dialog)
-apps/               the five apps (egui/eframe, native exes)
+apps/               the four apps (egui/eframe, native exes)
 tools/              packaging script + the Java fixture harness
 tests/              cross-crate gates (dependency matrix, memory index)
 ```
