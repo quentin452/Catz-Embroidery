@@ -8,6 +8,12 @@
 //! [`egui::ViewportCommand::CancelClose`] and opens the dialog; the choice
 //! is returned to the caller, which runs its own save and finally sends
 //! [`egui::ViewportCommand::Close`].
+//!
+//! Pitfall (measured 2026-08-16): the `Close` the app sends itself surfaces
+//! as `close_requested` on the NEXT frame — a guard that unconditionally
+//! canceled `close_requested` would cancel its OWN quit and reopen the
+//! dialog, so the app could never exit. Once the app asks to quit, the guard
+//! stops intercepting (see [`ExitDialog::request_close`]).
 
 /// The dialog's strings. The suite is English-only outside the launcher
 /// (i18n is a named exception, ROADMAP parity audit); the caller supplies
@@ -34,11 +40,20 @@ pub enum ExitChoice {
 #[derive(Debug)]
 pub struct ExitDialog {
     open: bool,
+    /// The app has asked to quit (a button was clicked and
+    /// [`Self::request_close`] ran): our own `ViewportCommand::Close`
+    /// surfaces as `close_requested` on the NEXT frame, and that must NOT be
+    /// canceled and turned into a reopened dialog — otherwise the app can
+    /// never quit (measured: "Exit without saving" appeared to do nothing).
+    quit_requested: bool,
 }
 
 impl ExitDialog {
     pub fn new() -> Self {
-        Self { open: false }
+        Self {
+            open: false,
+            quit_requested: false,
+        }
     }
 
     /// Call once per frame, before the rest of the UI. Cancels any pending
@@ -46,7 +61,7 @@ impl ExitDialog {
     /// clicked. The caller runs its own save for [`ExitChoice::SaveAndQuit`]
     /// and, when the app may actually quit, sends [`Self::request_close`].
     pub fn frame(&mut self, ctx: &egui::Context, labels: &ExitLabels) -> Option<ExitChoice> {
-        if ctx.input(|i| i.viewport().close_requested()) {
+        if !self.quit_requested && ctx.input(|i| i.viewport().close_requested()) {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.open = true;
         }
@@ -99,8 +114,10 @@ impl ExitDialog {
     }
 
     /// Close the window for real (the "Exit without save" and the
-    /// post-save quit both end here).
-    pub fn request_close(ctx: &egui::Context) {
+    /// post-save quit both end here). Marks the quit as app-initiated so the
+    /// next frame's `close_requested` (our own Close command) is not canceled.
+    pub fn request_close(&mut self, ctx: &egui::Context) {
+        self.quit_requested = true;
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
     }
 }

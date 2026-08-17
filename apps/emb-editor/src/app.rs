@@ -804,7 +804,7 @@ impl eframe::App for EditorApp {
         // exit-without-save / cancel on window close. "Save and quit" quits
         // only when the save actually wrote a file (the Java's cancelled
         // save stays in the app).
-        use emb_egui::exit_dialog::{ExitChoice, ExitDialog, ExitLabels};
+        use emb_egui::exit_dialog::{ExitChoice, ExitLabels};
         let labels = ExitLabels {
             question: "Save the design before quitting?",
             save_and_quit: "Save and quit",
@@ -814,10 +814,10 @@ impl eframe::App for EditorApp {
         match self.exit_dialog.frame(&ctx, &labels) {
             Some(ExitChoice::SaveAndQuit) => {
                 if self.save_dialog() {
-                    ExitDialog::request_close(&ctx);
+                    self.exit_dialog.request_close(&ctx);
                 }
             }
-            Some(ExitChoice::Quit) => ExitDialog::request_close(&ctx),
+            Some(ExitChoice::Quit) => self.exit_dialog.request_close(&ctx),
             _ => {}
         }
 

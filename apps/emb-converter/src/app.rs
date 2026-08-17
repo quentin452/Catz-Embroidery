@@ -444,7 +444,7 @@ impl eframe::App for ConverterApp {
 
         // The Java's exit dialog (Main.java:412-436): save-and-quit /
         // exit-without-save / cancel on window close.
-        use emb_egui::exit_dialog::{ExitChoice, ExitDialog, ExitLabels};
+        use emb_egui::exit_dialog::{ExitChoice, ExitLabels};
         let labels = ExitLabels {
             question: "Save the design before quitting?",
             save_and_quit: "Save and quit",
@@ -454,10 +454,10 @@ impl eframe::App for ConverterApp {
         match self.exit_dialog.frame(&ctx, &labels) {
             Some(ExitChoice::SaveAndQuit) => {
                 if self.save_dialog() {
-                    ExitDialog::request_close(&ctx);
+                    self.exit_dialog.request_close(&ctx);
                 }
             }
-            Some(ExitChoice::Quit) => ExitDialog::request_close(&ctx),
+            Some(ExitChoice::Quit) => self.exit_dialog.request_close(&ctx),
             _ => {}
         }
 
