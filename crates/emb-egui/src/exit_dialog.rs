@@ -52,21 +52,45 @@ impl ExitDialog {
         }
         let mut choice = None;
         if self.open {
-            egui::Modal::new(egui::Id::new("exit_dialog")).show(ctx, |ui| {
-                ui.label(labels.question);
-                ui.add_space(8.0);
-                ui.horizontal(|ui| {
-                    if ui.button(labels.save_and_quit).clicked() {
-                        choice = Some(ExitChoice::SaveAndQuit);
-                    }
-                    if ui.button(labels.exit_without_save).clicked() {
-                        choice = Some(ExitChoice::Quit);
-                    }
-                    if ui.button(labels.cancel).clicked() {
-                        choice = Some(ExitChoice::Cancel);
-                    }
+            // NOT egui::Modal: its backdrop area swallows the buttons' clicks
+            // in this app layout (the panels share the root ui's layer; hover
+            // showed on the buttons, clicks never registered — reported by the
+            // user 2026-08-16). Two Foreground layers, created in order so the
+            // later one is on top: a full-screen clickable backdrop that dims
+            // and blocks the app behind, and a plain Window for the buttons
+            // (the battle-tested widget — the egui examples' standard modal).
+            egui::Area::new(egui::Id::new("exit_dialog_backdrop"))
+                .order(egui::Order::Foreground)
+                .fixed_pos(egui::Pos2::ZERO)
+                .movable(false)
+                .interactable(true)
+                .show(ctx, |ui| {
+                    let screen = ui.ctx().content_rect();
+                    ui.painter()
+                        .rect_filled(screen, 0.0, egui::Color32::from_black_alpha(100));
+                    ui.allocate_rect(screen, egui::Sense::click());
                 });
-            });
+            egui::Window::new(labels.question)
+                .id(egui::Id::new("exit_dialog_window"))
+                .order(egui::Order::Foreground)
+                .collapsible(false)
+                .resizable(false)
+                .movable(false)
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .show(ctx, |ui| {
+                    ui.add_space(4.0);
+                    ui.horizontal(|ui| {
+                        if ui.button(labels.save_and_quit).clicked() {
+                            choice = Some(ExitChoice::SaveAndQuit);
+                        }
+                        if ui.button(labels.exit_without_save).clicked() {
+                            choice = Some(ExitChoice::Quit);
+                        }
+                        if ui.button(labels.cancel).clicked() {
+                            choice = Some(ExitChoice::Cancel);
+                        }
+                    });
+                });
         }
         if choice.is_some() {
             self.open = false;

@@ -659,8 +659,9 @@ impl EditorApp {
                     .changed();
                 // The stroke settings entered with the LIN consumer (M5, the
                 // M4 named exception): swatch + weight. The Java's stroke
-                // mode row is PERPENDICULAR only (TANGENT deferred, D003);
-                // the cull toggle stays deferred (raster compositing).
+                // mode row is PERPENDICULAR only (TANGENT deferred, D003).
+                // The cull toggle below (D009) follows it, like the Java's
+                // row order.
                 let mut sc = [
                     ((layer.stroke_color >> 16) & 0xFF) as u8,
                     ((layer.stroke_color >> 8) & 0xFF) as u8,
@@ -679,13 +680,51 @@ impl EditorApp {
                             .prefix("stroke "),
                     )
                     .changed();
+                // The Java's cull toggle (Main.java:551-559): two overlapping
+                // circles — the second hollow when cull is off. Cut this
+                // layer's stitches where later layers cover them.
+                let (rect, resp) =
+                    ui.allocate_exact_size(egui::vec2(18.0, 16.0), egui::Sense::click());
+                if resp.clicked() {
+                    layer.cull = !layer.cull;
+                    changed = true;
+                }
+                resp.on_hover_text(if layer.cull {
+                    "Cull: on — this layer's stitches are cut where later layers cover them (the Java's default)."
+                } else {
+                    "Cull: off — this layer stitches everywhere, even under later layers."
+                });
+                let c1 = rect.center() + egui::vec2(-3.0, 0.0);
+                let c2 = rect.center() + egui::vec2(3.0, 0.0);
+                let painter = ui.painter();
+                painter.circle(
+                    c1,
+                    5.0,
+                    egui::Color32::WHITE,
+                    egui::Stroke::new(1.0, egui::Color32::BLACK),
+                );
+                if layer.cull {
+                    painter.circle(
+                        c2,
+                        5.0,
+                        egui::Color32::WHITE,
+                        egui::Stroke::new(1.0, egui::Color32::BLACK),
+                    );
+                } else {
+                    painter.circle(
+                        c2,
+                        5.0,
+                        egui::Color32::TRANSPARENT,
+                        egui::Stroke::new(1.0, egui::Color32::BLACK),
+                    );
+                }
                 if ui.button("X").clicked() {
                     remove = Some(i);
                 }
             });
-            // The Java's layer row also shows the stroke swatch, weight and
-            // mode, and the cull toggle — they return with their consumers
-            // (docs/ROADMAP.md, M4 named exceptions).
+            // The Java's layer row also shows the stroke mode — it returns
+            // with its consumer (TANGENT, D003; docs/ROADMAP.md, M4 named
+            // exceptions).
             ui.label(format!(
                 "{} elements · {}",
                 layer.elements.len(),

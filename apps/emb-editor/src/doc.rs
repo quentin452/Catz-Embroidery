@@ -94,6 +94,12 @@ pub struct Layer {
     pub stroke_weight: f32,
     /// Preview-only in the Java: hidden layers are not stitched on save.
     pub visible: bool,
+    /// The Java's `Layer.cull` (default true): the layer's stitches are cut
+    /// where ANY later layer covers them — every later layer's element mask
+    /// is subtracted from this layer's element masks before stitching
+    /// (Main.java:244-259). The Java subtracts regardless of visibility;
+    /// the port keeps that (recorded, docs/ROADMAP.md).
+    pub cull: bool,
     pub elements: Vec<Element>,
 }
 
@@ -106,6 +112,7 @@ impl Layer {
             stroke_color: 0xFF0000,
             stroke_weight: 10.0,
             visible: true,
+            cull: true,
             elements: Vec::new(),
         }
     }
@@ -308,6 +315,7 @@ mod tests {
         assert_eq!(l.hatch_color, 0x0000FF);
         assert_eq!(l.hatch_spacing, 4.0);
         assert!(l.visible);
+        assert!(l.cull, "the Java's Layer.cull default is true");
         assert!(l.elements.is_empty());
     }
 

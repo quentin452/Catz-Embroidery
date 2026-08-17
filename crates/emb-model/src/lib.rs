@@ -33,6 +33,15 @@ pub enum Error {
         height: usize,
         found: usize,
     },
+    #[error(
+        "raster blend requires equal dimensions: self {self_w}x{self_h}, other {other_w}x{other_h}"
+    )]
+    RasterBlendSizeMismatch {
+        self_w: usize,
+        self_h: usize,
+        other_w: usize,
+        other_h: usize,
+    },
     #[error("contour tracing failed: {0}")]
     Trace(String),
 }

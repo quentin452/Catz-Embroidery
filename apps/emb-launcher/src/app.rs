@@ -137,22 +137,42 @@ impl eframe::App for LauncherApp {
         }
 
         // The Java's JOptionPane, as a modal: offer the releases page once,
-        // then go quiet either way.
+        // then go quiet either way. NOT egui::Modal — its backdrop area
+        // swallows the buttons' clicks in this app layout (measured 2026-08-16
+        // on the shared exit dialog); a Window over a blocking backdrop is
+        // the battle-tested stack (crates/emb-egui/src/exit_dialog.rs).
         if let UpdateState::Outdated { latest } = &self.update {
             let mut done = false;
-            egui::Modal::new(egui::Id::new("update_modal")).show(ui.ctx(), |ui| {
-                ui.label(format!("{} {}", self.strings.update_available, latest));
-                ui.add_space(8.0);
-                ui.horizontal(|ui| {
-                    if ui.button(self.strings.open_releases).clicked() {
-                        update::open_releases_page();
-                        done = true;
-                    }
-                    if ui.button(self.strings.later).clicked() {
-                        done = true;
-                    }
+            egui::Area::new(egui::Id::new("update_backdrop"))
+                .order(egui::Order::Foreground)
+                .fixed_pos(egui::Pos2::ZERO)
+                .movable(false)
+                .interactable(true)
+                .show(ui.ctx(), |ui| {
+                    let screen = ui.ctx().content_rect();
+                    ui.painter()
+                        .rect_filled(screen, 0.0, egui::Color32::from_black_alpha(100));
+                    ui.allocate_rect(screen, egui::Sense::click());
                 });
-            });
+            egui::Window::new(format!("{} {}", self.strings.update_available, latest))
+                .id(egui::Id::new("update_window"))
+                .order(egui::Order::Foreground)
+                .collapsible(false)
+                .resizable(false)
+                .movable(false)
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .show(ui.ctx(), |ui| {
+                    ui.add_space(4.0);
+                    ui.horizontal(|ui| {
+                        if ui.button(self.strings.open_releases).clicked() {
+                            update::open_releases_page();
+                            done = true;
+                        }
+                        if ui.button(self.strings.later).clicked() {
+                            done = true;
+                        }
+                    });
+                });
             if done {
                 self.update = UpdateState::UpToDate;
             }

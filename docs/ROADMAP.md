@@ -41,8 +41,17 @@ and a row is `done` only when its exit criteria run green.**
 > with their M5 consumer** — the rasterised line's contour (the D004 oracle
 > mask) strokes through the ported PERPENDICULAR stroke at the layer's
 > stroke settings (colour + weight, now in the layer row; TANGENT stays
-> deferred). TXT elements (font rasteriser) and the cull toggle (raster
-> compositing) remain named exceptions. CONCENTRIC hatch (hatchInset) and
+> deferred). **2026-08-16: the cull toggle entered** (the Java's
+> `Layer.cull`, default true): each element of a culled layer stitches
+> through its mask minus every later layer's element masks (Main.java:
+> 244-259), so later content cuts holes out of earlier stitches. The
+> subtraction runs on the D004-class raster oracles (the polygon fill + the
+> line's distance mask, 1 px per mm) — recorded in the decisions below; TXT
+> contributes nothing to the masks (its font rasteriser stays a named
+> exception). When no later element actually covers an element, the vector
+> hatch runs untouched. The Java subtracts later layers regardless of
+> visibility; kept (recorded below). TXT elements (font rasteriser) remain a
+> named exception. CONCENTRIC hatch (hatchInset) and
 > the layer stroke mode toggle all enter with their consumers (M5, ruled in
 > D003). The canvas preview shows the stitched design through
 > `emb_draw::DrawList`, cached on a dirty flag (the Java's `needsUpdate`);
@@ -108,8 +117,9 @@ Branch `rs-greenfield`.
    publish=false + proprietary licence), and the 2D draw line (D109
    refused a 2D path until a consumer exists — this app would be it).
 3. **Editor follow-ups** (named exceptions): TXT stitching (font
-   rasteriser), the cull toggle (raster compositing), CONCENTRIC
-   (hatchInset), the stroke mode toggle (TANGENT).
+   rasteriser), CONCENTRIC (hatchInset), the stroke mode toggle (TANGENT).
+   **2026-08-16: the cull toggle entered** (D009) — element-local mask
+   subtraction, default ON, invisible later layers still cut.
 4. **Converter follow-ups** (queued): PES input (rasterize a .pes back
    through the pipeline), the progress bar / background thread, Dropbox
    save (not ported). The progress bar also kills the frozen-UI aspect of
@@ -185,8 +195,9 @@ fixtures.)
 
 Every deferral already named in this file and in D003/D004/D005 was verified
 against the code and holds (PERLIN refuses + UI-disabled; spirals v2-v4,
-offset/inset, hatchInset, satin, TANGENT, TXT stitching, cull, editor
-CONCENTRIC all genuinely absent; PERPENDICULAR = the D004 geometric oracle;
+offset/inset, hatchInset, satin, TANGENT, TXT stitching, editor
+CONCENTRIC all genuinely absent at audit time — cull entered afterwards,
+D009; PERPENDICULAR = the D004 geometric oracle;
 isolines ported; CONCENTRIC/SPIRAL dispatch to isolines like the Java; the
 D006 palette clamp and the D007 offset-origin deltas confirmed). The audit
 also found these UNLISTED divergences — each is now either ported, a named

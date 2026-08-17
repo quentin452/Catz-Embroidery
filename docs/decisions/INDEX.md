@@ -13,6 +13,7 @@ re-edited except to add history. The table below is the index.
 | D006 | **PES palette clamped** — unique colours, capped at the 256 the count byte can express; the reader wraps colour changes onto the palette (the Java corrupts the header past 463 runs) | 2026-08-16 |
 | D007 | **PES deltas measured from the offset origin** — the writer accumulates from `-bounds[0]`, not 0 (the Java disagrees with its own offset words; found by the infinite canvas's content-centred save) | 2026-08-16 |
 | D008 | **TSP stops at the first non-improving 2-opt pass** — the Java runs 999 passes even when the tour length is invariant (measured: ~265 s of pure waste on hatch-parallel designs; the stall rule: ~0.34 s) | 2026-08-16 |
+| D009 | **Editor cull ported** — element-local mask subtraction on the D004-class oracles (polygon fill + line distance mask, 1 px/mm), invariant-tested not fixture-compared; default ON, invisible later layers still cut (Java parity) | 2026-08-16 |
 
 ## Writing a ruling
 
