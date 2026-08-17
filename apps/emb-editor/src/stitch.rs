@@ -69,10 +69,11 @@ const STROKE_SPACING: f32 = 4.0;
 /// still cut, like the Java.
 ///
 /// NO TSP here: the Java optimises only at save (`writeOut` → `optimize()`),
-/// and the preview refreshes on every document change — a full TSP pass per
-/// refresh is O(iterations · n²) (measured: a 1600 mm circle at 4 mm spacing
-/// costs ~70 ms of TSP for ~9 ms of stitching, and the cost grows n²). The
-/// save path calls `Model::optimize()` explicitly.
+/// and the caller applies it where the preview and the save meet
+/// (`refresh_stitched` optimises so the on-screen stitch order equals the
+/// saved file's — measured ~9 ms on a 150-polyline hatch, ~40 ms on 300, on
+/// a document change not per frame). The save path also calls
+/// `Model::optimize()` explicitly.
 pub fn stitch_document(doc: &Document) -> Model {
     let mut model = Model::new(doc.width, doc.height);
     for (i, layer) in doc.layers.iter().enumerate() {

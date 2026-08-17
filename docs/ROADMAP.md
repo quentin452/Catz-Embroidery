@@ -126,7 +126,14 @@ the standard path. The launcher's update check switched from `native-tls`
    export width/height knobs were removed (dead controls — pin 3); the editor
    and converter bounded saves no longer centre; `Model::centered_design` was
    deleted (no caller, pin 3). The editor's infinite-canvas mode keeps its
-   content-centring (its own tested intent). Gates green.
+    content-centring (its own tested intent). Gates green.
+    **2026-08-17 (same session): the editor preview is now aligned on the
+    save** — `refresh_stitched` applies the TSP `optimize()` too, so the
+    on-screen stitch order matches the saved file (the old "preview skips the
+    TSP" compromise made the viewer's saved design look differently ordered).
+    Measured: ~9 ms on a 150-polyline hatch, ~40 ms on 300, on a document
+    change not per frame. `optimize()` itself was measured worthwhile: it cuts
+    ~50% of the thread travel at save (140857 → 71345 mm on a test hatch).
 3. **Cut the next release** (when ready): use `.claude/skills/release/`
    (works in opencode via `opencode.json` and in Claude Code). Confirm scope
    in `docs/CHANGELOG.md`'s `[Unreleased]` first; ship Linux + Windows zips.

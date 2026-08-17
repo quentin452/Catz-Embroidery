@@ -39,6 +39,9 @@ here.
   coordinates the PES reader does not restore, so a reloaded design appeared
   off-centre in the editor / 10× oversized in the converter). The converter's
   export width/height knobs were removed as a consequence.
+- The editor preview now stitches in the same TSP order as the save, so what
+  you see on screen is exactly the saved thread path (the preview no longer
+  skips the optimisation).
 
 ## [0.1.0] - 2026-08-17
 
