@@ -68,19 +68,24 @@ cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
-### Next-session strategy (wrap 2026-08-16, late night — M5 done, parity audited)
+### Next-session strategy (wrap 2026-08-17 — converter complete, Dropbox closed)
 
-State: **M0-M5 done** (phase table: M5 done, packaging user-acceptance
-pending). 4 commits this session (aa084f1, ba0087f, 609e8de + this wrap).
-Working tree clean, gates green (`cargo test --workspace` incl. the gate
-tests, `cargo clippy --workspace --all-targets`, `cargo fmt --check`).
-Branch `rs-greenfield`.
+State: **M0-M5 done, all exit criteria green AND user-accepted** (packaging
+accepted 2026-08-17). Commits 2026-08-17: e4c90a1 (invert + release
+profile), 752e49b (.pes input), 4ccc2d4 (background thread + progress bar),
+1dd4071 (JPEG round-trip test) + this wrap. Working tree clean, gates green
+(`cargo test --workspace` incl. the gate tests, `cargo clippy --workspace
+--all-targets`, `cargo fmt --check`). Branch `rs-greenfield`.
 
-**2026-08-17 session** (e4c90a1): packaging ACCEPTED (M5 fully done);
-converter Invert toggle (Rust-only knob, default OFF — parity) + release
-profile (thin LTO + strip: the 5 exes ~30 MB total, from ~65 MB).
+**2026-08-17 session:** packaging ACCEPTED (M5 fully done); converter
+Invert toggle (Rust-only knob, default OFF — parity) + release profile
+(thin LTO + strip: the 5 exes ~30 MB total, from ~65 MB); converter .pes
+input + progress bar/background thread + JPEG round-trip test — the whole
+converter follow-up list is now DONE; Dropbox save declared OUT OF SCOPE
+and the Java's Dropbox app DELETED by the user (`disabled_app` verified on
+the OAuth endpoint — the hardcoded key/secret in the Java are inert).
 
-**Done this session (after the 11-commit b174372..be8eb54 run):**
+**Done 2026-08-16 (the previous wrap's session, kept as history):**
 
 - **Stroke oracle perf fix** (the converter froze on a big stroke_weight):
   exact `SegmentGrid` index in `emb-model`'s PERPENDICULAR stroke (D004
@@ -105,18 +110,22 @@ profile (thin LTO + strip: the 5 exes ~30 MB total, from ~65 MB).
   dialog (`emb_egui::exit_dialog`, editor + converter), 42×42 layer
   thumbnails (editor), P-key preview toggle (converter); ESC kept as a
   documented deviation. Remaining named exceptions: FPS/V-sync, i18n,
-  Dropbox (launcher + save), DRUNK.
+  DRUNK — plus Dropbox (launcher + save), declared OUT OF SCOPE 2026-08-17.
 
 **Next (prioritised, 1 = resume immediately):**
 
 1. ~~**Accept the packaging**~~ — DONE 2026-08-17 (`dist/` launched and tested).
-2. **Converter follow-ups** (queued — current focus): **PES input DONE
-   2026-08-17** (load dialog / drag-drop accept `.pes`, rasterized back into
-   the pipeline); **progress bar + background thread DONE 2026-08-17**
-   (`convert_image_with_progress` + a background conversion, the Java's
+2. ~~**Converter follow-ups**~~ — DONE 2026-08-17: PES input (load dialog /
+   drag-drop accept `.pes`, rasterized back into the pipeline), progress bar
+   + background thread (`convert_image_with_progress`, the Java's
    `processImageWithProgress` — the knobs lock and the status bar shows the
-   stage; the UI no longer freezes on a heavy stroke). Remaining: Dropbox
-   save (not ported).
+   stage; the UI no longer freezes on a heavy stroke), JPEG round-trip
+   test. **Dropbox save: declared OUT OF SCOPE 2026-08-17** (named
+   exception, like FPS/V-sync and i18n) — a full OAuth/cloud feature with
+   external credentials; the Java's app key/secret were hardcoded in a
+   public repo, and the app has now been DELETED by the user
+   (`disabled_app` verified on the OAuth endpoint 2026-08-17) — the leak
+   is inert.
 3. **infinite-draw "dessin pur"** — a CatzEngine workstream (queued): the
    Java's infinite-draw is an empty skeleton, so the app is greenfield.
    `catz-render` is already decoupled (GPU-only, headless boot, offscreen
@@ -253,8 +262,13 @@ exception, or a recorded deviation (pin 7):
   list and D003's eleven. Same class as VECFIELD/ANGLED (those ARE in
   D003's eleven); noted so a future consumer argues it fresh.
 - **Launcher Dropbox connect**: the Java launcher's red/green Dropbox button
-  (PEmbroiderLauncher.java:67, 84-88, 100-101) has no Rust counterpart; the
-  "Dropbox save" converter follow-up below covers the same feature family.
+  (PEmbroiderLauncher.java:67, 84-88, 100-101) has no Rust counterpart.
+  **Declared OUT OF SCOPE 2026-08-17** with the converter's Dropbox save:
+  the whole family (OAuth + upload) is a cloud feature the Rust suite
+  refuses — the Java's credentials are hardcoded in a public repo
+  (DropboxUtil.java:33-34). **2026-08-17: the Dropbox app was deleted by
+  the user; the OAuth endpoint now answers `error_name=disabled_app`
+  (verified) — the leaked key/secret are inert.** Local save stays.
 
 Also fixed by this audit (stale docs): D001's viewer/infinite-draw line
 counts (79/15 → 90/18, measured); convert.rs's clamp citation
