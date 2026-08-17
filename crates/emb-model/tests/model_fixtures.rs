@@ -9,6 +9,7 @@
 
 use std::path::PathBuf;
 
+use emb_model::font::{Align, SIMPLEX};
 use emb_model::geom::Point;
 use emb_model::raster::Raster;
 use emb_model::{hatch, hatch_raster, model::Model, resample, trace, tsp};
@@ -242,5 +243,29 @@ fn complex_polys() -> Vec<Vec<Point>> {
 fn hatch_parallel_complex_handles_the_hole() {
     let expected = fixture_polylines("parallelcomplex.txt");
     let got = hatch::hatch_parallel_complex(&complex_polys(), 0.3, 4.0);
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}
+
+/// The Hershey SIMPLEX putText port (the TXT stitching glyph source) matches
+/// the Java generator's `PEmbroiderFont.putText` byte-for-byte within D002.
+#[test]
+fn font_put_text_hello_matches_java() {
+    let expected = fixture_polylines("hershey_hello.txt");
+    let got = emb_model::font::put_text(SIMPLEX, "Hello!", 10.0, 20.0, 1.0, Align::Left);
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}
+
+#[test]
+fn font_put_text_full_range_matches_java() {
+    let expected = fixture_polylines("hershey_range.txt");
+    let s = "abcxyz 0123456789 !?.,;:()[]{}<>=+-*/_\"'#@%&$";
+    let got = emb_model::font::put_text(SIMPLEX, s, 0.0, 0.0, 1.0, Align::Left);
+    assert_polylines_close(&got, &expected, TOLERANCE_MM);
+}
+
+#[test]
+fn font_put_text_scaled_matches_java() {
+    let expected = fixture_polylines("hershey_w_scale4.txt");
+    let got = emb_model::font::put_text(SIMPLEX, "W", 30.0, 40.0, 4.0, Align::Left);
     assert_polylines_close(&got, &expected, TOLERANCE_MM);
 }

@@ -15,6 +15,7 @@ re-edited except to add history. The table below is the index.
 | D008 | **TSP stops at the first non-improving 2-opt pass** — the Java runs 999 passes even when the tour length is invariant (measured: ~265 s of pure waste on hatch-parallel designs; the stall rule: ~0.34 s) | 2026-08-16 |
 | D009 | **Editor cull ported** — element-local mask subtraction on the D004-class oracles (polygon fill + line distance mask, 1 px/mm), invariant-tested not fixture-compared; default ON, invisible later layers still cut (Java parity) | 2026-08-16 |
 | D010 | **Editor CONCENTRIC ported** — the isolines raster path (NOT hatchInset, which the editor never calls: `stitchLayer` → `E.image()` → `hatchRaster` → `isolines`), element-local like the cull; the boundary contour stays out until the stroke-mode toggle | 2026-08-17 |
+| D011 | **Editor TXT stitched** — the Hershey SIMPLEX vector font (`emb_model::font`, fixture-compared against the Java's own `putText` within D002), NOT the Java2D text raster the editor actually uses (D003-class, documented deviation); TXT strokes like LIN and contributes cull masks | 2026-08-17 |
 
 ## Writing a ruling
 

@@ -47,22 +47,27 @@ and a row is `done` only when its exit criteria run green.**
 > 244-259), so later content cuts holes out of earlier stitches. The
 > subtraction runs on the D004-class raster oracles (the polygon fill + the
 > line's distance mask, 1 px per mm) — recorded in the decisions below; TXT
-> contributes nothing to the masks (its font rasteriser stays a named
-> exception). When no later element actually covers an element, the vector
+> contributes its Hershey glyph strokes' masks since 2026-08-17 (D011 — see
+> the TXT entry below). When no later element actually covers an element, the vector
 > hatch runs untouched. The Java subtracts later layers regardless of
-> visibility; kept (recorded below). TXT elements (font rasteriser) remain a
-> named exception. **2026-08-17: CONCENTRIC entered** (D010) — the editor's
-> CONCENTRIC is the isolines RASTER path (the Java calls `E.image()`, which
+> visibility; kept (recorded below). **2026-08-17: CONCENTRIC entered** (D010) —
+> the editor's CONCENTRIC is the isolines RASTER path (the Java calls `E.image()`, which
 > routes CONCENTRIC to `hatchRaster` → `isolines`; hatchInset, the vector path
 > the D003 deferral named, is never called). Both the isolines and the contour
 > tracer were already ported and fixture-compared in M2, so the editor's
 > CONCENTRIC is wiring: each PLY element's fill mask (culled first when cull
 > is on) feeds `emb_model::hatch::isolines` at the layer's spacing, rings
 > inside the shape. The boundary contour (the Java's `!isStroke` push) and
-> the layer stroke mode toggle enter together (D003). The canvas preview shows
+> the layer stroke mode toggle enter together (D003). **2026-08-17: TXT
+> entered** (D011) — the Hershey SIMPLEX vector font (`emb_model::font`, the
+> Java suite's OWN `PEmbroiderFont.putText`, fixture-compared within D002), a
+> documented deviation from the Java editor's Java2D text raster (D003-class);
+> TXT strokes through the layer's PERPENDICULAR stroke like a LIN and its
+> glyph strokes contribute cull masks. The canvas preview shows
 > the stitched design through
 > `emb_draw::DrawList`, cached on a dirty flag (the Java's `needsUpdate`);
-> TXT elements are drawn as raw drafts (they are not stitched).
+> TXT elements are drawn as raw drafts (a visual placeholder, not the stitch;
+> the stitched anchor is the baseline-left the putText port uses).
 
 ## How to resume
 
@@ -148,10 +153,12 @@ the OAuth endpoint — the hardcoded key/secret in the Java are inert).
    subtraction, default ON, invisible later layers still cut.
    **2026-08-17: CONCENTRIC entered** (D010) — the isolines raster path
    (the Java's `E.image()` CONCENTRIC, not hatchInset), element-local like
-   the cull, with the Parallel/Concentric toggle in the layer row. Remaining:
-   TXT stitching (the Hershey vector font, decided 2026-08-17) and the
-   stroke-mode toggle (TANGENT, a D004-style geometric oracle, decided
-   2026-08-17).
+   the cull, with the Parallel/Concentric toggle in the layer row.
+   **2026-08-17: TXT stitching entered** (D011) — the Hershey SIMPLEX
+   vector font (`emb_model::font`, fixture-compared), stroked like LIN at
+   the layer's stroke settings, contributing cull masks; the Java2D text
+   raster stays a documented deviation. Remaining: the stroke-mode toggle
+   (TANGENT, a D004-style geometric oracle, decided 2026-08-17).
 5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
    update check (it currently offers the Java's `V0.2.0`) and gives the
    packaging a real distributable.
@@ -239,8 +246,9 @@ exception, or a recorded deviation (pin 7):
 - **Layer thumbnail**: PORTED 2026-08-16 (editor) — per-layer 42×42
   white-on-black previews in the layer panel (`apps/emb-editor/src/
   thumb.rs`, the Java's `rasterizeLayer` + `image(..., 42, 42)`), rebuilt
-  on the dirty flag; TXT is a box at its anchor (the font rasteriser
-  stays deferred).
+  on the dirty flag; TXT is a box at its anchor (**2026-08-17: the stitch
+  now uses the Hershey glyphs, D011 — the thumbnail's box remains a
+  preview-only placeholder**).
 - **P-key preview toggle**: PORTED 2026-08-16 (converter) — the Java's
   `showPreview` (Main.java:394-396).
 - **Escape key** (editor): the Java's ESC does nothing; the Rust editor

@@ -9,6 +9,7 @@
 //! last-ulp libm differences are noise, the machine grid is 0.1 mm.
 
 pub mod convert;
+pub mod font;
 pub mod geom;
 pub mod hatch;
 pub mod hatch_raster;

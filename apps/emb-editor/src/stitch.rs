@@ -21,6 +21,18 @@
 //! its concentric rings are the isolines of the remainder. The boundary
 //! outline the Java pushes when `!isStroke` stays with the stroke-mode
 //! toggle (the next follow-up); the Rust editor's PLY path is fill-only.
+//!
+//! **2026-08-17: TXT entered** (the editor follow-up). The Java editor
+//! rasterises text with Java2D (`pg.text` in `rasterizeLayer`) and image-
+//! traces it — the D003-class unreproducible raster. The Rust editor stitches
+//! TXT through the Java's OWN vector font API instead: `emb_model::font::
+//! put_text` (the Hershey SIMPLEX table, fixture-compared 2026-08-17), so
+//! each glyph becomes a set of stroke polylines. Those strokes stitch EXACTLY
+//! like a LIN element (the PERPENDICULAR stroke at the layer's stroke
+//! settings, in the stroke colour) — text is a set of thin lines, which is
+//! what the Hershey skeleton is — and each glyph stroke contributes its
+//! distance mask to the cull subtraction (the Java's white-on-black text in
+//! the layer render cuts later layers the same way).
 
 use emb_model::hatch;
 use emb_model::hatch_raster;
@@ -106,9 +118,20 @@ fn stitch_layer(model: &mut Model, layer: &Layer, later: &[Layer]) {
                 }
             }
             ElementKind::Text => {
-                // TXT: font rasteriser, deferred (D003/D005 class). Named
-                // exception in docs/ROADMAP.md — text neither stitches nor
-                // cuts later layers' masks.
+                // TXT: the Hershey glyph strokes (emb_model::font::put_text,
+                // the Java's vector font API) stitch like LIN elements — the
+                // PERPENDICULAR stroke at the layer's stroke settings. The
+                // Java editor rasterises text with Java2D and image-traces it
+                // (the D003-class raster); the Hershey vector path is the
+                // documented deviation (D010-class, the ROADMAP decision).
+                if elt.data.is_empty() {
+                    continue;
+                }
+                if layer.cull {
+                    stitch_text_culled(model, layer, elt, later);
+                } else {
+                    stitch_text(model, layer, elt);
+                }
             }
         }
     }
@@ -128,8 +151,8 @@ fn stitch_polygon_culled(
     angle: f32,
     spacing: f32,
 ) {
-    let (x0, y0, w, h) = element_box(elt);
-    let (mut mask, _, _) = element_mask(elt);
+    let (x0, y0, w, h) = element_box(elt, layer);
+    let (mut mask, _, _) = element_mask(elt, layer);
     let before = mask.pixels().iter().filter(|&&p| p).count();
     let cut = later_union(later, x0, y0, w, h);
     if cut.pixels().iter().any(|&p| p) {
@@ -186,8 +209,8 @@ fn stitch_polygon_culled(
 /// through `E.image()` → `hatchRaster` → `isolines`; the isolines are the
 /// distance-transform rings INSIDE the shape, fixture-compared in M2).
 fn stitch_polygon_concentric(model: &mut Model, layer: &Layer, elt: &Element, spacing: f32) {
-    let (x0, y0, _, _) = element_box(elt);
-    let (mask, _, _) = element_mask(elt);
+    let (x0, y0, _, _) = element_box(elt, layer);
+    let (mask, _, _) = element_mask(elt, layer);
     let Ok(rings) = hatch::isolines(&mask, spacing) else {
         return;
     };
@@ -207,8 +230,8 @@ fn stitch_line_culled(model: &mut Model, layer: &Layer, elt: &Element, later: &[
     if elt.data.len() < 2 {
         return;
     }
-    let (x0, y0, w, h) = element_box(elt);
-    let (mut mask, _, _) = element_mask(elt);
+    let (x0, y0, w, h) = element_box(elt, layer);
+    let (mut mask, _, _) = element_mask(elt, layer);
     let before = mask.pixels().iter().filter(|&&p| p).count();
     let cut = later_union(later, x0, y0, w, h);
     if cut.pixels().iter().any(|&p| p) {
@@ -281,7 +304,7 @@ fn stitch_line(model: &mut Model, layer: &Layer, elt: &Element) {
     if elt.data.len() < 2 {
         return;
     }
-    let (mask, x0, y0) = element_mask(elt);
+    let (mask, x0, y0) = element_mask(elt, layer);
     let Ok(mut contours) = trace::find_contours(&mask) else {
         return;
     };
@@ -317,21 +340,157 @@ fn stroke_contours(model: &mut Model, layer: &Layer, contours: &[Vec<emb_model::
     }
 }
 
+/// The TXT element's Hershey glyph strokes, translated to the design: each
+/// glyph's baseline-left anchor is `elt.data[0]`, scaled by the text size
+/// (`param_f0`, the editor's text size dialog — the Java's FONT_SCALE).
+/// Returns empty when the text has no stitched strokes.
+fn text_strokes(elt: &Element) -> Vec<Vec<emb_model::geom::Point>> {
+    let Some(anchor) = elt.data.first() else {
+        return Vec::new();
+    };
+    emb_model::font::put_text(
+        emb_model::font::SIMPLEX,
+        &elt.param_s0,
+        anchor.x,
+        anchor.y,
+        elt.param_f0,
+        emb_model::font::Align::Left,
+    )
+}
+
+/// A TXT element stitches through the layer's PERPENDICULAR stroke: each
+/// glyph stroke is a thin line, exactly the LIN path (`stitch_line`'s stroke
+/// of a rasterised contour — here the contour IS the Hershey stroke, no
+/// raster needed).
+fn stitch_text(model: &mut Model, layer: &Layer, elt: &Element) {
+    let strokes = text_strokes(elt);
+    if strokes.is_empty() {
+        return;
+    }
+    // The glyph strokes stitch at the layer's stroke settings in the stroke
+    // colour — the Hershey skeleton is a set of thin lines.
+    for stroke in &strokes {
+        if stroke.len() < 2 {
+            continue;
+        }
+        let stroke = trace::approx_poly_dp(stroke, 1.0);
+        for bar in stroke_poly_normal(
+            &stroke,
+            (layer.stroke_weight / 2.0).max(0.5),
+            STROKE_SPACING,
+            false,
+            true,
+        ) {
+            model.push_polyline(bar, layer.stroke_color);
+        }
+    }
+}
+
+/// A culled TXT: each glyph stroke's distance mask minus every later element's
+/// mask, then the PERPENDICULAR stroke of the remainder's contours — the
+/// Java's white-on-black text in the layer render is subtracted by the cull
+/// loop the same way a line's raster is.
+fn stitch_text_culled(model: &mut Model, layer: &Layer, elt: &Element, later: &[Layer]) {
+    let strokes = text_strokes(elt);
+    let mut bars: Vec<Vec<emb_model::geom::Point>> = Vec::new();
+    for stroke in &strokes {
+        if stroke.len() < 2 {
+            continue;
+        }
+        let (x0, y0, w, h) = stroke_box(stroke);
+        let mut mask = line_mask(stroke, (layer.stroke_weight / 2.0).max(0.5), x0, y0, w, h);
+        let before = mask.pixels().iter().filter(|&&p| p).count();
+        let cut = later_union(later, x0, y0, w, h);
+        if cut.pixels().iter().any(|&p| p) {
+            // The cut mask shares the stroke's box by construction.
+            if mask.and_not(&cut).is_err() {
+                unreachable!("cull masks share the stroke's box");
+            }
+        }
+        if before != mask.pixels().iter().filter(|&&p| p).count() {
+            let Ok(mut contours) = trace::find_contours(&mask) else {
+                continue;
+            };
+            contours.retain(|c| c.len() >= 3);
+            for contour in contours {
+                let contour: Vec<emb_model::geom::Point> = contour
+                    .iter()
+                    .map(|p| emb_model::geom::Point::new(p.x + x0, p.y + y0))
+                    .collect();
+                let contour = trace::approx_poly_dp(&contour, 1.0);
+                for bar in stroke_poly_normal(
+                    &contour,
+                    (layer.stroke_weight / 2.0).max(0.5),
+                    STROKE_SPACING,
+                    true,
+                    true,
+                ) {
+                    bars.push(bar);
+                }
+            }
+        } else {
+            // Nothing covers this stroke: stitch it unculled (the fast path
+            // the cull keeps for unchanged masks).
+            let stroke = trace::approx_poly_dp(stroke, 1.0);
+            for bar in stroke_poly_normal(
+                &stroke,
+                (layer.stroke_weight / 2.0).max(0.5),
+                STROKE_SPACING,
+                false,
+                true,
+            ) {
+                bars.push(bar);
+            }
+        }
+    }
+    for bar in bars {
+        model.push_polyline(bar, layer.stroke_color);
+    }
+}
+
+/// The footprint of one Hershey stroke, with the stroke-weight margin (a
+/// text stroke sticks out half its weight around its spine, like `element_box`
+/// does for a LIN).
+fn stroke_box(stroke: &[emb_model::geom::Point]) -> (f32, f32, usize, usize) {
+    let mut min_x = f32::INFINITY;
+    let mut min_y = f32::INFINITY;
+    let mut max_x = f32::NEG_INFINITY;
+    let mut max_y = f32::NEG_INFINITY;
+    for p in stroke {
+        min_x = min_x.min(p.x);
+        min_y = min_y.min(p.y);
+        max_x = max_x.max(p.x);
+        max_y = max_y.max(p.y);
+    }
+    let x0 = (min_x - 1.0).floor();
+    let y0 = (min_y - 1.0).floor();
+    let w = ((max_x - min_x + 2.0).ceil() as i32).max(1) as usize;
+    let h = ((max_y - min_y + 2.0).ceil() as i32).max(1) as usize;
+    (x0, y0, w, h)
+}
+
 /// The raster footprint of an element at 1 px per mm: the box its mask
 /// occupies, with the thickness margin the Java's `rasterizeLayer` gives a
 /// LIN (a fat line's mask sticks out half its weight around its spine).
-/// TXT keeps its anchor box; its mask stays empty (the font rasteriser is
-/// deferred — text neither stitches nor cuts).
-fn element_box(elt: &Element) -> (f32, f32, usize, usize) {
+/// TXT's box covers its Hershey glyph strokes (a later text cuts the same
+/// area the Java's white-on-black text render occupies); its weight comes
+/// from the LAYER's stroke settings (the Java strokes the layer render's
+/// text at `strokeWeight`).
+fn element_box(elt: &Element, layer: &Layer) -> (f32, f32, usize, usize) {
     let half = match elt.kind {
         ElementKind::Line => (elt.param_f0 / 2.0).max(0.5),
+        ElementKind::Text => (layer.stroke_weight / 2.0).max(0.5),
         _ => 0.0,
     };
     let mut min_x = f32::INFINITY;
     let mut min_y = f32::INFINITY;
     let mut max_x = f32::NEG_INFINITY;
     let mut max_y = f32::NEG_INFINITY;
-    for p in &elt.data {
+    let points: Vec<emb_model::geom::Point> = match elt.kind {
+        ElementKind::Text => text_strokes(elt).into_iter().flatten().collect(),
+        _ => elt.data.clone(),
+    };
+    for p in &points {
         min_x = min_x.min(p.x);
         min_y = min_y.min(p.y);
         max_x = max_x.max(p.x);
@@ -347,9 +506,11 @@ fn element_box(elt: &Element) -> (f32, f32, usize, usize) {
 
 /// The element's mask plus its design-space origin: PLY = the polygon fill
 /// (the Java2D fill's center-in-polygon oracle), LIN = the D004 distance
-/// oracle, TXT = empty.
-fn element_mask(elt: &Element) -> (Raster, f32, f32) {
-    let (x0, y0, w, h) = element_box(elt);
+/// oracle, TXT = the union of its Hershey glyph strokes' distance masks
+/// (each stroke a thin line at the layer's stroke weight — the Java's
+/// white-on-black text in the layer render).
+fn element_mask(elt: &Element, layer: &Layer) -> (Raster, f32, f32) {
+    let (x0, y0, w, h) = element_box(elt, layer);
     match elt.kind {
         ElementKind::Polygon => (raster::fill_polygon(&elt.data, x0, y0, w, h), x0, y0),
         ElementKind::Line => (
@@ -357,15 +518,22 @@ fn element_mask(elt: &Element) -> (Raster, f32, f32) {
             x0,
             y0,
         ),
-        ElementKind::Text => (
-            // The box comes from element_box — the size error is unreachable.
-            match Raster::new(w, h, vec![false; w * h]) {
+        ElementKind::Text => {
+            let mut mask = match Raster::new(w, h, vec![false; w * h]) {
                 Ok(r) => r,
-                Err(_) => unreachable!("the text mask is all false"),
-            },
-            x0,
-            y0,
-        ),
+                Err(_) => unreachable!("the text mask is all false at start"),
+            };
+            let half = (layer.stroke_weight / 2.0).max(0.5);
+            for stroke in text_strokes(elt) {
+                if stroke.len() < 2 {
+                    continue;
+                }
+                let (sx, sy, sw, sh) = stroke_box(&stroke);
+                let smask = line_mask(&stroke, half, sx, sy, sw, sh);
+                mask.overlay_or(&smask, (sx - x0).round() as i32, (sy - y0).round() as i32);
+            }
+            (mask, x0, y0)
+        }
     }
 }
 
@@ -380,7 +548,7 @@ fn later_union(later_layers: &[Layer], x0: f32, y0: f32, w: usize, h: usize) -> 
     };
     for layer in later_layers {
         for other in &layer.elements {
-            let (ox, oy, ow, oh) = element_box(other);
+            let (ox, oy, ow, oh) = element_box(other, layer);
             if ox + ow as f32 <= x0
                 || ox >= x0 + w as f32
                 || oy + oh as f32 <= y0
@@ -388,7 +556,7 @@ fn later_union(later_layers: &[Layer], x0: f32, y0: f32, w: usize, h: usize) -> 
             {
                 continue;
             }
-            let (mask, mx, my) = element_mask(other);
+            let (mask, mx, my) = element_mask(other, layer);
             cut.overlay_or(&mask, (mx - x0).round() as i32, (my - y0).round() as i32);
         }
     }
@@ -511,10 +679,12 @@ mod tests {
     }
 
     #[test]
-    fn line_elements_stitch_and_text_does_not() {
+    fn line_elements_stitch_and_text_strokes() {
         // LIN: the PERPENDICULAR stroke of the rasterised line's contour
-        // (the M5 consumer of the D004 stroke). TXT: font rasteriser,
-        // deferred (D003) — not stitched.
+        // (the M5 consumer of the D004 stroke). TXT: the Hershey glyph
+        // strokes stitch through the same PERPENDICULAR stroke (2026-08-17,
+        // the D010-class decision; the Java editor's Java2D text is not
+        // reproducible within D002).
         let mut doc = Document::new();
         doc.current_mut().elements.push(Element::line(
             vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)],
@@ -536,7 +706,37 @@ mod tests {
                 .push(Element::text("hi".into(), 20.0, Point::new(50.0, 50.0)));
             d
         };
-        assert!(stitch_document(&doc2).polylines.is_empty());
+        assert!(!stitch_document(&doc2).polylines.is_empty());
+    }
+
+    #[test]
+    fn text_stitches_at_its_anchor() {
+        // The Hershey baseline-left anchor: "H" at (10, 20) scale 1 draws its
+        // strokes at x 14/28, y 8/29 (the fixture-pinned layout). Through the
+        // PERPENDICULAR stroke the bars sit within a few mm of those lines —
+        // the stitched text must land near the anchor, not at the origin.
+        let mut doc = Document::new();
+        doc.current_mut()
+            .elements
+            .push(Element::text("H".into(), 1.0, Point::new(10.0, 20.0)));
+        let model = stitch_document(&doc);
+        assert!(!model.polylines.is_empty());
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+            f32::INFINITY,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            f32::NEG_INFINITY,
+        );
+        for poly in &model.polylines {
+            for p in poly {
+                min_x = min_x.min(p.x);
+                min_y = min_y.min(p.y);
+                max_x = max_x.max(p.x);
+                max_y = max_y.max(p.y);
+            }
+        }
+        assert!(min_x > 0.0 && max_x < 40.0, "x span {min_x}..{max_x}");
+        assert!(min_y > 0.0 && max_y < 40.0, "y span {min_y}..{max_y}");
     }
 
     #[test]
@@ -730,9 +930,10 @@ mod tests {
     }
 
     #[test]
-    fn text_elements_do_not_cut_later_masks() {
-        // TXT contributes no mask (font rasteriser deferred): a text element
-        // over a polygon leaves the polygon's hatch untouched.
+    fn text_elements_cut_later_masks() {
+        // A later TXT over a polygon cuts the polygon's hatch where the text
+        // glyph strokes sit (the Java rasterises text white into the layer
+        // render, so the cull loop subtracts it like any element).
         let mut doc = Document::new();
         doc.layers.push(Layer::new());
         doc.layers[0].elements.push(Element::polygon(vec![
@@ -747,7 +948,10 @@ mod tests {
         let with_text = stitch_document(&doc);
         doc.layers[1].elements.clear();
         let without_text = stitch_document(&doc);
-        assert_eq!(with_text.polylines, without_text.polylines);
+        assert_ne!(
+            with_text.polylines, without_text.polylines,
+            "a later text's glyph strokes must cut the polygon's hatch"
+        );
     }
 
     #[test]
