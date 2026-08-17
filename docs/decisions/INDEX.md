@@ -14,6 +14,7 @@ re-edited except to add history. The table below is the index.
 | D007 | **PES deltas measured from the offset origin** — the writer accumulates from `-bounds[0]`, not 0 (the Java disagrees with its own offset words; found by the infinite canvas's content-centred save) | 2026-08-16 |
 | D008 | **TSP stops at the first non-improving 2-opt pass** — the Java runs 999 passes even when the tour length is invariant (measured: ~265 s of pure waste on hatch-parallel designs; the stall rule: ~0.34 s) | 2026-08-16 |
 | D009 | **Editor cull ported** — element-local mask subtraction on the D004-class oracles (polygon fill + line distance mask, 1 px/mm), invariant-tested not fixture-compared; default ON, invisible later layers still cut (Java parity) | 2026-08-16 |
+| D010 | **Editor CONCENTRIC ported** — the isolines raster path (NOT hatchInset, which the editor never calls: `stitchLayer` → `E.image()` → `hatchRaster` → `isolines`), element-local like the cull; the boundary contour stays out until the stroke-mode toggle | 2026-08-17 |
 
 ## Writing a ruling
 

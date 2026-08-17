@@ -51,9 +51,16 @@ and a row is `done` only when its exit criteria run green.**
 > exception). When no later element actually covers an element, the vector
 > hatch runs untouched. The Java subtracts later layers regardless of
 > visibility; kept (recorded below). TXT elements (font rasteriser) remain a
-> named exception. CONCENTRIC hatch (hatchInset) and
-> the layer stroke mode toggle all enter with their consumers (M5, ruled in
-> D003). The canvas preview shows the stitched design through
+> named exception. **2026-08-17: CONCENTRIC entered** (D010) — the editor's
+> CONCENTRIC is the isolines RASTER path (the Java calls `E.image()`, which
+> routes CONCENTRIC to `hatchRaster` → `isolines`; hatchInset, the vector path
+> the D003 deferral named, is never called). Both the isolines and the contour
+> tracer were already ported and fixture-compared in M2, so the editor's
+> CONCENTRIC is wiring: each PLY element's fill mask (culled first when cull
+> is on) feeds `emb_model::hatch::isolines` at the layer's spacing, rings
+> inside the shape. The boundary contour (the Java's `!isStroke` push) and
+> the layer stroke mode toggle enter together (D003). The canvas preview shows
+> the stitched design through
 > `emb_draw::DrawList`, cached on a dirty flag (the Java's `needsUpdate`);
 > TXT elements are drawn as raw drafts (they are not stitched).
 
@@ -139,6 +146,12 @@ the OAuth endpoint — the hardcoded key/secret in the Java are inert).
    rasteriser), CONCENTRIC (hatchInset), the stroke mode toggle (TANGENT).
    **2026-08-16: the cull toggle entered** (D009) — element-local mask
    subtraction, default ON, invisible later layers still cut.
+   **2026-08-17: CONCENTRIC entered** (D010) — the isolines raster path
+   (the Java's `E.image()` CONCENTRIC, not hatchInset), element-local like
+   the cull, with the Parallel/Concentric toggle in the layer row. Remaining:
+   TXT stitching (the Hershey vector font, decided 2026-08-17) and the
+   stroke-mode toggle (TANGENT, a D004-style geometric oracle, decided
+   2026-08-17).
 5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
    update check (it currently offers the Java's `V0.2.0`) and gives the
    packaging a real distributable.

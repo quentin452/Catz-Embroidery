@@ -69,11 +69,15 @@ impl Element {
 }
 
 /// Hatch modes the stitch path can produce. Closed set (pin 4): only the
-/// ported modes exist; CONCENTRIC is deferred by the M4 ruling and enters
-/// when its algorithm does.
+/// ported modes exist. PARALLEL is the vector hatch (M4). CONCENTRIC entered
+/// 2026-08-17 with the editor's follow-up (the Java editor's CONCENTRIC goes
+/// through the raster path — boundary contour + distance-transform isolines —
+/// both already ported and fixture-compared in M2; the D003 deferral named
+/// hatchInset, which the editor does NOT call: it calls `E.image()`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HatchMode {
     Parallel,
+    Concentric,
 }
 
 /// A layer: elements plus the hatch and stroke settings the stitch path

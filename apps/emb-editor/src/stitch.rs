@@ -10,6 +10,17 @@
 //! 2026-08-16 with the D004-class raster oracles — the polygon fill and the
 //! line's distance mask). LIN elements stitch through the ported
 //! PERPENDICULAR stroke (D004); TXT needs a font rasteriser (deferred).
+//!
+//! **2026-08-17: CONCENTRIC entered** (the editor follow-up). The Java
+//! editor's CONCENTRIC does NOT call hatchInset (the D003 deferral named the
+//! vector path) — it calls `E.image()`, which routes CONCENTRIC to the
+//! distance-transform isolines (`hatchRaster` → `isolines`). Both the
+//! isolines and the contour tracer are already ported and fixture-compared
+//! (M2), so the editor's CONCENTRIC is wiring, not an algorithm: each PLY
+//! element's fill mask is reduced by the cull masks (as in PARALLEL), then
+//! its concentric rings are the isolines of the remainder. The boundary
+//! outline the Java pushes when `!isStroke` stays with the stroke-mode
+//! toggle (the next follow-up); the Rust editor's PLY path is fill-only.
 
 use emb_model::hatch;
 use emb_model::hatch_raster;
@@ -56,7 +67,6 @@ pub fn stitch_document(doc: &Document) -> Model {
 
 /// One layer's elements → stitched polylines in the layer's colours.
 fn stitch_layer(model: &mut Model, layer: &Layer, later: &[Layer]) {
-    debug_assert_eq!(layer.hatch_mode, HatchMode::Parallel);
     let angle = axis_angle(HATCH_ANGLE);
     let spacing = layer.hatch_spacing.max(0.1);
     for elt in &layer.elements {
@@ -68,8 +78,15 @@ fn stitch_layer(model: &mut Model, layer: &Layer, later: &[Layer]) {
                 if layer.cull {
                     stitch_polygon_culled(model, layer, elt, later, angle, spacing);
                 } else {
-                    for poly in hatch::hatch_parallel(&elt.data, angle, spacing) {
-                        model.push_polyline(poly, layer.hatch_color);
+                    match layer.hatch_mode {
+                        HatchMode::Parallel => {
+                            for poly in hatch::hatch_parallel(&elt.data, angle, spacing) {
+                                model.push_polyline(poly, layer.hatch_color);
+                            }
+                        }
+                        HatchMode::Concentric => {
+                            stitch_polygon_concentric(model, layer, elt, spacing);
+                        }
                     }
                 }
             }
@@ -124,16 +141,58 @@ fn stitch_polygon_culled(
     }
     let after = mask.pixels().iter().filter(|&&p| p).count();
     if before == after {
-        for poly in hatch::hatch_parallel(&elt.data, angle, spacing) {
-            model.push_polyline(poly, layer.hatch_color);
+        match layer.hatch_mode {
+            HatchMode::Parallel => {
+                for poly in hatch::hatch_parallel(&elt.data, angle, spacing) {
+                    model.push_polyline(poly, layer.hatch_color);
+                }
+            }
+            HatchMode::Concentric => {
+                stitch_polygon_concentric(model, layer, elt, spacing);
+            }
         }
         return;
     }
-    // The Java's `hatchRaster` PARALLEL on the culled mask: the holes the
-    // later layers cut are part of the mask, so the raster hatch respects
-    // them where a vector hatch of the polygon could not.
-    for poly in hatch_raster::hatch_parallel_raster(&mask, angle, spacing, 1.0) {
-        let translated: Vec<emb_model::geom::Point> = poly
+    // The Java's `hatchRaster` on the culled mask: the holes the later
+    // layers cut are part of the mask, so the raster hatch respects them
+    // where a vector hatch of the polygon could not.
+    match layer.hatch_mode {
+        HatchMode::Parallel => {
+            for poly in hatch_raster::hatch_parallel_raster(&mask, angle, spacing, 1.0) {
+                let translated: Vec<emb_model::geom::Point> = poly
+                    .iter()
+                    .map(|p| emb_model::geom::Point::new(p.x + x0, p.y + y0))
+                    .collect();
+                model.push_polyline(translated, layer.hatch_color);
+            }
+        }
+        HatchMode::Concentric => {
+            let Ok(rings) = hatch::isolines(&mask, spacing) else {
+                return;
+            };
+            for ring in rings {
+                let translated: Vec<emb_model::geom::Point> = ring
+                    .iter()
+                    .map(|p| emb_model::geom::Point::new(p.x + x0, p.y + y0))
+                    .collect();
+                model.push_polyline(translated, layer.hatch_color);
+            }
+        }
+    }
+}
+
+/// CONCENTRIC fill of one unculled PLY: the concentric rings are the
+/// isolines of the element's fill mask (the Java editor's CONCENTRIC routes
+/// through `E.image()` → `hatchRaster` → `isolines`; the isolines are the
+/// distance-transform rings INSIDE the shape, fixture-compared in M2).
+fn stitch_polygon_concentric(model: &mut Model, layer: &Layer, elt: &Element, spacing: f32) {
+    let (x0, y0, _, _) = element_box(elt);
+    let (mask, _, _) = element_mask(elt);
+    let Ok(rings) = hatch::isolines(&mask, spacing) else {
+        return;
+    };
+    for ring in rings {
+        let translated: Vec<emb_model::geom::Point> = ring
             .iter()
             .map(|p| emb_model::geom::Point::new(p.x + x0, p.y + y0))
             .collect();
@@ -689,6 +748,92 @@ mod tests {
         doc.layers[1].elements.clear();
         let without_text = stitch_document(&doc);
         assert_eq!(with_text.polylines, without_text.polylines);
+    }
+
+    #[test]
+    fn concentric_hatches_a_polygon_into_rings() {
+        // CONCENTRIC: the isolines of the element's fill mask — at least one
+        // closed ring inside a 80x70 triangle (the M2 isolines port, fixture-
+        // compared). The rings sit INSIDE the shape (the distance transform's
+        // polarity, pinned by the isolines fixture).
+        let mut doc = Document::new();
+        doc.current_mut().hatch_mode = HatchMode::Concentric;
+        doc.current_mut()
+            .elements
+            .push(Element::polygon(triangle()));
+        let model = stitch_document(&doc);
+        assert!(!model.polylines.is_empty());
+        assert!(model.colors.iter().all(|&c| c == 0x0000FF));
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = (
+            f32::INFINITY,
+            f32::INFINITY,
+            f32::NEG_INFINITY,
+            f32::NEG_INFINITY,
+        );
+        for poly in &model.polylines {
+            for p in poly {
+                min_x = min_x.min(p.x);
+                min_y = min_y.min(p.y);
+                max_x = max_x.max(p.x);
+                max_y = max_y.max(p.y);
+            }
+        }
+        // The rings stay strictly inside the triangle (10,10)-(90,10)-(50,80):
+        // isolines are at a distance from the boundary, never outside it.
+        assert!(min_x >= 8.0 && max_x <= 92.0, "x span {min_x}..{max_x}");
+        assert!(min_y >= 8.0 && max_y <= 82.0, "y span {min_y}..{max_y}");
+    }
+
+    #[test]
+    fn concentric_rings_follow_the_mask_after_a_cull_cut() {
+        // A CONCENTRIC layer 0 rectangle, a later rectangle covering the right
+        // half: the concentric rings of the culled mask must not reach into
+        // the covered region (the holes the cull cuts are part of the mask the
+        // isolines read).
+        let mut doc = two_overlapping_rects();
+        doc.layers[0].hatch_mode = HatchMode::Concentric;
+        let model = stitch_document(&doc);
+        let cut_max = max_x_of(&model, 0x0000FF);
+        assert!(
+            cut_max < 60.0,
+            "the concentric rings must not cross into the covered right half: {cut_max}"
+        );
+        doc.layers[0].cull = false;
+        let model = stitch_document(&doc);
+        let uncut_max = max_x_of(&model, 0x0000FF);
+        assert!(
+            uncut_max > 80.0,
+            "without cull the rings reach the polygon's full width: {uncut_max}"
+        );
+    }
+
+    #[test]
+    fn concentric_unchanged_by_a_far_cull() {
+        // Two polygons far apart with CONCENTRIC on the lower layer: the cull
+        // subtraction changes nothing, so the rings are EXACTLY the unculled
+        // concentric output (the same `before == after` fast path PARALLEL
+        // uses).
+        let mut doc = Document::new();
+        doc.layers.push(Layer::new());
+        doc.layers[0].hatch_mode = HatchMode::Concentric;
+        doc.layers[0].elements.push(Element::polygon(vec![
+            Point::new(0.0, 0.0),
+            Point::new(40.0, 0.0),
+            Point::new(40.0, 40.0),
+            Point::new(0.0, 40.0),
+        ]));
+        doc.layers[1].elements.push(Element::polygon(vec![
+            Point::new(300.0, 0.0),
+            Point::new(340.0, 0.0),
+            Point::new(340.0, 40.0),
+            Point::new(300.0, 40.0),
+        ]));
+        let on = stitch_document(&doc);
+        doc.layers[0].cull = false;
+        doc.layers[1].cull = false;
+        let off = stitch_document(&doc);
+        assert_eq!(on.polylines, off.polylines);
+        assert_eq!(on.colors, off.colors);
     }
 
     #[test]

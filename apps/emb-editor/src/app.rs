@@ -722,16 +722,43 @@ impl EditorApp {
                     remove = Some(i);
                 }
             });
-            // The Java's layer row also shows the stroke mode — it returns
-            // with its consumer (TANGENT, D003; docs/ROADMAP.md, M4 named
-            // exceptions).
-            ui.label(format!(
-                "{} elements · {}",
-                layer.elements.len(),
-                match layer.hatch_mode {
-                    HatchMode::Parallel => "parallel",
-                }
-            ));
+            // The Java's hatch-mode dialog (Main.java:495-503): the layer
+            // row's two options. CONCENTRIC entered 2026-08-17 (the M4 named
+            // exception, ROADMAP) — the Java editor's CONCENTRIC is the
+            // raster isolines path, both ported in M2, so this is a toggle,
+            // not an algorithm. The Java also shows a stroke mode
+            // (TANGENT/PERPENDICULAR) row — it returns with its consumer
+            // (D003; ROADMAP, M4 named exceptions).
+            ui.horizontal(|ui| {
+                ui.label(format!("{} elements", layer.elements.len()));
+                egui::ComboBox::from_id_salt(("hatch_mode", i))
+                    .selected_text(match layer.hatch_mode {
+                        HatchMode::Parallel => "parallel",
+                        HatchMode::Concentric => "concentric",
+                    })
+                    .show_ui(ui, |ui| {
+                        if ui
+                            .selectable_value(
+                                &mut layer.hatch_mode,
+                                HatchMode::Parallel,
+                                "parallel",
+                            )
+                            .changed()
+                        {
+                            changed = true;
+                        }
+                        if ui
+                            .selectable_value(
+                                &mut layer.hatch_mode,
+                                HatchMode::Concentric,
+                                "concentric",
+                            )
+                            .changed()
+                        {
+                            changed = true;
+                        }
+                    });
+            });
         }
         if ui.button("+ Add layer").clicked() {
             self.add_layer();
