@@ -135,11 +135,11 @@ the OAuth endpoint — the hardcoded key/secret in the Java are inert).
    (git path dep; publish=false + proprietary licence — moot while the app
    lives IN CatzEngine), and the 2D draw line (D109 refused a 2D path until a
    consumer exists — this app would be it).
-3. **Editor follow-ups** (named exceptions): TXT stitching (font
+4. **Editor follow-ups** (named exceptions): TXT stitching (font
    rasteriser), CONCENTRIC (hatchInset), the stroke mode toggle (TANGENT).
    **2026-08-16: the cull toggle entered** (D009) — element-local mask
    subtraction, default ON, invisible later layers still cut.
-4. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
+5. **The first Rust GitHub release** (a `v0.1.0` tag): quiets the launcher's
    update check (it currently offers the Java's `V0.2.0`) and gives the
    packaging a real distributable.
 
