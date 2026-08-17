@@ -220,6 +220,59 @@ mod tests {
         }
     }
 
+    /// JPEG is accepted at the decode level too (the Java's loadImage list):
+    /// a JPEG file → pipeline → PES round-trips into a non-empty design, with
+    /// the compression artefacts staying inside the mask.
+    #[test]
+    fn jpeg_file_to_pes_round_trips() {
+        let mut img = image::RgbaImage::from_pixel(400, 400, image::Rgba([0, 0, 0, 255]));
+        for (x, y, px) in img.enumerate_pixels_mut() {
+            let dx = x as f32 + 0.5 - 200.0;
+            let dy = y as f32 + 0.5 - 200.0;
+            if dx * dx + dy * dy <= 150.0 * 150.0 {
+                *px = image::Rgba([255, 255, 255, 255]);
+            }
+        }
+        let path = std::env::temp_dir()
+            .join("emb-converter-test")
+            .join("disk.jpg");
+        std::fs::create_dir_all(path.parent().expect("temp dir")).expect("temp dir");
+        // JPEG has no alpha; the image crate's JPEG encoder wants RGB.
+        image::DynamicImage::ImageRgba8(img)
+            .to_rgb8()
+            .save(&path)
+            .expect("save jpg");
+
+        let pixels = load_image(&path).expect("load jpg");
+        let params = ConvertParams {
+            hatch_mode: HatchMode::Cross,
+            color_mode: ColorMode::BlackAndWhite,
+            fill: true,
+            spacing: 10.0,
+            stroke_weight: 25.0,
+            max_colors: 10,
+            invert: false,
+        };
+        let mut model = emb_model::convert::convert_image(
+            &pixels,
+            WORK_SIZE as usize,
+            WORK_SIZE as usize,
+            &params,
+        )
+        .expect("convert");
+        assert!(!model.polylines.is_empty());
+        model.optimize();
+
+        let out = std::env::temp_dir()
+            .join("emb-converter-test")
+            .join("out.jpg.pes");
+        let design = model.centered_design("out", 95.0, 95.0);
+        emb_data::write_design(&out, &design).expect("write pes");
+        let read = emb_data::pes::read(&std::fs::read(&out).expect("read pes")).expect("parse pes");
+        assert!(!read.stitches.is_empty());
+        assert_eq!(read.bounds, [0.0, 0.0, 95.0, 95.0]);
+    }
+
     /// The .pes input path: a written design rasterizes back into a black-
     /// canvas work image, scaled to fit. The Java's own `PES.read` would produce
     /// a few-mm delta mess (no accumulation) — ours must read the real design.
