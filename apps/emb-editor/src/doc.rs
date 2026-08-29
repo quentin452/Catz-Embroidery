@@ -82,13 +82,15 @@ pub enum HatchMode {
 
 /// The layer's stroke mode (the Java's `Layer.strokeMode`), a closed set
 /// (pin 4). PERPENDICULAR is the D004 geometric-oracle stroke (M5); TANGENT
-/// entered 2026-08-17 (D012) as the concentric-offset oracle. The Java
+/// entered 2026-08-17 (D012) as the concentric-offset oracle; ANGLED is
+/// the D013 rotated-bar variant of the PERPENDICULAR oracle. The Java
 /// editor's default is TANGENT (Main.java:175); the Rust editor's default is
 /// PERPENDICULAR (the M4 ruling kept it; the toggle lets the user switch).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StrokeMode {
     Perpendicular,
     Tangent,
+    Angled { angle: f32 },
 }
 
 /// A layer: elements plus the hatch and stroke settings the stitch path

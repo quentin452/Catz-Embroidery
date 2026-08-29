@@ -12,6 +12,16 @@ here.
 
 ## [Unreleased]
 
+### Added
+
+- **ANGLED stroke mode** (D013): the editor's stroke-mode toggle cycles
+  PERPENDICULAR → TANGENT → ANGLED → PERPENDICULAR. ANGLED is a rotated-bar
+  variant of the D004 PERPENDICULAR oracle — the bars sample at a fixed angle
+  offset from perpendicular, stretched by `1/|cos(ang)|` (the secant formula),
+  with a degree-suffixed angle knob (±89°) visible only when ANGLED is active.
+  The Java's `strokePolyNormalAng` is a Java2D raster; the Rust port is a
+  geometric invariant, never fixture-compared (D004's precedent).
+
 ## [v0.2.0] - 2026-08-17
 
 ### Added

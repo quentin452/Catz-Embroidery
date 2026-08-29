@@ -44,7 +44,7 @@ use emb_model::hatch;
 use emb_model::hatch_raster;
 use emb_model::model::Model;
 use emb_model::raster::{self, Raster};
-use emb_model::stroke::{stroke_poly_normal, stroke_poly_tangent};
+use emb_model::stroke::{stroke_poly_normal, stroke_poly_normal_ang, stroke_poly_tangent};
 use emb_model::trace;
 
 use crate::doc::{Document, Element, ElementKind, HatchMode, Layer, StrokeMode};
@@ -357,6 +357,18 @@ fn stroke_contours(model: &mut Model, layer: &Layer, contours: &[Vec<emb_model::
                     model.push_polyline(loop_, layer.stroke_color);
                 }
             }
+            StrokeMode::Angled { angle } => {
+                for bar in stroke_poly_normal_ang(
+                    &contour,
+                    (layer.stroke_weight / 2.0).max(0.5),
+                    STROKE_SPACING,
+                    true,
+                    true,
+                    angle,
+                ) {
+                    model.push_polyline(bar, layer.stroke_color);
+                }
+            }
         }
     }
 }
@@ -430,6 +442,18 @@ fn stroke_one_polyline(
         StrokeMode::Tangent => {
             for loop_ in stroke_poly_tangent(&poly, layer.stroke_weight, STROKE_SPACING, close) {
                 bars.push(loop_);
+            }
+        }
+        StrokeMode::Angled { angle } => {
+            for bar in stroke_poly_normal_ang(
+                &poly,
+                (layer.stroke_weight / 2.0).max(0.5),
+                STROKE_SPACING,
+                close,
+                true,
+                angle,
+            ) {
+                bars.push(bar);
             }
         }
     }

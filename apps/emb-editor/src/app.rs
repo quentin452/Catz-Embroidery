@@ -691,19 +691,39 @@ impl EditorApp {
                 let mode_label = match layer.stroke_mode {
                     StrokeMode::Perpendicular => "perp",
                     StrokeMode::Tangent => "tangent",
+                    StrokeMode::Angled { .. } => "angled",
                 };
                 if ui
                     .selectable_label(false, mode_label)
                     .on_hover_text(
-                        "Stroke mode: perpendicular (satin columns) or tangent (concentric outlines) — the Java's stroke-mode dialog",
+                        "Stroke mode: perpendicular (bars normal to path), tangent (concentric offsets), or angled (bars at a fixed angle — D013)",
                     )
                     .clicked()
                 {
                     layer.stroke_mode = match layer.stroke_mode {
                         StrokeMode::Perpendicular => StrokeMode::Tangent,
-                        StrokeMode::Tangent => StrokeMode::Perpendicular,
+                        StrokeMode::Tangent => StrokeMode::Angled { angle: 0.0 },
+                        StrokeMode::Angled { .. } => StrokeMode::Perpendicular,
                     };
                     changed = true;
+                }
+                // The D013 ANGLED angle knob: only visible when the layer's
+                // stroke mode is Angled. The angle is in radians, displayed
+                // as degrees in the UI, clamped to (-π/2, π/2).
+                if let StrokeMode::Angled { ref mut angle } = layer.stroke_mode {
+                    let mut deg = angle.to_degrees();
+                    let resp = ui
+                        .add(
+                            egui::DragValue::new(&mut deg)
+                                .range(-89.0..=89.0)
+                                .speed(1.0)
+                                .suffix("°"),
+                        )
+                        .on_hover_text("Bar rotation from perpendicular (D013)");
+                    if resp.changed() {
+                        *angle = deg.to_radians();
+                        changed = true;
+                    }
                 }
                 // The Java's cull toggle (Main.java:551-559): two overlapping
                 // circles — the second hollow when cull is off. Cut this

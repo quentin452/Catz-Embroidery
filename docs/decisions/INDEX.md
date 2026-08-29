@@ -17,6 +17,7 @@ re-edited except to add history. The table below is the index.
 | D010 | **Editor CONCENTRIC ported** — the isolines raster path (NOT hatchInset, which the editor never calls: `stitchLayer` → `E.image()` → `hatchRaster` → `isolines`), element-local like the cull; the boundary contour stays out until the stroke-mode toggle | 2026-08-17 |
 | D011 | **Editor TXT stitched** — the Hershey SIMPLEX vector font (`emb_model::font`, fixture-compared against the Java's own `putText` within D002), NOT the Java2D text raster the editor actually uses (D003-class, documented deviation); TXT strokes like LIN and contributes cull masks | 2026-08-17 |
 | D012 | **Editor TANGENT stroke ported** — the layer's stroke-mode toggle (PERPENDICULAR/TANGENT, the Java dialog); TANGENT is a D004-style geometric offset oracle (`stroke_poly_tangent`: the path's parallel curves at each band's distance, miter formula + winding-aware side guard, CONCENTRIC_ANTIALIGN shared with isolines), invariant-tested not fixture-compared | 2026-08-17 |
+| D013 | **Editor ANGLED stroke ported** — the layer's stroke-mode toggle gains a third mode, ANGLED (`stroke_poly_normal_ang`: the PERPENDICULAR bars rotated by a fixed angle, secant-stretched to `half_weight / |cos(ang)|`, endpoint caps rotated too); same oracle, same assembly, invariant-tested not fixture-compared; the Java's `strokePolyNormalAng` is a Java2D raster (D003) | 2026-08-29 |
 
 ## Writing a ruling
 

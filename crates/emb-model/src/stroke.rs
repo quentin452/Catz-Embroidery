@@ -405,6 +405,183 @@ pub fn stroke_poly_normal(
     kept
 }
 
+/// The ANGLED stroke: a thin rotation of the PERPENDICULAR stroke path
+/// (PEmbroiderGraphics.strokePolyNormalAng). The bars are sampled at a
+/// fixed angle offset from perpendicular to the segment direction, and
+/// their half-length is stretched by `1/|cos(ang)|` — the secant
+/// stretch that keeps the bar tips at the same perpendicular reach
+/// despite the rotation.
+///
+/// At `ang == 0` this is bit-identical to [`stroke_poly_normal`]
+/// (PERPENDICULAR). As `ang` approaches ±π/2 the bars run nearly
+/// parallel to the segment — infinitely long — so the caller should
+/// clamp the angle away from ±π/2 in the UI.
+///
+/// The oracle, the run state machine, the endpoint caps, the vertex
+/// pass, the assembly and the cleanup are structurally identical to
+/// PERPENDICULAR (D004). The comparison level is the same geometric
+/// invariant: every bar endpoint lies within `half_weight / |cos(ang)|`
+/// of the polyline, and every ON sample is within `spacing/2` of a
+/// segment. The output is verified by geometric invariants, never
+/// compared against the Java — the Java's ANGLED is a Java2D raster
+/// (D003's measured reason).
+///
+/// The caller applies the Java's clamps (STROKE_WEIGHT >= 1,
+/// STROKE_SPACING >= 0.1); the function refuses degenerate inputs —
+/// fewer than 2 points, `half_weight <= 0`, `spacing <= 0`, or
+/// `|ang| >= π/2` — with an empty result.
+pub fn stroke_poly_normal_ang(
+    poly: &[Point],
+    half_weight: f32,
+    spacing: f32,
+    close: bool,
+    connect: bool,
+    ang: f32,
+) -> Vec<Vec<Point>> {
+    if poly.len() < 2 || half_weight <= 0.0 || spacing <= 0.0 {
+        return Vec::new();
+    }
+    // At ±π/2 the bars are parallel to the segment — infinitely long.
+    let cos_a = geom::cos(ang);
+    if cos_a.abs() < 1e-6 {
+        return Vec::new();
+    }
+    // The secant-stretched half-length: the bar tips sit at the same
+    // perpendicular distance as PERPENDICULAR, but the bar itself is
+    // longer by 1/|cos(ang)|.
+    let dd = half_weight / cos_a.abs();
+
+    // The exact oracle index, built once (same as PERPENDICULAR).
+    let grid = SegmentGrid::build(poly, close, (spacing / 2.0).max(1.0));
+
+    // Segment pass: bars at the rotated direction.
+    let segs = poly.len() - if close { 0 } else { 1 };
+    let mut buckets: Vec<Vec<Vec<Point>>> = Vec::with_capacity(segs + 1);
+    for i in 0..segs {
+        let p0 = poly[i];
+        let p1 = poly[(i + 1) % poly.len()];
+        // The bar direction: perpendicular to the segment, then rotated by ang.
+        let a1 = geom::atan2(p1.y - p0.y, p1.x - p0.x) + HALF_PI + ang;
+        let l = p0.dist(p1);
+        let n = ((l / spacing) as f64).ceil() as usize;
+        let mut runs: Vec<Vec<Point>> = Vec::new();
+        if n > 0 {
+            let (ca, sa) = (geom::cos(a1), geom::sin(a1));
+            let m = dd.ceil() as usize + 1;
+            let mmm = 20.min(m / 3);
+            for j in 0..=n {
+                let t = j as f32 / n as f32;
+                let px = p0.x + (p1.x - p0.x) * t;
+                let py = p0.y + (p1.y - p0.y) * t;
+                walk_line(
+                    &mut runs,
+                    Point::new(px - dd * ca, py - dd * sa),
+                    Point::new(px + dd * ca, py + dd * sa),
+                    m,
+                    mmm,
+                    |p| grid.on_path(p, spacing / 2.0),
+                );
+            }
+        }
+        buckets.push(runs);
+    }
+    buckets.push(Vec::new());
+
+    // Vertex pass: radial rays from each vertex, sampled on the DILATED
+    // oracle — same as PERPENDICULAR.
+    let mm = ((std::f32::consts::PI * (dd * 2.0) / spacing * CAP_DENSITY_MULTIPLIER) as f64).ceil()
+        as usize;
+    let n = poly.len();
+
+    // Open-polyline caps: fanned arc bars at each endpoint, rotated by ang.
+    if !close {
+        for i in 0..n {
+            if i != 0 && i != n - 1 {
+                continue;
+            }
+            let p0 = poly[i];
+            let a = if i == 0 {
+                geom::atan2(poly[0].y - poly[1].y, poly[0].x - poly[1].x)
+            } else {
+                geom::atan2(poly[n - 1].y - poly[n - 2].y, poly[n - 1].x - poly[n - 2].x)
+            };
+            let a_rot = a + ang;
+            let (ca, sa) = (geom::cos(a_rot), geom::sin(a_rot));
+            let bucket = &mut buckets[(i + n - 1) % n];
+            for j in 0..mm / 2 {
+                let t = j as f32 / (mm / 2) as f32;
+                let x1 = p0.x + dd * t * ca;
+                let y1 = p0.y + dd * t * sa;
+                let cw = dd * (((1.0 - t * t) as f64).sqrt() as f32);
+                bucket.push(vec![
+                    Point::new(
+                        x1 + cw * geom::cos(a_rot - HALF_PI),
+                        y1 + cw * geom::sin(a_rot - HALF_PI),
+                    ),
+                    Point::new(
+                        x1 + cw * geom::cos(a_rot + HALF_PI),
+                        y1 + cw * geom::sin(a_rot + HALF_PI),
+                    ),
+                ]);
+            }
+        }
+    }
+
+    // Vertex pass (same as PERPENDICULAR).
+    for i in 0..n {
+        let p0 = poly[i];
+        let disc = !close && (i == 0 || i == n - 1);
+        let bucket = &mut buckets[(i + n - 1) % n];
+        let m = dd.ceil() as usize;
+        let mmm = 0;
+        for j in 0..mm {
+            let a = (j as f32 / mm as f32) * std::f32::consts::TAU;
+            let far = Point::new(p0.x - dd * geom::cos(a), p0.y - dd * geom::sin(a));
+            walk_line(bucket, p0, far, m, mmm, |p| {
+                if disc {
+                    on_endpoint_disc(p, p0, dd)
+                } else {
+                    grid.on_path(p, spacing / 2.0 + 1.0)
+                }
+            });
+        }
+    }
+
+    // Assembly and cleanup — identical to PERPENDICULAR.
+    let mut runs: Vec<Vec<Point>> = Vec::new();
+    let nb = buckets.len();
+    for bi in 0..nb {
+        let i = (bi + nb - 1) % nb;
+        let mut bucket = std::mem::take(&mut buckets[i]);
+        for (j, run) in bucket.iter_mut().enumerate() {
+            if j % 2 == 0 {
+                run.reverse();
+            }
+            runs.push(std::mem::take(run));
+        }
+    }
+    let ml = 2.0f32.min(dd - 1.0);
+    let mut kept: Vec<Vec<Point>> = Vec::new();
+    for run in runs {
+        if run.len() < 2 {
+            continue;
+        }
+        let (first, last) = (run[0], run[run.len() - 1]);
+        if first.dist(last) < ml {
+            continue;
+        }
+        kept.push(vec![first, last]);
+    }
+    if connect && kept.len() > 1 {
+        let mut one = kept.remove(0);
+        for run in kept {
+            one.extend(run);
+        }
+        return vec![one];
+    }
+    kept
+}
+
 /// Port of `PEmbroiderGraphics.strokePolyTangentRaster`'s OUTPUT through a
 /// D004-style geometric oracle: the TANGENT stroke's band edges are the
 /// parallel (offset) curves of the path at the band's half-width, computed
@@ -1066,5 +1243,130 @@ mod tests {
                 }
             }
         }
+    }
+
+    // ---- ANGLED stroke (D013, the rotated-bar variant) ----
+
+    /// At angle 0, `stroke_poly_normal_ang` produces the same output as
+    /// `stroke_poly_normal` — the bars are perpendicular to the path.
+    #[test]
+    fn angled_zero_matches_perpendicular() {
+        let poly = vec![Point::new(0.0, 0.0), Point::new(100.0, 0.0)];
+        let perp = stroke_poly_normal(&poly, 5.0, 4.0, false, true);
+        let ang0 = stroke_poly_normal_ang(&poly, 5.0, 4.0, false, true, 0.0);
+        assert_eq!(perp.len(), ang0.len(), "same run count");
+        for (a, b) in perp.iter().zip(ang0.iter()) {
+            assert_eq!(a.len(), b.len(), "same point count per run");
+            for (p, q) in a.iter().zip(b.iter()) {
+                assert!(
+                    p.dist(*q) < 0.01,
+                    "point mismatch at angle 0: {p:?} vs {q:?}"
+                );
+            }
+        }
+    }
+
+    /// At angle 0, degenerate inputs return empty (same as PERPENDICULAR).
+    #[test]
+    fn angled_degenerate_inputs_are_empty() {
+        let empty: Vec<Point> = Vec::new();
+        assert!(stroke_poly_normal_ang(&empty, 5.0, 4.0, false, true, 0.0).is_empty());
+        let one = vec![Point::new(0.0, 0.0)];
+        assert!(stroke_poly_normal_ang(&one, 5.0, 4.0, false, true, 0.0).is_empty());
+        let two = vec![Point::new(0.0, 0.0), Point::new(10.0, 0.0)];
+        assert!(stroke_poly_normal_ang(&two, 0.0, 4.0, false, true, 0.0).is_empty());
+        assert!(stroke_poly_normal_ang(&two, 5.0, 0.0, false, true, 0.0).is_empty());
+    }
+
+    /// At ±π/2 the function returns empty (bars parallel to the segment).
+    #[test]
+    fn angled_pi_over_2_is_empty() {
+        let poly = vec![Point::new(0.0, 0.0), Point::new(100.0, 0.0)];
+        assert!(
+            stroke_poly_normal_ang(&poly, 5.0, 4.0, false, true, std::f32::consts::FRAC_PI_2)
+                .is_empty()
+        );
+        assert!(
+            stroke_poly_normal_ang(&poly, 5.0, 4.0, false, true, -std::f32::consts::FRAC_PI_2)
+                .is_empty()
+        );
+    }
+
+    /// At 45°, the bars are rotated by π/4 and stretched by 1/cos(π/4) ≈ 1.414.
+    /// Every bar's midpoint stays within `dd = half_weight / cos(ang)` of the
+    /// polyline, and the bars are non-empty.
+    #[test]
+    fn angled_45_bars_are_rotated_and_stretched() {
+        let poly = vec![Point::new(0.0, 0.0), Point::new(100.0, 0.0)];
+        let ang = std::f32::consts::FRAC_PI_4; // 45°
+        let out = stroke_poly_normal_ang(&poly, 5.0, 4.0, false, false, ang);
+        assert!(!out.is_empty(), "45° angled stroke must produce bars");
+        let dd = 5.0 / ang.cos(); // ≈ 7.07
+        for run in &out {
+            assert_eq!(run.len(), 2, "run reduced to its ends");
+            let mid = Point::new((run[0].x + run[1].x) * 0.5, (run[0].y + run[1].y) * 0.5);
+            let d = trace::point_distance_to_segment(mid, poly[0], poly[1]);
+            assert!(
+                d <= dd + EPS,
+                "midpoint {mid:?} is {d} away, expected <= {dd}"
+            );
+            // The bar must be non-trivially long (the oracle clips at the ON
+            // boundary, so the bar is shorter than the full 2*dd, but still
+            // meaningfully longer than a 1-pixel artifact).
+            let bar_len = run[0].dist(run[1]);
+            assert!(
+                bar_len > 1.0,
+                "bar at 45° should have meaningful length: {bar_len}"
+            );
+        }
+    }
+
+    /// A closed square at 30°: non-empty, all points within the stretched
+    /// band, covering all four sides.
+    #[test]
+    fn angled_closed_square_all_sides() {
+        let poly = vec![
+            Point::new(0.0, 0.0),
+            Point::new(100.0, 0.0),
+            Point::new(100.0, 100.0),
+            Point::new(0.0, 100.0),
+        ];
+        let ang = std::f32::consts::FRAC_PI_6; // 30°
+        let out = stroke_poly_normal_ang(&poly, 5.0, 4.0, true, true, ang);
+        assert!(
+            !out.is_empty(),
+            "30° angled stroke on a square must produce bars"
+        );
+        let dd = 5.0 / ang.cos(); // ≈ 5.77
+        for run in &out {
+            let mid = Point::new((run[0].x + run[1].x) * 0.5, (run[0].y + run[1].y) * 0.5);
+            let d = dist_to_poly(mid, &poly, true);
+            assert!(
+                d <= dd + EPS,
+                "midpoint {mid:?} is {d} away, expected <= {dd}"
+            );
+        }
+        // At least one bar on each side (mid-segment, not at corners).
+        let mid_x = |p: &Point| p.x > 1.0 && p.x < 99.0;
+        let mid_y = |p: &Point| p.y > 1.0 && p.y < 99.0;
+        let bars: Vec<Point> = out.iter().flat_map(|r| r.iter().copied()).collect();
+        assert!(
+            bars.iter().any(|p| p.y.abs() <= dd + 1.0 && mid_x(p)),
+            "bottom side"
+        );
+        assert!(
+            bars.iter()
+                .any(|p| (p.y - 100.0).abs() <= dd + 1.0 && mid_x(p)),
+            "top side"
+        );
+        assert!(
+            bars.iter().any(|p| p.x.abs() <= dd + 1.0 && mid_y(p)),
+            "left side"
+        );
+        assert!(
+            bars.iter()
+                .any(|p| (p.x - 100.0).abs() <= dd + 1.0 && mid_y(p)),
+            "right side"
+        );
     }
 }

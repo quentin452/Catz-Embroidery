@@ -364,8 +364,9 @@ exception, or a recorded deviation (pin 7):
   space). Dark-thread designs take the Invert toggle, like any dark image.
 - **DRUNK hatch** (PEmbroiderGraphics.java:3090/3117): dead in Java (no app
   selects it) and in NO doc — the only deferral absent from both ROADMAP's
-  list and D003's eleven. Same class as VECFIELD/ANGLED (those ARE in
-  D003's eleven); noted so a future consumer argues it fresh.
+  list and D003's eleven. Same class as VECFIELD (which IS in D003's
+  eleven); noted so a future consumer argues it fresh. (ANGLED was ported
+  2026-08-29 as D013.)
 - **Launcher Dropbox connect**: the Java launcher's red/green Dropbox button
   (PEmbroiderLauncher.java:67, 84-88, 100-101) has no Rust counterpart.
   **Declared OUT OF SCOPE 2026-08-17** with the converter's Dropbox save:
@@ -381,5 +382,6 @@ counts (79/15 → 90/18, measured); convert.rs's clamp citation
 Dropbox pointer now names the ROADMAP row.
 
 No Java feature CALLED BY AN APP is both unported and undocumented: the only
-unlisted absences are dead-in-Java APIs (DRUNK, ANGLED, VECFIELD, spine,
+unlisted absences are dead-in-Java APIs (DRUNK, VECFIELD, spine,
 boolean shapes) and the app UX gaps named above (FPS/V-sync and i18n).
+(ANGLED was ported 2026-08-29 as D013.)
